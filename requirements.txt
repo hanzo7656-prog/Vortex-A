@@ -4,3 +4,5 @@ numpy
 pandas
 plotly
 urllib3
+ta-lib
+scipy
