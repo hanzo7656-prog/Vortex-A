@@ -20,7 +20,7 @@ st.set_page_config(
 
 # تنظیمات لاگ
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(name)
+logger = logging.getLogger(__name__)
 
 # ==================== دیکشنری دو زبانه ====================
 TEXTS = {
@@ -163,6 +163,54 @@ def check_api_health():
     except Exception as e:
         return False, f"خطای اتصال به API: {str(e)}"
 
+def get_historical_data_fallback(symbol="BINANCE:BTCUSDT", interval="60", count=100):
+    """دریافت داده‌های تاریخی از Binance Public API به عنوان جایگزین"""
+    try:
+        # تبدیل نماد: BINANCE:BTCUSDT -> BTCUSDT
+        binance_symbol = symbol.replace("BINANCE:", "")
+        
+        # تعیین interval برای Binance
+        interval_mapping = {
+            "1": "1m", "5": "5m", "15": "15m", "30": "30m",
+            "60": "1h", "240": "4h", "D": "1d", "W": "1w", "M": "1M"
+        }
+        
+        binance_interval = interval_mapping.get(interval, "1h")
+        
+        # دریافت داده از Binance
+        url = f"https://api.binance.com/api/v3/klines"
+        params = {
+            "symbol": binance_symbol,
+            "interval": binance_interval,
+            "limit": count
+        }
+        
+        response = requests.get(url, params=params, timeout=15)
+        
+        if response.status_code != 200:
+            return None
+        
+        data = response.json()
+        
+        # پردازش داده‌های Binance
+        df = pd.DataFrame(data, columns=[
+            'time', 'open', 'high', 'low', 'close', 'volume',
+            'close_time', 'quote_asset_volume', 'number_of_trades',
+            'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+        ])
+        
+        # تبدیل به نوع داده مناسب
+        df['time'] = pd.to_datetime(df['time'], unit='ms')
+        for col in ['open', 'high', 'low', 'close', 'volume']:
+            df[col] = df[col].astype(float)
+        
+        return df[['time', 'open', 'high', 'low', 'close', 'volume']]
+        
+    except Exception as e:
+        st.error(f"خطای دریافت داده از Binance: {str(e)}")
+        return None
+    
+    
 # ==================== دریافت داده از TradingView API ====================
 @st.cache_data(ttl=30, show_spinner=False)
 def get_tradingview_data(symbols, columns=["close", "volume", "change"]):
@@ -238,12 +286,11 @@ def get_historical_data(symbol="BINANCE:BTCUSDT", interval="60", count=100):
             return None
         
         # محاسبه بازه زمانی
-        end_date = datetime.now()
+
         
         # تعیین days بر اساس interval و count
         interval_days = {
-
-"1": max(1, count // 1440),
+            "1": max(1, count // 1440),
             "5": max(1, count // 288),
             "15": max(1, count // 96),
             "30": max(1, count // 48),
@@ -261,7 +308,6 @@ def get_historical_data(symbol="BINANCE:BTCUSDT", interval="60", count=100):
         params = {
             "vs_currency": "usd",
             "days": str(days),
-            "interval": "daily" if interval in ["D", "W", "M"] else "hourly"
         }
         
         response = requests.get(url, params=params, timeout=15)
@@ -271,6 +317,9 @@ def get_historical_data(symbol="BINANCE:BTCUSDT", interval="60", count=100):
             st.error("خطای 400: درخواست نامعتبر. پارامترهای ارسالی را بررسی کنید.")
             st.error(f"پارامترهای ارسالی: {params}")
             return None
+        elif response.status_code == 401:
+            st.error("خطای 401: دسترسی غیر مجاز. لطفا از پلن رایگان استفاده‌ کنید و پارامتر interval را حذف کنید.")
+            return get_historical_data_fallback(symbol, interval, count)
         elif response.status_code == 403:
             st.error("خطای 403: دسترسی غیرمجاز. ممکن است API Key نامعتبر باشد یا محدودیت دسترسی وجود داشته باشد.")
             return None
@@ -315,6 +364,10 @@ def get_historical_data(symbol="BINANCE:BTCUSDT", interval="60", count=100):
             return df
         
         return None
+    
+    except Exception as e:
+        st.error(f"خطای دریافت داده‌های تاریخی: {str(e)}")
+        return get_historical_data_fallback(symbol, interval, count)
         
     except requests.exceptions.Timeout:
         st.error("خطای timeout: اتصال به سرور زمان‌بر شد.")
@@ -348,7 +401,7 @@ def calculate_indicators(df):
         # محاسبه MACD
         exp12 = df['close'].ewm(span=12, adjust=False).mean()
 
-exp26 = df['close'].ewm(span=26, adjust=False).mean()
+        exp26 = df['close'].ewm(span=26, adjust=False).mean()
         df['MACD'] = exp12 - exp26
         df['MACD_Signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
         df['MACD_Histogram'] = df['MACD'] - df['MACD_Signal']
@@ -573,7 +626,7 @@ def main():
     # انتخاب زبان
     language = st.sidebar.selectbox("🌐 زبان / Language:", ["فارسی", "English"])
 
-T = TEXTS[language]
+    T = TEXTS[language]
     
     st.title(T["title"])
     
