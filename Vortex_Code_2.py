@@ -243,7 +243,7 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="24h"):
         session = create_session()
         response = session.get(url, params=params, headers=headers, timeout=15)
 
-        # 🔽 لاگ درخواست 🔽
+        # 🔽 لاگ پاسخ 🔽
         logger.info(f"📡کد وضعیت: {response.status_code}")
 
         if response.status_code == 200:
@@ -520,7 +520,11 @@ def load_previous_analysis(symbol, period, hours=24):
 def perform_technical_analysis(historical_data):
     """انجام تحلیل تکنیکال بدون وابستگی به نمایش نمودار"""
     if historical_data is None or historical_data.empty:
+        logger.warning("داده‌های تاریخی خالی برای تحلیل تکنیکال") 
         return None
+
+        logger.info(f"شروع تحلیل تکنیکال - تعداد داده‌ها: {len(historical_data)}")
+        historical_data = calculate_indicators(historical_data)
     
     analysis_results = {
         'timestamp': datetime.now(),
@@ -555,6 +559,7 @@ def perform_technical_analysis(historical_data):
         # تولید توصیه‌ها
         analysis_results['recommendations'] = generate_recommendations(analysis_results['signals'])
         
+        logger.info("تحلیل تکنیکال با موفقیت انجام شد")
         return analysis_results
         
     except Exception as e:
@@ -1125,6 +1130,7 @@ def load_previous_analysis(symbol, period, hours=24):
 
 # ==================== رابط کاربری اصلی ====================
 def main():
+    logger.info("شروع برنامه CoinScanner")
     # مقداردهی اولیه دیتابیس
     init_db()
     
