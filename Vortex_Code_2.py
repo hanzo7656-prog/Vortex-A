@@ -503,6 +503,31 @@ def perform_technical_analysis(historical_data):
         logger.error(f"خطا در تحلیل تکنیکال: {e}")
         return None
 
+# ==================== ثابت‌های تحلیل تکنیکال ====================
+# سیگنال‌های RSI
+RSI_OVERSOLD = 'oversold'
+RSI_OVERBOUGHT = 'overbought' 
+RSI_NEUTRAL = 'neutral'
+
+# سیگنال‌های MACD
+MACD_BULLISH = 'bullish'
+MACD_BEARISH = 'bearish'
+MACD_NEUTRAL = 'neutral'
+
+# سیگنال‌های میانگین متحرک
+GOLDEN_CROSS = 'golden_cross'
+DEATH_CROSS = 'death_cross'
+PRICE_ABOVE = 'above'
+PRICE_BELOW = 'below'
+
+# کلیدهای دیکشنری
+KEY_RSI_SIGNAL = 'rsi_signal'
+KEY_MACD_SIGNAL = 'macd_signal'
+KEY_PRICE_VS_SMA20 = 'price_vs_sma20'
+KEY_PRICE_VS_SMA50 = 'price_vs_sma50'
+KEY_SMA_CROSSOVER = 'sma_crossover'
+
+# ==================== توابع تحلیل مستقل ====================
 def generate_trading_signals(indicators):
     """تولید سیگنال‌های معاملاتی"""
     signals = {}
@@ -510,11 +535,11 @@ def generate_trading_signals(indicators):
     # سیگنال RSI
     rsi = indicators.get('rsi', 50)
     if rsi < 30:
-        signals['rsi_signal'] = 'oversold'
+        signals[KEY_RSI_SIGNAL] = RSI_OVERSOLD
     elif rsi > 70:
-        signals['rsi_signal'] = 'overbought'
+        signals[KEY_RSI_SIGNAL] = RSI_OVERBOUGHT
     else:
-        signals['rsi_signal'] = 'neutral'
+        signals[KEY_RSI_SIGNAL] = RSI_NEUTRAL
     
     # سیگنال MACD
     macd = indicators.get('macd', 0)
@@ -522,63 +547,54 @@ def generate_trading_signals(indicators):
     histogram = indicators.get('macd_histogram', 0)
     
     if macd > signal_line and histogram > 0:
-        signals['macd_signal'] = 'bullish'
+        signals[KEY_MACD_SIGNAL] = MACD_BULLISH
     elif macd < signal_line and histogram < 0:
-        signals['macd_signal'] = 'bearish'
+        signals[KEY_MACD_SIGNAL] = MACD_BEARISH
     else:
-        signals['macd_signal'] = 'neutral'
+        signals[KEY_MACD_SIGNAL] = MACD_NEUTRAL
     
     # سیگنال میانگین متحرک
     price = indicators.get('current_price', 0)
     sma20 = indicators.get('sma_20', price)
     sma50 = indicators.get('sma_50', price)
     
-    signals['price_vs_sma20'] = 'above' if price > sma20 else 'below'
-    signals['price_vs_sma50'] = 'above' if price > sma50 else 'below'
-    signals['sma_crossover'] = 'golden' if sma20 > sma50 else 'death'
+    signals[KEY_PRICE_VS_SMA20] = PRICE_ABOVE if price > sma20 else PRICE_BELOW
+    signals[KEY_PRICE_VS_SMA50] = PRICE_ABOVE if price > sma50 else PRICE_BELOW
+    signals[KEY_SMA_CROSSOVER] = GOLDEN_CROSS if sma20 > sma50 else DEATH_CROSS
     
     return signals
 
 def generate_recommendations(signals):
     """تولید توصیه‌های معاملاتی"""
     recommendations = []
-
-    # ==================== ثابت‌های تحلیل تکنیکال ====================
-GOLDEN_CROSS = 'golden'
-DEATH_CROSS = 'death_cross'
-PRICE_ABOVE = 
-PRICE_BELOW =OVERSOLD = 'oversold'
-OVERBOUGHT = 'overbought'
-BULLISH = 'bullish'
-BEARISH = 'bearish'
-
+    
     # تحلیل RSI
-    rsi_signal = signals.get('rsi_signal', 'neutral')
-    if rsi_signal == 'oversold':
+    rsi_signal = signals.get(KEY_RSI_SIGNAL, RSI_NEUTRAL)
+    if rsi_signal == RSI_OVERSOLD:
         recommendations.append("📈 RSI در ناحیه اشباع فروش - احتمال بازگشت قیمت")
-    elif rsi_signal == 'overbought':
+    elif rsi_signal == RSI_OVERBOUGHT:
         recommendations.append("📉 RSI در ناحیه اشباع خرید - احتمال اصلاح قیمت")
     
     # تحلیل MACD
-    macd_signal = signals.get('macd_signal', 'neutral')
-    if macd_signal == 'bullish':
+    macd_signal = signals.get(KEY_MACD_SIGNAL, MACD_NEUTRAL)
+    if macd_signal == MACD_BULLISH:
         recommendations.append("🟢 سیگنال MACD صعودی")
-    elif macd_signal == 'bearish':
+    elif macd_signal == MACD_BEARISH:
         recommendations.append("🔴 سیگنال MACD نزولی")
     
     # تحلیل میانگین متحرک
-    price_vs_sma20 = signals.get('price_vs_sma20', 'above')
-    price_vs_sma50 = signals.get('price_vs_sma50', 'above')
-    crossover = signals.get('sma_crossover', 'neutral')
+    price_vs_sma20 = signals.get(KEY_PRICE_VS_SMA20, PRICE_ABOVE)
+    price_vs_sma50 = signals.get(KEY_PRICE_VS_SMA50, PRICE_ABOVE)
+    crossover = signals.get(KEY_SMA_CROSSOVER, GOLDEN_CROSS)
     
-    if price_vs_sma20 == 'above' and price_vs_sma50 == 'above':
+    if price_vs_sma20 == PRICE_ABOVE and price_vs_sma50 == PRICE_ABOVE:
         recommendations.append("✅ قیمت بالاتر از میانگین‌های متحرک - روند صعودی")
-    elif price_vs_sma20 == 'below' and price_vs_sma50 == 'below':
+    elif price_vs_sma20 == PRICE_BELOW and price_vs_sma50 == PRICE_BELOW:
         recommendations.append("❌ قیمت پایین‌تر از میانگین‌های متحرک - روند نزولی")
-
-if crossover == 'golden':
+    
+    if crossover == GOLDEN_CROSS:
         recommendations.append("🌟 تقاطع طلایی میانگین‌ها - سیگنال خرید")
-    elif crossover == 'death':
+    elif crossover == DEATH_CROSS:
         recommendations.append("💀 تقاطع مرگ میانگین‌ها - سیگنال فروش")
     
     if not recommendations:
