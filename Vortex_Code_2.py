@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import requests
+import requests 
 import numpy as np
 from datetime import datetime, timedelta
 import json
@@ -546,11 +546,12 @@ def generate_recommendations(signals):
     # ==================== ثابت‌های تحلیل تکنیکال ====================
 GOLDEN_CROSS = 'golden'
 DEATH_CROSS = 'death_cross'
-OVERSOLD = 'oversold'
+PRICE_ABOVE = 
+PRICE_BELOW =OVERSOLD = 'oversold'
 OVERBOUGHT = 'overbought'
 BULLISH = 'bullish'
 BEARISH = 'bearish'
-    
+
     # تحلیل RSI
     rsi_signal = signals.get('rsi_signal', 'neutral')
     if rsi_signal == 'oversold':
