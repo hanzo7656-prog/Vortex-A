@@ -609,8 +609,7 @@ def display_technical_analysis(historical_data, T):
             
             with col1:
                 if 'SMA_20' in historical_data.columns:
-
-sma20 = historical_data['SMA_20'].iloc[-1]
+                    sma20 = historical_data['SMA_20'].iloc[-1]
                     price = historical_data['close'].iloc[-1]
                     st.metric("SMA 20", format_currency(sma20))
                     if price > sma20:
