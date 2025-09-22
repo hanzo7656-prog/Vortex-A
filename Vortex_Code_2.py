@@ -690,114 +690,114 @@ def display_market_data(coin_data, T, symbol):
 
 def display_price_chart(historical_data, symbol, period, T):
     """نمایش نمودار قیمت با کندل‌های بهبود یافته"""
-    if historical_data is not None and not historical_data.empty:
-        st.subheader(f"{T['price_chart']} - {symbol}")
-        
-        fig = go.Figure()
-        
-        # استفاده از نمودار شمعی اگر داده OHLC داریم
-        if all(col in historical_data.columns for col in ['open', 'high', 'low', 'close']):
-            # ایجاد کندل‌های واقعی‌تر
-            fig.add_trace(go.Candlestick(
-                x=historical_data['time'],
-                open=historical_data['open'],
-                high=historical_data['high'],
-                low=historical_data['low'],
-                close=historical_data['close'],
-                name='Price',
-                increasing_line_color='#2E8B57',  # سبز برای افزایش
-                decreasing_line_color='#DC143C',  # قرمز برای کاهش
-                increasing_fillcolor='#2E8B57',
-                decreasing_fillcolor='#DC143C',
-                line=dict(width=1)
-            ))
-            
-            # اضافه کردن حجم معاملات در نمودار جداگانه
-            if 'volume' in historical_data.columns:
-                # ایجاد نمودار دوم برای حجم
-                fig.add_trace(go.Bar(
-                    x=historical_data['time'],
-                    y=historical_data['volume'],
-                    name='Volume',
-                    marker_color='rgba(100, 100, 100, 0.3)',
-                    yaxis='y2'
-                ))
-                
-                # تنظیمات layout برای نمودار دو محوری
-                fig.update_layout(
-                    yaxis2=dict(
-                        title='Volume',
-                        titlefont=dict(color='gray'),
-                        tickfont=dict(color='gray'),
-                        overlaying='y',
-                        side='right',
-                        showgrid=False
-                    )
-                )
-        else:
-            # نمودار خطی ساده اگر داده OHLC نداریم
-            fig.add_trace(go.Scatter(
-                x=historical_data['time'],
-                y=historical_data['close'] if 'close' in historical_data.columns else historical_data['price'],
-                mode='lines',
-                name='Price',
-                line=dict(color='blue', width=2)
-            ))
-        
-        # میانگین متحرک
-        if 'SMA_20' in historical_data.columns:
-            fig.add_trace(go.Scatter(
-                x=historical_data['time'],
-                y=historical_data['SMA_20'],
-                mode='lines',
-                name='SMA 20',
-                line=dict(color='orange', width=1.5),
-
-opacity=0.7
-            ))
-        
-        if 'SMA_50' in historical_data.columns:
-            fig.add_trace(go.Scatter(
-                x=historical_data['time'],
-                y=historical_data['SMA_50'],
-                mode='lines',
-                name='SMA 50',
-                line=dict(color='purple', width=1.5),
-                opacity=0.7
-            ))
-        
-        # تنظیمات layout
-        fig.update_layout(
-            title=f"{symbol} {T['price_chart']} ({PERIODS.get(period, period)})",
-            xaxis_title="زمان",
-            yaxis_title="قیمت (USD)",
-            xaxis_rangeslider_visible=False,
-            height=600,
-            showlegend=True,
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            ),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            xaxis=dict(
-                gridcolor='lightgray',
-                showgrid=True
-            ),
-            yaxis=dict(
-                gridcolor='lightgray',
-                showgrid=True
-            )
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        return True
-    else:
+    if historical_data is None or historical_data.empty:
         st.warning(T["no_data"])
         return False
+    
+    st.subheader(f"{T['price_chart']} - {symbol}")
+    
+    fig = go.Figure()
+    
+    # استفاده از نمودار شمعی اگر داده OHLC داریم
+    if all(col in historical_data.columns for col in ['open', 'high', 'low', 'close']):
+        # ایجاد کندل‌های واقعی‌تر
+        fig.add_trace(go.Candlestick(
+            x=historical_data['time'],
+            open=historical_data['open'],
+            high=historical_data['high'],
+            low=historical_data['low'],
+            close=historical_data['close'],
+            name='Price',
+            increasing_line_color='#2E8B57',  # سبز برای افزایش
+            decreasing_line_color='#DC143C',  # قرمز برای کاهش
+            increasing_fillcolor='#2E8B57',
+            decreasing_fillcolor='#DC143C',
+            line=dict(width=1)
+        ))
+        
+        # اضافه کردن حجم معاملات در نمودار جداگانه
+        if 'volume' in historical_data.columns:
+            # ایجاد نمودار دوم برای حجم
+            fig.add_trace(go.Bar(
+                x=historical_data['time'],
+                y=historical_data['volume'],
+                name='Volume',
+                marker_color='rgba(100, 100, 100, 0.3)',
+                yaxis='y2'
+            ))
+            
+            # تنظیمات layout برای نمودار دو محوری
+            fig.update_layout(
+                yaxis2=dict(
+                    title='Volume',
+                    titlefont=dict(color='gray'),
+                    tickfont=dict(color='gray'),
+                    overlaying='y',
+                    side='right',
+                    showgrid=False
+                )
+            )
+    else:
+        # نمودار خطی ساده اگر داده OHLC نداریم
+        price_column = 'close' if 'close' in historical_data.columns else 'price'
+        fig.add_trace(go.Scatter(
+            x=historical_data['time'],
+            y=historical_data[price_column],
+            mode='lines',
+            name='Price',
+            line=dict(color='blue', width=2)
+        ))
+    
+    # میانگین متحرک
+    if 'SMA_20' in historical_data.columns:
+        fig.add_trace(go.Scatter(
+            x=historical_data['time'],
+            y=historical_data['SMA_20'],
+            mode='lines',
+            name='SMA 20',
+            line=dict(color='orange', width=1.5),
+            opacity=0.7
+        ))
+    
+    if 'SMA_50' in historical_data.columns:
+        fig.add_trace(go.Scatter(
+            x=historical_data['time'],
+            y=historical_data['SMA_50'],
+            mode='lines',
+            name='SMA 50',
+            line=dict(color='purple', width=1.5),
+            opacity=0.7
+        ))
+    
+    # تنظیمات layout
+    fig.update_layout(
+        title=f"{symbol} {T['price_chart']} ({PERIODS.get(period, period)})",
+        xaxis_title="زمان",
+        yaxis_title="قیمت (USD)",
+        xaxis_rangeslider_visible=False,
+        height=600,
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        xaxis=dict(
+            gridcolor='lightgray',
+            showgrid=True
+        ),
+        yaxis=dict(
+            gridcolor='lightgray',
+            showgrid=True
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    return True
 
 def display_indicators(historical_data, T):
     """نمایش اندیکاتورها"""
