@@ -924,6 +924,93 @@ def display_technical_analysis(historical_data, T):
                     else:
                         st.warning("قیمت پایین‌تر از SMA50")
 
+def display_analysis_dashboard(analysis_results, T, symbol, period):
+    """نمایش دیشبورد تحلیل مستقل از نمودار"""
+    if analysis_results is None:
+        st.warning("تحلیل تکنیکال در دسترس نیست")
+        return
+    
+    st.header("📊 دیشبورد تحلیل تکنیکال")
+    
+    # کارت‌های خلاصه تحلیل
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # کارت وضعیت کلی
+        signals = analysis_results['signals']
+        bullish_signals = [signals.get('rsi_signal'), signals.get('macd_signal'), 
+                          signals.get('price_vs_sma20'), signals.get('price_vs_sma50')]
+        
+        bullish_count = sum(1 for signal in bullish_signals 
+                          if signal in ['bullish', 'above', 'oversold'])
+        bearish_count = sum(1 for signal in bullish_signals 
+                          if signal in ['bearish', 'below', 'overbought'])
+        
+        if bullish_count > bearish_count:
+            st.success(f"🟢 وضعیت: صعودی ({bullish_count}/4)")
+        elif bearish_count > bullish_count:
+            st.error(f"🔴 وضعیت: نزولی ({bearish_count}/4)")
+        else:
+            st.info(f"⚪ وضعیت: خنثی ({bullish_count}/4)")
+    
+    with col2:
+        # کارت RSI
+        rsi = analysis_results['indicators'].get('rsi', 50)
+        if rsi < 30:
+            st.error(f"RSI: {rsi:.1f} (اشباع فروش)")
+        elif rsi > 70:
+            st.warning(f"RSI: {rsi:.1f} (اشباع خرید)")
+        else:
+            st.success(f"RSI: {rsi:.1f} (نرمال)")
+    
+    with col3:
+        # کارت MACD
+        macd_signal = analysis_results['signals'].get('macd_signal', 'neutral')
+        if macd_signal == 'bullish':
+            st.success("MACD: صعودی")
+        elif macd_signal == 'bearish':
+            st.error("MACD: نزولی")
+        else:
+            st.info("MACD: خنثی")
+    
+    with col4:
+        # کارت روند
+        trend = analysis_results['signals'].get('price_vs_sma50', 'above')
+        if trend == 'above':
+            st.success("روند: صعودی")
+        else:
+            st.error("روند: نزولی")
+    
+    # بخش توصیه‌ها
+    st.subheader("💡 توصیه‌های معاملاتی")
+    recommendations = analysis_results.get('recommendations', [])
+    
+    for i, rec in enumerate(recommendations, 1):
+        if "صعودی" in rec or "خرید" in rec or "طلا" in rec:
+            st.success(f"{i}. {rec}")
+        elif "نزولی" in rec or "فروش" in rec or "مرگ" in rec:
+            st.error(f"{i}. {rec}")
+        else:
+            st.info(f"{i}. {rec}")
+    
+    # جدول مقادیر اندیکاتورها
+    st.subheader("📈 مقادیر اندیکاتورها")
+    indicators_data = {
+        'شاخص': ['قیمت فعلی', 'RSI', 'MACD', 'سیگنال MACD', 'هیستوگرام MACD', 'SMA 20', 'SMA 50'],
+        'مقدار': [
+            f"${analysis_results['indicators'].get('current_price', 0):.2f}",
+            f"{analysis_results['indicators'].get('rsi', 0):.2f}",
+            f"{analysis_results['indicators'].get('macd', 0):.4f}",
+            f"{analysis_results['indicators'].get('macd_signal', 0):.4f}",
+            f"{analysis_results['indicators'].get('macd_histogram', 0):.4f}",
+            f"${analysis_results['indicators'].get('sma_20', 0):.2f}",
+            f"${analysis_results['indicators'].get('sma_50', 0):.2f}"
+        ]
+    }
+    
+    indicators_df = pd.DataFrame(indicators_data)
+    st.dataframe(indicators_df, use_container_width=True)
+
 #===============================دیشبورد=============================
 
 def save_analysis_results(analysis_results):
