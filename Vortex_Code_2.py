@@ -458,7 +458,6 @@ def load_previous_analysis(symbol, period, hours=24):
     except Exception as e:
         logger.error(f"خطا در بارگذاری تحلیل‌های قبلی: {e}")
         return None
-#========================توابع تحلیل مستقل========================
 # ==================== توابع تحلیل مستقل ====================
 def perform_technical_analysis(historical_data):
     """انجام تحلیل تکنیکال بدون وابستگی به نمایش نمودار"""
@@ -543,6 +542,14 @@ def generate_trading_signals(indicators):
 def generate_recommendations(signals):
     """تولید توصیه‌های معاملاتی"""
     recommendations = []
+
+    # ==================== ثابت‌های تحلیل تکنیکال ====================
+GOLDEN_CROSS = 'golden'
+DEATH_CROSS = 'death_cross'
+OVERSOLD = 'oversold'
+OVERBOUGHT = 'overbought'
+BULLISH = 'bullish'
+BEARISH = 'bearish'
     
     # تحلیل RSI
     rsi_signal = signals.get('rsi_signal', 'neutral')
