@@ -130,8 +130,7 @@ def create_session():
 def format_number(num):
     """فرمت اعداد به صورت خوانا"""
     if num is None or pd.isna(num):
-
-return "N/A"
+        return "N/A"
     try:
         num = float(num)
         if num >= 1_000_000:
