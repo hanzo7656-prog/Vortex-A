@@ -244,7 +244,7 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="24h"):
                         timestamp = point[0]  # تایم‌استمپ به ثانیه
                         price_usd = point[1]  # قیمت به USD
 
-df_data.append({
+                        df_data.append({
                             'time': pd.to_datetime(timestamp, unit='s'),
                             'price': price_usd
                         })
@@ -407,6 +407,177 @@ def load_from_cache(symbol, period, count):
     except Exception as e:
         logger.error(f"خطا در خواندن کش: {e}")
         return None
+#================================ذخیره داده‌های تحلیل ==========================
+def save_analysis_results(analysis_results):
+    """ذخیره نتایج تحلیل برای استفاده‌های بعدی"""
+    try:
+        conn = sqlite3.connect('market_data.db', check_same_thread=False)
+        c = conn.cursor()
+        
+        # ایجاد جدول برای نتایج تحلیل
+        c.execute('''CREATE TABLE IF NOT EXISTS analysis_results
+                     (symbol TEXT, period TEXT, timestamp DATETIME,
+                      rsi REAL, macd REAL, signal REAL, histogram REAL,
+                      sma20 REAL, sma50 REAL, price REAL,
+                      signals TEXT, recommendations TEXT)''')
+        
+        # ذخیره نتایج
+        c.execute('''INSERT INTO analysis_results 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (analysis_results['symbol'],
+                  analysis_results['period'],
+                  analysis_results['timestamp'],
+                  analysis_results['indicators']['rsi'],
+                  analysis_results['indicators']['macd'],
+                  analysis_results['indicators']['macd_signal'],
+                  analysis_results['indicators']['macd_histogram'],
+                  analysis_results['indicators']['sma_20'],
+                  analysis_results['indicators']['sma_50'],
+                  analysis_results['indicators']['current_price'],
+                  json.dumps(analysis_results['signals']),
+                  json.dumps(analysis_results['recommendations'])))
+        
+        conn.commit()
+        conn.close()
+        logger.info("نتایج تحلیل ذخیره شد")
+    except Exception as e:
+        logger.error(f"خطا در ذخیره نتایج تحلیل: {e}")
+
+def load_previous_analysis(symbol, period, hours=24):
+    """بارگذاری تحلیل‌های قبلی"""
+    try:
+        conn = sqlite3.connect('market_data.db', check_same_thread=False)
+        since = datetime.now() - timedelta(hours=hours)
+        
+        df = pd.read_sql_query('''SELECT * FROM analysis_results 
+                                WHERE symbol = ? AND period = ? AND timestamp > ?
+                                ORDER BY timestamp DESC''', 
+                             conn, params=(symbol, period, since))
+        conn.close()
+        
+        return df
+    except Exception as e:
+        logger.error(f"خطا در بارگذاری تحلیل‌های قبلی: {e}")
+        return None
+#========================توابع تحلیل مستقل========================
+# ==================== توابع تحلیل مستقل ====================
+def perform_technical_analysis(historical_data):
+    """انجام تحلیل تکنیکال بدون وابستگی به نمایش نمودار"""
+    if historical_data is None or historical_data.empty:
+        return None
+    
+    analysis_results = {
+        'timestamp': datetime.now(),
+        'symbol': '',
+        'period': '',
+        'indicators': {},
+        'signals': {},
+        'recommendations': []
+    }
+    
+    try:
+        # محاسبه اندیکاتورها
+        historical_data = calculate_indicators(historical_data)
+        
+        # آخرین مقادیر
+        last_row = historical_data.iloc[-1]
+        
+        # ذخیره مقادیر اندیکاتورها
+        analysis_results['indicators'] = {
+            'current_price': last_row.get('close', last_row.get('price', 0)),
+            'rsi': last_row.get('RSI', 0),
+            'macd': last_row.get('MACD', 0),
+            'macd_signal': last_row.get('MACD_Signal', 0),
+            'macd_histogram': last_row.get('MACD_Histogram', 0),
+            'sma_20': last_row.get('SMA_20', 0),
+            'sma_50': last_row.get('SMA_50', 0)
+        }
+        
+        # تولید سیگنال‌ها
+        analysis_results['signals'] = generate_trading_signals(analysis_results['indicators'])
+        
+        # تولید توصیه‌ها
+        analysis_results['recommendations'] = generate_recommendations(analysis_results['signals'])
+        
+        return analysis_results
+        
+    except Exception as e:
+        logger.error(f"خطا در تحلیل تکنیکال: {e}")
+        return None
+
+def generate_trading_signals(indicators):
+    """تولید سیگنال‌های معاملاتی"""
+    signals = {}
+    
+    # سیگنال RSI
+    rsi = indicators.get('rsi', 50)
+    if rsi < 30:
+        signals['rsi_signal'] = 'oversold'
+    elif rsi > 70:
+        signals['rsi_signal'] = 'overbought'
+    else:
+        signals['rsi_signal'] = 'neutral'
+    
+    # سیگنال MACD
+    macd = indicators.get('macd', 0)
+    signal_line = indicators.get('macd_signal', 0)
+    histogram = indicators.get('macd_histogram', 0)
+    
+    if macd > signal_line and histogram > 0:
+        signals['macd_signal'] = 'bullish'
+    elif macd < signal_line and histogram < 0:
+        signals['macd_signal'] = 'bearish'
+    else:
+        signals['macd_signal'] = 'neutral'
+    
+    # سیگنال میانگین متحرک
+    price = indicators.get('current_price', 0)
+    sma20 = indicators.get('sma_20', price)
+    sma50 = indicators.get('sma_50', price)
+    
+    signals['price_vs_sma20'] = 'above' if price > sma20 else 'below'
+    signals['price_vs_sma50'] = 'above' if price > sma50 else 'below'
+    signals['sma_crossover'] = 'golden' if sma20 > sma50 else 'death'
+    
+    return signals
+
+def generate_recommendations(signals):
+    """تولید توصیه‌های معاملاتی"""
+    recommendations = []
+    
+    # تحلیل RSI
+    rsi_signal = signals.get('rsi_signal', 'neutral')
+    if rsi_signal == 'oversold':
+        recommendations.append("📈 RSI در ناحیه اشباع فروش - احتمال بازگشت قیمت")
+    elif rsi_signal == 'overbought':
+        recommendations.append("📉 RSI در ناحیه اشباع خرید - احتمال اصلاح قیمت")
+    
+    # تحلیل MACD
+    macd_signal = signals.get('macd_signal', 'neutral')
+    if macd_signal == 'bullish':
+        recommendations.append("🟢 سیگنال MACD صعودی")
+    elif macd_signal == 'bearish':
+        recommendations.append("🔴 سیگنال MACD نزولی")
+    
+    # تحلیل میانگین متحرک
+    price_vs_sma20 = signals.get('price_vs_sma20', 'above')
+    price_vs_sma50 = signals.get('price_vs_sma50', 'above')
+    crossover = signals.get('sma_crossover', 'neutral')
+    
+    if price_vs_sma20 == 'above' and price_vs_sma50 == 'above':
+        recommendations.append("✅ قیمت بالاتر از میانگین‌های متحرک - روند صعودی")
+    elif price_vs_sma20 == 'below' and price_vs_sma50 == 'below':
+        recommendations.append("❌ قیمت پایین‌تر از میانگین‌های متحرک - روند نزولی")
+
+if crossover == 'golden':
+        recommendations.append("🌟 تقاطع طلایی میانگین‌ها - سیگنال خرید")
+    elif crossover == 'death':
+        recommendations.append("💀 تقاطع مرگ میانگین‌ها - سیگنال فروش")
+    
+    if not recommendations:
+        recommendations.append("⚪ وضعیت خنثی - منتظر سیگنال واضح‌تر بمانید")
+    
+    return recommendations
 
 # ==================== توابع پردازش داده ====================
 @st.cache_data(ttl=600, show_spinner=False)
@@ -730,6 +901,60 @@ def display_technical_analysis(historical_data, T):
                     else:
                         st.warning("قیمت پایین‌تر از SMA50")
 
+#===============================دیشبورد=============================
+
+def save_analysis_results(analysis_results):
+    """ذخیره نتایج تحلیل برای استفاده‌های بعدی"""
+    try:
+        conn = sqlite3.connect('market_data.db', check_same_thread=False)
+        c = conn.cursor()
+        
+        # ایجاد جدول برای نتایج تحلیل
+        c.execute('''CREATE TABLE IF NOT EXISTS analysis_results
+                     (symbol TEXT, period TEXT, timestamp DATETIME,
+                      rsi REAL, macd REAL, signal REAL, histogram REAL,
+                      sma20 REAL, sma50 REAL, price REAL,
+                      signals TEXT, recommendations TEXT)''')
+        
+        # ذخیره نتایج
+        c.execute('''INSERT INTO analysis_results 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                 (analysis_results['symbol'],
+                  analysis_results['period'],
+                  analysis_results['timestamp'],
+                  analysis_results['indicators']['rsi'],
+                  analysis_results['indicators']['macd'],
+                  analysis_results['indicators']['macd_signal'],
+                  analysis_results['indicators']['macd_histogram'],
+                  analysis_results['indicators']['sma_20'],
+                  analysis_results['indicators']['sma_50'],
+                  analysis_results['indicators']['current_price'],
+                  json.dumps(analysis_results['signals']),
+                  json.dumps(analysis_results['recommendations'])))
+        
+        conn.commit()
+        conn.close()
+        logger.info("نتایج تحلیل ذخیره شد")
+    except Exception as e:
+        logger.error(f"خطا در ذخیره نتایج تحلیل: {e}")
+
+def load_previous_analysis(symbol, period, hours=24):
+    """بارگذاری تحلیل‌های قبلی"""
+    try:
+        conn = sqlite3.connect('market_data.db', check_same_thread=False)
+        since = datetime.now() - timedelta(hours=hours)
+        
+        df = pd.read_sql_query('''SELECT * FROM analysis_results 
+                                WHERE symbol = ? AND period = ? AND timestamp > ?
+                                ORDER BY timestamp DESC''', 
+                             conn, params=(symbol, period, since))
+        conn.close()
+        
+        return df
+    except Exception as e:
+        logger.error(f"خطا در بارگذاری تحلیل‌های قبلی: {e}")
+        return None
+
 # ==================== رابط کاربری اصلی ====================
 def main():
     # مقداردهی اولیه دیتابیس
@@ -793,7 +1018,7 @@ conn.commit()
     st.sidebar.subheader(T["symbol_info"])
     st.sidebar.write(f"نماد: {symbol.capitalize().replace('-', ' ')}")
     st.sidebar.write(f"دوره: {PERIODS.get(period, period)}")
-    
+      
     # دریافت داده‌های بازار
     with st.spinner(T["loading"]):
         # دریافت داده‌های لحظه‌ای
@@ -802,10 +1027,14 @@ conn.commit()
         # دریافت داده‌های تاریخی
         historical_data = get_historical_data(symbol=symbol, period=period)
         
+        # انجام تحلیل تکنیکال مستقل
+        analysis_results = None
         if historical_data is not None:
-            historical_data = calculate_indicators(historical_data)
+            analysis_results = perform_technical_analysis(historical_data)
     
-    # نمایش اطلاعات بازار
+    # ==================== بخش‌های مختلف نمایش ====================
+    
+    # ۱. نمایش اطلاعات بازار (همیشه)
     if not display_market_data(market_data, T, symbol):
         st.error(T["connection_error"])
         if st.button(T["retry"]):
@@ -813,9 +1042,27 @@ conn.commit()
             st.rerun()
         return
     
-    # نمایش نمودار قیمت
-    display_price_chart(historical_data, symbol, period, T)
+    # ۲. دیشبورد تحلیل تکنیکال (همیشه - مستقل از نمودار)
+    if analysis_results:
+        analysis_results['symbol'] = symbol
+        analysis_results['period'] = period
+        display_analysis_dashboard(analysis_results, T, symbol, period)
+    else:
+        st.warning("تحلیل تکنیکال در دسترس نیست")
     
+    # ۳. نمایش نمودار قیمت (اختیاری - می‌تواند غیرفعال شود)
+    show_charts = st.sidebar.checkbox("📊 نمایش نمودارها", value=True)
+    if show_charts:
+        display_price_chart(historical_data, symbol, period, T)
+        display_indicators(historical_data, T)
+    else:
+        st.info("نمایش نمودارها غیرفعال شده است. تحلیل‌ها در دیشبورد بالا قابل مشاهده هستند.")
+    
+    # ۴. نمایش جزئیات فنی (اختیاری)
+    show_details = st.sidebar.checkbox("🔍 نمایش جزئیات فنی", value=False)
+    if show_details and historical_data is not None:
+        display_technical_analysis(historical_data, T)
+        
     # نمایش اندیکاتورها
     display_indicators(historical_data, T)
     
