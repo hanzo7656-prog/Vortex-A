@@ -171,6 +171,7 @@ def check_api_health():
             return False, f"CoinState API پاسخ نمی‌دهد. کد وضعیت: {response.status_code}"
     except Exception as e:
         return False, f"خطای اتصال به CoinState API: {str(e)}"
+    
 # ==================== توابع CoinState API ====================
 @st.cache_data(ttl=30, show_spinner=False)
 def get_coinstate_realtime_data(coin_id="bitcoin"):
@@ -197,13 +198,17 @@ def get_coinstate_realtime_data(coin_id="bitcoin"):
 def get_coinstate_historical_data(coin_id="bitcoin", period="1d", limit=100):
     """دریافت داده‌های تاریخی از CoinState API"""
     try:
-        url = f"{COINSTATE_BASE_URL}/coins/{coin_id}/charts"
+        url = f"{COINSTATE_BASE_URL}/coins/charts"
         params = {
             "period": period,
+            "coinIds": coin_id,
             "limit": limit
         }
         
-        headers = get_coinstate_headers()
+        headers = {
+            "X-API-KEY": COINSTATE_API_KEY,
+            "Content-Type": "application/json"
+}
         
         session = create_session()
         response = session.get(url, params=params, headers=headers, timeout=15)
@@ -222,7 +227,7 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="1d", limit=100):
                             'price': item[1],
                             'volume': item[2] if len(item) > 2 else 0
                         })
-                
+            if df_data:  
                 df = pd.DataFrame(df_data)
                 
                 # برای OHLC، از قیمت به عنوان open, high, low, close استفاده می‌کنیم
@@ -232,12 +237,52 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="1d", limit=100):
                 df['close'] = df['price']
                 
                 return df[['time', 'open', 'high', 'low', 'close', 'volume']]
-        
-        return None
+            
+        st.warning("داده‌های تاریخی دریافت نشد، درحال استفاده از داده‌های نمونه...")
+        return generate_sample_data(period, limit)
         
     except Exception as e:
         st.error(f"خطا در دریافت داده تاریخی از CoinState: {str(e)}")
-        return None
+        return generate_sample_data(period, limit)
+    
+def generate_sample_data(period="1d", limit=100):
+    """ایجاد داده‌های نمونه برای تست"""
+    now = datetime.now()
+    
+    # تعیین فاصله زمانی بر اساس period
+    if period == "1h":
+        delta = timedelta(hours=1)
+    elif period == "4h":
+        delta = timedelta(hours=4)
+    elif period == "1d":
+        delta = timedelta(days=1)
+    elif period == "7d":
+        delta = timedelta(days=7)
+    elif period == "1m":
+        delta = timedelta(days=30)
+    elif period == "3m":
+        delta = timedelta(days=90)
+    elif period == "1y":
+        delta = timedelta(days=365)
+    else:
+        delta = timedelta(days=1)
+    
+    # ایجاد داده‌های نمونه
+    times = [now - i * delta for i in range(limit)]
+    base_price = 50000
+    prices = [base_price * (1 + 0.01 * np.sin(i/10) + 0.02 * np.random.randn()) for i in range(limit)]
+    volumes = [1000000 * (1 + 0.5 * np.random.rand()) for _ in range(limit)]
+    
+    df = pd.DataFrame({
+        'time': times,
+        'open': prices,
+        'high': [p * (1 + 0.02 * np.random.rand()) for p in prices],
+        'low': [p * (1 - 0.02 * np.random.rand()) for p in prices],
+        'close': prices,
+        'volume': volumes
+    })
+    
+    return df
 
 # ==================== کش محلی ====================
 def init_db():
@@ -301,8 +346,8 @@ def get_historical_data(symbol="bitcoin", interval="1d", count=100):
         save_to_cache(symbol, interval, data)
         return data
     
-    st.error("هیچ داده‌ای دریافت نشد.")
-    return None
+    st.error("هیچ داده‌ای دريافت نشد، درحال استفاده از اطلاعات نمونه API")
+    return generate_sample_data(interval, count)
 
 def calculate_indicators(df):
     """محاسبه اندیکاتورهای تکنیکال"""
