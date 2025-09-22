@@ -20,7 +20,14 @@ st.set_page_config(
 )
 
 # تنظیمات لاگ
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('market_scanner.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # ==================== دیکشنری دو زبانه ====================
@@ -189,12 +196,19 @@ def get_coinstate_realtime_data(coin_id="bitcoin"):
     try:
         url = f"{COINSTATE_BASE_URL}/coins/{coin_id}"
         headers = get_coinstate_headers()
+
         
+        # 🔽 لاگ درخواست 🔽
+        logger.info(f"درخواست داده لحظه‌ای: {coin_id}"
+                    
         session = create_session()
         response = session.get(url, headers=headers, timeout=10)
+
+        logger.info(f"کد وضعیت: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()
+            logger.info(f"داده‌ی لحظه‌ای دریافت شد: {coin_id}")
             return data
         else:
             st.error(f"خطا در دریافت داده از CoinState: {response.status_code}")
@@ -213,16 +227,25 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="24h"):
         # استفاده از period mapping بر اساس مستندات
         api_period = PERIOD_MAPPING.get(period, "24h")
         
+        # اصلاح پارامترها بر اساس مستندات
         params = {
             "period": api_period,
-            "coinIds": coin_id
+            "coinIds": coin_id  # فقط یک کوین در هر درخواست
         }
         
         headers = get_coinstate_headers()
-        
+
+        # 🔽 لاگ درخواست 🔽
+        logger.info(f"📊 درخواست داده تاریخی: {coin_id} - دوره: {period}")
+        logger.debug(f"🔗 URL: {url}")
+        logger.debug(f"📋 پارامترها: {params}")
+
         session = create_session()
         response = session.get(url, params=params, headers=headers, timeout=15)
-        
+
+        # 🔽 لاگ درخواست 🔽
+        logger.info(f"📡کد وضعیت: {response.status_code}")
+
         if response.status_code == 200:
             data = response.json()
             
@@ -232,75 +255,110 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="24h"):
                 
                 # بررسی خطا برای این کوین
                 if coin_data.get('errorMessage'):
-                    st.warning(f"خطا برای {coin_id}: {coin_data['errorMessage']}")
-                    return generate_sample_ohlc_data(period)  # استفاده از داده‌های OHLC نمونه بهبود یافته
+                    logger.warning(f"خطا برای {coin_id}: {coin_data['errorMessage']}")
+                    return generate_sample_ohlc_data(period)
                 
                 chart_data = coin_data.get('chart', [])
                 df_data = []
                 
                 for point in chart_data:
-                    if isinstance(point, list) and len(point) >= 2:
+                    if isinstance(point, list) and len(point) >= 4:  # باید 4 مقدار داشته باشد
                         timestamp = point[0]  # تایم‌استمپ به ثانیه
-                        price_usd = point[1]  # قیمت به USD
-
+                        price_usd = point[1]  # قیمت به USD (ایندکس 1)
+                        price_btc = point[2]  # قیمت به BTC (ایندکس 2)
+                        price_eth = point[3]  # قیمت به ETH (ایندکس 3)
+                        
                         df_data.append({
                             'time': pd.to_datetime(timestamp, unit='s'),
-                            'price': price_usd
+                            'price': price_usd,
+                            'price_btc': price_btc,
+                            'price_eth': price_eth
                         })
                 
                 if df_data:
                     df = pd.DataFrame(df_data)
                     df = df.drop_duplicates(subset=['time']).sort_values('time')
                     
-                    # ایجاد داده‌های OHLC واقعی‌تر از داده‌های قیمت
+                    # ایجاد داده‌های OHLC از داده‌های قیمت
                     return create_ohlc_from_price_data(df, period)
-        
-        # اگر داده‌ای دریافت نشد
-        st.warning(f"داده‌های تاریخی برای {coin_id} دریافت نشد (کد: {response.status_code})")
-        return generate_sample_ohlc_data(period)
-        
+                else:
+                    logger.warning(f"هیچ داده‌ای برای {coin_id} دریافت نشد")
+                    return generate_sample_ohlc_data(period)
+            else:
+                logger.warning("پاسخ API خالی یا فرمت نامعتبر")
+                return generate_sample_ohlc_data(period)
+        else:
+            logger.error(f"خطای API: کد وضعیت {response.status_code}")
+            return generate_sample_ohlc_data(period)
+            
     except Exception as e:
-        st.error(f"خطا در دریافت داده تاریخی از CoinState: {str(e)}")
+        logger.error(f"خطا در اتصال: {str(e)}")
         return generate_sample_ohlc_data(period)
-
+        
 def create_ohlc_from_price_data(price_df, period):
-    """ایجاد داده‌های OHLC واقعی‌تر از داده‌های قیمت پایانی"""
-    if price_df.empty:
+    """ایجاد داده‌های OHLC از داده‌های قیمت پایانی با منطق بهتر"""
+    if price_df.empty or len(price_df) < 2:
         return price_df
     
     # تعیین بازه زمانی بر اساس period برای گروه‌بندی
     if period == "24h":
-        freq = '1H'
+        freq = '1H'  # داده‌های ساعتی برای 24 ساعت
+        min_points = 20
     elif period == "1w":
-        freq = '4H'
+        freq = '4H'  # داده‌های 4 ساعتی برای 1 هفته
+        min_points = 40
     elif period == "1m":
-        freq = '1D'
-    else:
-        freq = '1D'
+        freq = '1D'  # داده‌های روزانه برای 1 ماه
+        min_points = 28
+    elif period == "3m":
+        freq = '1D'  # داده‌های روزانه برای 3 ماه
+        min_points = 85
+    elif period == "6m":
+        freq = '1D'  # داده‌های روزانه برای 6 ماه
+        min_points = 170
+    elif period == "1y":
+        freq = '1D'  # داده‌های روزانه برای 1 سال
+        min_points = 365
+    else:  # all
+        freq = '1W'  # داده‌های هفتگی برای همه زمان
+        min_points = 100
     
-    # تنظیم ایندکس زمانی
-    price_df = price_df.set_index('time')
+    # اگر داده‌ها کمتر از حداقل مورد نیاز هستند، فرکانس را کاهش دهید
+    if len(price_df) < min_points:
+        if period in ["24h", "1w"]:
+            freq = '1H'
+        else:
+            freq = '1D'
     
-    # نمونه‌برداری مجدد بر اساس فرکانس
-    resampled = price_df['price'].resample(freq)
-    
-    # ایجاد داده‌های OHLC
-    ohlc_data = resampled.agg({
-        'open': 'first',
-        'high': 'max',
-        'low': 'min',
-        'close': 'last'
-    })
-    
-    # محاسبه حجم معاملات تقریبی
-    ohlc_data['volume'] = ohlc_data['close'] * np.random.uniform(1000, 10000, len(ohlc_data))
-    
-    # بازگرداندن به حالت عادی
-    ohlc_data = ohlc_data.reset_index()
-    ohlc_data = ohlc_data.dropna()
-    
-    return ohlc_data
-
+    try:
+        # تنظیم ایندکس زمانی
+        price_df = price_df.set_index('time')
+        
+        # نمونه‌برداری مجدد بر اساس فرکانس
+        resampled = price_df['price'].resample(freq)
+        
+        # ایجاد داده‌های OHLC
+        ohlc_data = resampled.agg({
+            'open': 'first',
+            'high': 'max', 
+            'low': 'min',
+            'close': 'last'
+        }).dropna()
+        
+        # محاسبه حجم معاملات تقریبی (بر اساس نوسانات قیمت)
+        if len(ohlc_data) > 1:
+            ohlc_data['volume'] = (ohlc_data['close'] * 
+                                 np.random.uniform(1000, 10000, len(ohlc_data)) * 
+                                 (1 + abs(ohlc_data['close'].pct_change().fillna(0))))
+        else:
+            ohlc_data['volume'] = ohlc_data['close'] * np.random.uniform(1000, 10000)
+        
+        return ohlc_data.reset_index()
+        
+    except Exception as e:
+        logger.error(f"خطا در ایجاد OHLC: {str(e)}")
+        return price_df.reset_index()
+        
 def generate_sample_ohlc_data(period="24h"):
     """ایجاد داده‌های OHLC نمونه واقعی‌تر"""
     # تعیین تعداد داده‌ها بر اساس دوره
