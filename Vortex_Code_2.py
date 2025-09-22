@@ -1015,8 +1015,7 @@ def main():
         try:
             conn = sqlite3.connect('market_data.db', check_same_thread=False)
             conn.execute('DELETE FROM price_data WHERE symbol = ? AND period = ?', (symbol, period))
-
-conn.commit()
+            conn.commit()
             conn.close()
             st.sidebar.success("داده‌های کش حذف شدند")
         except Exception as e:
