@@ -1010,7 +1010,7 @@ def main():
         st.error("خطا در اجرای برنامه. لطفا صفحه را رفرش کنید. {str(e)}")
 
         import traceback
-        st.code(traceback.format_exc(), language='python'
+        st.code(traceback.format_exc(), language='python')
 
         st.info(f"لطفا این اطلاعات خطا را برای پشتیبانی ارسال کنید.")
 
