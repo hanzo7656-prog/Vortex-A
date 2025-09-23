@@ -199,7 +199,7 @@ def get_coinstate_realtime_data(coin_id="bitcoin"):
 
         
         # 🔽 لاگ درخواست 🔽
-        logger.info(f"درخواست داده لحظه‌ای: {coin_id}"
+        logger.info(f"درخواست داده لحظه‌ای: {coin_id}")
                     
         session = create_session()
         response = session.get(url, headers=headers, timeout=10)
