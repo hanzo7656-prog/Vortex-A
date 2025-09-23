@@ -987,6 +987,8 @@ def main():
                     st.plotly_chart(fig_rsi, use_container_width=True)
                 with col2:
                     st.plotly_chart(fig_macd, use_container_width=True)
+            else:
+                st.warning(f"نمودارها در دسترس نیستند")
         
         # Display portfolio
         if show_portfolio:
@@ -1004,8 +1006,13 @@ def main():
                     st.write(f"توصیه: {result['recommendations'][0] if result['recommendations'] else 'N/A'}")
     
     except Exception as e:
-        logger.error(f"Application error: {e}")
-        st.error("خطا در اجرای برنامه. لطفا صفحه را رفرش کنید.")
+        logger.error(f"Application error: {str(e)}, exc_info=True")
+        st.error("خطا در اجرای برنامه. لطفا صفحه را رفرش کنید. {str(e)}")
+
+        import traceback
+        st.code(traceback.format_exc(), language='python'
+
+        st.info(f"لطفا این اطلاعات خطا را برای پشتیبانی ارسال کنید.")
 
 if __name__ == "__main__":
     main()
