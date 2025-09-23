@@ -693,7 +693,7 @@ class MarketScanner:
     
     def init(self):
         self.config = Config()
-        self.api_client = CoinStateAPIClient(self.config.COINSTATE_API_KEY, self.config.CONSTATE_BASE_URL)
+        self.api_client = CoinStateAPIClient(self.config.COINSTATE_API_KEY, self.config.COINSTATE_BASE_URL)
         self.data_manager = DataManager()
         self.technical_analyzer = TechnicalAnalyzer()
         self.chart_renderer = ChartRenderer()
@@ -954,7 +954,7 @@ def main():
     
     # Sidebar controls
     (symbol, period, show_charts, 
-     show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
+     show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی" ))
     
     # Main content area
     try:
