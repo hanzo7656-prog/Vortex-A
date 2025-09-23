@@ -861,12 +861,12 @@ class StreamlitUI:
                 st.success(f"RSI: {rsi:.1f} (نرمال)")
         
         with col2:
-            trend = analysis['signals'].get('trend', 'neutral')
-            trend_icons = {
-                'strong_bullish': '🚀', 'weak_bullish': '📈',
-                'weak_bearish': '📉', 'strong_bearish': '⚠️'
-            }
-            st.metric("روند بازار", f"{trend_icons.get(trend, '⚪')} {trend}")
+                trend = analysis['signals'].get('trend', 'neutral')
+                trend_icons = {
+                    'strong_bullish': '🚀', 'weak_bullish': '📈',
+                    'weak_bearish': '📉', 'strong_bearish': '⚠️'
+                }
+                st.metric("روند بازار", f"{trend_icons.get(trend, '⚪')} {trend}")
         
         with col3:
             macd_signal = analysis['signals'].get('macd', 'neutral')
@@ -893,7 +893,7 @@ class StreamlitUI:
             else:
                 st.info(f"{i}. {rec}")
 
-@staticmethod
+    @staticmethod
     def display_portfolio(scanner: MarketScanner, T: Dict):
         """Display portfolio tracker"""
         st.header("💼 ردیابی پرتفوی")
