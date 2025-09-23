@@ -691,19 +691,62 @@ class PortfolioManager:
 class MarketScanner:
     """Main market scanner application"""
     
-    def init(self):
+    def __init__(self):
         self.config = Config()
-        self.api_client = CoinStateAPIClient(self.config.COINSTATE_API_KEY, self.config.COINSTATE_BASE_URL)
+        try:
+            # ایجاد API Client با مدیریت خطا
+            self.api_client = CoinStateAPIClient(self.config.COINSTATE_API_KEY, self.config.COINSTATE_BASE_URL)
+            logger.info("API Client created successfully")
+        except Exception as e:
+            logger.error(f"Error creating API client: {e}")
+            # اگر API client ساخته نشد، یک نمونه خالی ایجاد می‌کنیم
+            self.api_client = None
+        
         self.data_manager = DataManager()
         self.technical_analyzer = TechnicalAnalyzer()
         self.chart_renderer = ChartRenderer()
         self.portfolio_manager = PortfolioManager(self.data_manager)
+    
+    def _generate_sample_data(self, period: str) -> pd.DataFrame:
+        """Generate sample data when API is not available"""
+        period_points = {
+            "24h": 24, "1w": 42, "1m": 30, "3m": 90,
+            "6m": 180, "1y": 365, "all": 100
+        }
+        
+        count = period_points.get(period, 100)
+        base_price = 50000
+        times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
+        
+        data = []
+        current_price = base_price
+        
+        for i in range(count):
+            change = current_price * 0.02 * np.random.randn()
+            current_price = max(current_price + change, base_price * 0.5)
+            
+            data.append({
+                'time': times[i],
+                'open': current_price * (1 + np.random.uniform(-0.01, 0.01)),
+                'high': current_price * (1 + np.random.uniform(0, 0.02)),
+                'low': current_price * (1 - np.random.uniform(0, 0.02)),
+                'close': current_price,
+                'volume': np.random.uniform(1000000, 5000000)
+            })
+        
+        return pd.DataFrame(data)
         
     def run_analysis(self, symbol: str, period: str) -> Optional[Dict]:
         """Run complete technical analysis"""
         try:
-            # Get historical data
-            historical_data = self.get_historical_data(symbol, period)
+            # اگر api_client موجود نیست، از تحلیل صرف نظر کن
+            if self.api_client is None:
+                logger.warning("API client not available, using sample data for analysis")
+                historical_data = self._generate_sample_data(period)
+            else:
+                # Get historical data
+                historical_data = self.get_historical_data(symbol, period)
+            
             if historical_data is None or historical_data.empty:
                 return None
             
@@ -772,7 +815,6 @@ class MarketScanner:
                 time.sleep(0.5)  # Rate limiting
         
         return results
-
 # ==================== SECTION 9: STREAMLIT UI COMPONENTS ====================
 class StreamlitUI:
     """Streamlit user interface components"""
@@ -945,50 +987,80 @@ def main():
     """Main application entry point"""
     logger.info("Starting Enhanced CoinState Scanner")
     
-    # Initialize scanner
-    scanner = MarketScanner()
-    ui = StreamlitUI()
-    
-    # Setup UI
-    st.title("📊 اسکنر بازار CoinState Pro")
-    
-    # Sidebar controls
-    (symbol, period, show_charts, 
-     show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی" ))
-    
-    # Main content area
     try:
-        # Get market data
-        with st.spinner(T["loading"]):
-            market_data = scanner.api_client.get_realtime_data(symbol)
+        # Initialize scanner
+        scanner = MarketScanner()
+        ui = StreamlitUI()
+        
+        # Setup UI
+        st.title("📊 اسکنر بازار CoinState Pro")
+        
+        # Sidebar controls
+        (symbol, period, show_charts, 
+         show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
+        
+        # بررسی وجود api_client قبل از استفاده
+        if scanner.api_client is None:
+            st.warning("⚠️ اتصال به API برقرار نیست. از داده‌های نمونه استفاده می‌شود.")
+            # ایجاد داده‌های نمونه برای نمایش
+            sample_market_data = {
+                'price': 50000,
+                'priceChange24h': 2.5,
+                'high24h': 52000,
+                'low24h': 49000,
+                'volume': 25000000
+            }
+            market_data = sample_market_data
+        else:
+            # Get market data
+            with st.spinner(T["loading"]):
+                market_data = scanner.api_client.get_realtime_data(symbol)
+        
+        # نمایش داده‌های بازار
+        if market_data:
+            ui.display_market_overview(market_data, T)
+        else:
+            st.warning("⚠️ داده‌های بازار در دسترس نیست. از داده‌های نمونه استفاده می‌شود.")
+            # Generate sample market data
+            sample_market_data = {
+                'price': 50000,
+                'priceChange24h': 2.5,
+                'high24h': 52000,
+                'low24h': 49000,
+                'volume': 25000000
+            }
+            ui.display_market_overview(sample_market_data, T)
+        
+        # تحلیل تکنیکال
+        with st.spinner("در حال انجام تحلیل تکنیکال..."):
             analysis = scanner.run_analysis(symbol, period)
         
-        # Display market overview
-        ui.display_market_overview(market_data, T)
-        
         # Display analysis dashboard
-        if show_analysis and analysis:
-            ui.display_analysis_dashboard(analysis, T)
+        if show_analysis:
+            if analysis:
+                ui.display_analysis_dashboard(analysis, T)
+            else:
+                st.warning("تحلیل تکنیکال در دسترس نیست")
         
         # Display charts
-        if show_charts and analysis:
-            historical_data = analysis.get('historical_data')
-            if historical_data is not None:
+        if show_charts:
+            if analysis and analysis.get('historical_data') is not None:
+                historical_data = analysis.get('historical_data')
                 # Price chart
-                fig_price = ui.chart_renderer.render_price_chart(
+                fig_price = ChartRenderer.render_price_chart(
                     historical_data, symbol, period, T["price_chart"]
                 )
                 st.plotly_chart(fig_price, use_container_width=True)
                 
                 # Technical indicators
-                fig_rsi, fig_macd = ui.chart_renderer.render_technical_indicators(historical_data)
+                fig_rsi, fig_macd = ChartRenderer.render_technical_indicators(historical_data)
                 col1, col2 = st.columns(2)
                 with col1:
                     st.plotly_chart(fig_rsi, use_container_width=True)
                 with col2:
                     st.plotly_chart(fig_macd, use_container_width=True)
             else:
-                st.warning(f"نمودارها در دسترس نیستند")
+                st.warning("نمودارها در دسترس نیستند")
         
         # Display portfolio
         if show_portfolio:
@@ -996,23 +1068,48 @@ def main():
         
         # Market scan feature
         if scan_all:
+            st.info("اسکن تمام بازار در حال اجرا... این عملیات ممکن است چند دقیقه طول بکشد.")
             market_scan_results = scanner.scan_all_market()
-            st.header("🌐 اسکن کامل بازار")
+            st.header("🌐 نتایج اسکن کامل بازار")
             
-            for sym, result in market_scan_results.items():
-                with st.expander(f"{sym.upper()} - {result['signals'].get('trend', 'unknown')}"):
-                    st.write(f"قیمت: ${result['indicators'].get('current_price', 0):.2f}")
-                    st.write(f"RSI: {result['indicators'].get('rsi', 0):.1f}")
-                    st.write(f"توصیه: {result['recommendations'][0] if result['recommendations'] else 'N/A'}")
+            if market_scan_results:
+                for sym, result in market_scan_results.items():
+                    with st.expander(f"{sym.upper()} - روند: {result['signals'].get('trend', 'نامشخص')}"):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("قیمت", f"${result['indicators'].get('current_price', 0):.2f}")
+                        with col2:
+                            rsi = result['indicators'].get('rsi', 0)
+                            st.metric("RSI", f"{rsi:.1f}")
+                        with col3:
+                            trend_icon = {
+                                'strong_bullish': '🚀', 'weak_bullish': '📈',
+                                'weak_bearish': '📉', 'strong_bearish': '⚠️'
+                            }.get(result['signals'].get('trend', 'neutral'), '⚪')
+                            st.metric("سیگنال", trend_icon)
+                        
+                        if result['recommendations']:
+                            st.info("توصیه: " + result['recommendations'][0])
+            else:
+                st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
     
     except Exception as e:
-        logger.error(f"Application error: {str(e)}, exc_info=True")
-        st.error("خطا در اجرای برنامه. لطفا صفحه را رفرش کنید. {str(e)}")
-
+        # نمایش خطای کامل برای دیباگ
+        logger.error(f"Application error: {str(e)}", exc_info=True)
+        
+        st.error("خطا در اجرای برنامه. جزئیات خطا:")
+        
+        # نمایش traceback کامل اما به صورت خلاصه‌تر
         import traceback
-        st.code(traceback.format_exc(), language='python')
-
-        st.info(f"لطفا این اطلاعات خطا را برای پشتیبانی ارسال کنید.")
+        error_details = traceback.format_exc()
+        st.text_area("جزئیات خطا (برای توسعه‌دهنده):", value=error_details, height=200)
+        
+        st.info("""
+        راه‌حل‌های احتمالی:
+        1. صفحه را رفرش کنید
+        2. اتصال اینترنت خود را بررسی کنید
+        3. اگر مشکل ادامه داشت، لطفاً با پشتیبانی تماس بگیرید
+        """)
 
 if __name__ == "__main__":
     main()
