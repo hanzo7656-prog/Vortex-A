@@ -237,8 +237,8 @@ def get_coinstate_historical_data(coin_id="bitcoin", period="24h"):
 
         # 🔽 لاگ درخواست 🔽
         logger.info(f" درخواست داده‌های تاریخی: {coin_id} - دوره: {period}")
-        logger.debug(f"🔗 URL: {url}")
-        logger.debug(f"📋 پارامترها: {params}")
+        logger.debug(f"🔗 URL: {url}")
+        logger.debug(f"📋 پارامترها: {params}")
         
         session = create_session()
         response = session.get(url, params=params, headers=headers, timeout=15)
