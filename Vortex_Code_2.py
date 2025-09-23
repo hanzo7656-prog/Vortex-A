@@ -620,7 +620,7 @@ class ChartRenderer:
 class PortfolioManager:
     """Portfolio tracking and management"""
     
-    def init(self, data_manager: DataManager):
+    def __init__(self, data_manager: DataManager):
         self.data_manager = data_manager
     
     def add_to_portfolio(self, symbol: str, quantity: float, buy_price: float, notes: str = ""):
