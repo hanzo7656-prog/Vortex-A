@@ -1253,7 +1253,7 @@ def main():
         # Initialize scanner
         scanner = MarketScanner()
         ui = StreamlitUI()
-        
+    
         # Setup UI with persistent sidebar
         st.title("📊 اسکنر بازار CoinState Pro")
         
