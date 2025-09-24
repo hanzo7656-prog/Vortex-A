@@ -999,7 +999,7 @@ class StreamlitUI:
                 st.error("❌ دسترسی غیرمجاز - ممکن است IP محدود شده باشد")
             elif response.status_code == 429: 
                 st.error("محدودیت تعداد درخواست - لطفا چند دقیقه صبر کنید")
-            else
+            else:
                 st.warning(f"⚠️ پاسخ غیرمنتظره: کد {response.status_code}")
                 
         except Exception as e:
