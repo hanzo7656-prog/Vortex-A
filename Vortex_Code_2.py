@@ -1007,7 +1007,6 @@ class StreamlitUI:
         except:
             st.error("❌ مشکل در DNS - سعی کنید از VPN استفاده کنید")
 
-    # بقیه متدها بدون تغییر...
     @staticmethod
     def display_market_overview(market_data: Dict, T: Dict):
         """Display market overview cards"""
@@ -1135,7 +1134,6 @@ class StreamlitUI:
             st.dataframe(assets_df, use_container_width=True)
         else:
             st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
-
 # ==================== SECTION 10: MAIN APPLICATION ====================
 def main():
     """Main application entry point"""
@@ -1146,31 +1144,36 @@ def main():
         scanner = MarketScanner()
         ui = StreamlitUI()
         
-        # Setup UI
+        # Setup UI with persistent sidebar
         st.title("📊 اسکنر بازار CoinState Pro")
         
-        # Sidebar controls
+        # Add automatic API status check on startup
+        if scanner.api_client and not scanner.api_client.last_check:
+            scanner.api_client._check_health()
+        
+        # Sidebar controls with persistence
         (symbol, period, show_charts, 
          show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
         
-        # بررسی وجود api_client قبل از استفاده
-        if scanner.api_client is None:
-            st.warning("⚠️ اتصال به API برقرار نیست. از داده‌های نمونه استفاده می‌شود.")
-            # ایجاد داده‌های نمونه برای نمایش
-            sample_market_data = {
-                'price': 50000,
-                'priceChange24h': 2.5,
-                'high24h': 52000,
-                'low24h': 49000,
-                'volume': 25000000
-            }
-            market_data = sample_market_data
-        else:
-            # Get market data
-            with st.spinner(T["loading"]):
-                market_data = scanner.api_client.get_realtime_data(symbol)
+        # نمایش وضعیت API در صفحه اصلی
+        if scanner.api_client:
+            if scanner.api_client.is_healthy:
+                st.success("✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند")
+            else:
+                st.warning(f"⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود")
+                if scanner.api_client.last_error:
+                    st.info(f"علت: {scanner.api_client.last_error}")
         
-        # نمایش داده‌های بازار
+        # Get market data
+        with st.spinner(T["loading"]):
+            if scanner.api_client and scanner.api_client.is_healthy:
+                market_data = scanner.api_client.get_realtime_data(symbol)
+            else:
+                market_data = None
+            
+            analysis = scanner.run_analysis(symbol, period)
+        
+        # Display market overview
         if market_data:
             ui.display_market_overview(market_data, T)
         else:
@@ -1184,6 +1187,7 @@ def main():
                 'volume': 25000000
             }
             ui.display_market_overview(sample_market_data, T)
+        
         
         # تحلیل تکنیکال
         with st.spinner("در حال انجام تحلیل تکنیکال..."):
@@ -1248,21 +1252,21 @@ def main():
                 st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
     
     except Exception as e:
-        # نمایش خطای کامل برای دیباگ
         logger.error(f"Application error: {str(e)}", exc_info=True)
         
         st.error("خطا در اجرای برنامه. جزئیات خطا:")
         
-        # نمایش traceback کامل اما به صورت خلاصه‌تر
         import traceback
         error_details = traceback.format_exc()
-        st.text_area("جزئیات خطا (برای توسعه‌دهنده):", value=error_details, height=200)
+        
+        with st.expander("جزئیات فنی خطا (برای توسعه‌دهنده)"):
+            st.code(error_details, language='python')
         
         st.info("""
-        راه‌حل‌های احتمالی:
-        1. صفحه را رفرش کنید
-        2. اتصال اینترنت خود را بررسی کنید
-        3. اگر مشکل ادامه داشت، لطفاً با پشتیبانی تماس بگیرید
+        **راه‌حل‌های فوری:**
+        1. دکمه 'بررسی سلامت API' در سایدبار را بزنید
+        2. صفحه را رفرش کنید (F5)
+        3. از بخش عیب‌یابی پیشرفته در سایدبار استفاده کنید
         """)
 
 if __name__ == "__main__":
