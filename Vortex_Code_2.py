@@ -958,7 +958,11 @@ class StreamlitUI:
             
             if st.button("🌐 تست اتصال اینترنت"):
                 StreamlitUI.test_internet_connection()
-            
+
+            if st.button("پاک کردن حافظه موقت"):
+                streamlitUI.clear_cache()
+                st.return()
+                
             st.info("""
             **راهنمای عیب‌یابی:**
             - اگر API Key نامعتبر است، از پنل کاربری جدید دریافت کنید
@@ -985,14 +989,17 @@ class StreamlitUI:
                 data = response.json()
                 st.json({
                     "name": data.get('name', 'N/A'),
-                    "price": data.get('price', 'N/A'),
-                    "symbol": data.get('symbol', 'N/A')
+                    "price": f"${data.get('price', 'N/A'):,.2f}" if data.get('price') else 'N/A',
+                    "symbol": data.get('symbol', 'N/A'),
+                    "change_24h": f"{data.get('priceChange1h', 'N/A')}%"
                 })
             elif response.status_code == 401:
                 st.error("❌ API Key نامعتبر است - لطفا کلید جدید دریافت کنید")
             elif response.status_code == 403:
                 st.error("❌ دسترسی غیرمجاز - ممکن است IP محدود شده باشد")
-            else:
+            elif response.status_code == 429: 
+                st.error("محدودیت تعداد درخواست - لطفا چند دقیقه صبر کنید")
+            else
                 st.warning(f"⚠️ پاسخ غیرمنتظره: کد {response.status_code}")
                 
         except Exception as e:
@@ -1022,9 +1029,19 @@ class StreamlitUI:
             st.error("❌ مشکل در DNS - سعی کنید از VPN استفاده کنید")
 
     @staticmethod
+    def clear_cache():
+        """Clear session cache"""
+        keys = list(st.session_state.keys())
+        for key in keys:
+            if key !='sidebar_state':
+                del st.session_state[key]
+        st.success("✅️ حافظه موقت پاک شد")
+            
+    @staticmethod
     def display_market_overview(market_data: Dict, T: Dict):
         """Display market overview cards"""
         if not market_data:
+            st.warning(T["no_data"])
             return
         
         col1, col2, col3, col4, col5 = st.columns(5)
@@ -1035,7 +1052,8 @@ class StreamlitUI:
         
         with col2:
             change_24h = market_data.get('priceChange24h', 0)
-            st.metric(T["change"], f"{change_24h:+.2f}%")
+            change_color = "normal" if change_24h >= 0 else "inverse"
+            st.metric(T["change"], f"{change_24h:+.2f}%", delta_color=orange_color)
         
         with col3:
             high_24h = market_data.get('high24h', price)
@@ -1053,6 +1071,7 @@ class StreamlitUI:
     def display_analysis_dashboard(analysis: Dict, T: Dict):
         """Display technical analysis dashboard"""
         if not analysis:
+            st.warning("تحلیل تکنیکال در دسترس نیست")
             return
         
         st.header("📊 دیشبورد تحلیل تکنیکال")
@@ -1075,6 +1094,13 @@ class StreamlitUI:
                     'strong_bullish': '🚀', 'weak_bullish': '📈',
                     'weak_bearish': '📉', 'strong_bearish': '⚠️'
                 }
+                trend_text = {
+                    'strong_bullish': 'صعودی قوی'
+                    'weak_bullish': 'صعودی ضعیف'
+                    'weak_bearish': 'نزولی ضعیف'
+                    'strong_bearish': 'نزولی قوی'
+                    'neutral': 'خنثی'
+                }
                 st.metric("روند بازار", f"{trend_icons.get(trend, '⚪')} {trend}")
         
         with col3:
@@ -1090,17 +1116,22 @@ class StreamlitUI:
             price = analysis['indicators'].get('current_price', 0)
             sma50 = analysis['indicators'].get('sma_50', price)
             status = "بالاتر از SMA50" if price > sma50 else "پایین‌تر از SMA50"
-            st.metric("موقعیت قیمت", status)
+            color "normal" if price > sma50 else "inverse"
+            st.metric("موقعیت قیمت", status, delta_color=color)
         
         # Recommendations
         st.subheader("💡 توصیه‌های معاملاتی")
-        for i, rec in enumerate(analysis.get('recommendations', []), 1):
-            if any(word in rec for word in ['صعودی', 'خرید', 'طلا']):
-                st.success(f"{i}. {rec}")
-            elif any(word in rec for word in ['نزولی', 'فروش', 'مرگ']):
-                st.error(f"{i}. {rec}")
-            else:
-                st.info(f"{i}. {rec}")
+        recommendations = analysis.get('recommendations', [])
+        if recommendations:
+            for i, rec in enumerate(analysis.get('recommendations', 1):
+                if any(word in rec for word in ['صعودی', 'خرید', 'طلا']):
+                    st.success(f"{i}. {rec}")
+                elif any(word in rec for word in ['نزولی', 'فروش', 'مرگ', 'احتیاط']):
+                    st.error(f"{i}. {rec}")
+                else:
+                    st.info(f"{i}. {rec}")
+        else:
+            st.info("توصیه‌ای برای نمایش وجود ندارد")
 
     @staticmethod
     def display_portfolio(scanner: MarketScanner, T: Dict):
@@ -1113,18 +1144,21 @@ class StreamlitUI:
             with col1:
                 symbol = st.selectbox("نماد", Config.SYMBOLS)
             with col2:
-                quantity = st.number_input("مقدار", min_value=0.0, step=0.1)
+                quantity = st.number_input("مقدار", min_value=0.0, step=0.1, value=1.0)
             with col3:
-                buy_price = st.number_input("قیمت خرید (USD)", min_value=0.0, step=0.01)
+                buy_price = st.number_input("قیمت خرید (USD)", min_value=0.0, step=0.01, values=1000.0)
             
-            notes = st.text_input("یادداشت (اختیاری)")
+            notes = st.text_input("یادداشت (اختیاری)", placeholder="مانند: خرید در کف قیمت")
             
             if st.form_submit_button("➕ افزودن به پرتفوی"):
                 if quantity > 0 and buy_price > 0:
                     if scanner.portfolio_manager.add_to_portfolio(symbol, quantity, buy_price, notes):
                         st.success("✅ دارایی به پرتفوی اضافه شد")
+                        st.return()
                     else:
                         st.error("❌ خطا در افزودن دارایی")
+                else:
+                    st.warning("مقدار و قیمت باید بزرگترا صفر باشند")
         
         # Portfolio summary
         portfolio_value = scanner.portfolio_manager.get_portfolio_value(scanner.api_client)
@@ -1137,69 +1171,80 @@ class StreamlitUI:
             with col2:
                 st.metric("💵 ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
             with col3:
+                pnl = portfolio_value['total_pnl']
+                pnl_percent = portfolio_value['total_pnl_percent']
                 pnl_color = "normal" if portfolio_value['total_pnl'] >= 0 else "inverse"
-                st.metric("📊 سود/زیان", f"${portfolio_value['total_pnl']:,.2f}", 
-                         delta=f"{portfolio_value['total_pnl_percent']:+.2f}%",
+                st.metric("📊 سود/زیان", f"${pnl:,.2f}", 
+                         delta=f"{pnl_percent:+.2f}%",
                          delta_color=pnl_color)
-            
-            # Assets table
-            st.subheader("📋 دارایی‌های پرتفوی")
-            assets_df = pd.DataFrame(portfolio_value['assets'])
-            st.dataframe(assets_df, use_container_width=True)
-        else:
-            st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
+            with clo4:
+                if st.button("بروزرسانی قیمت‌ها"):
+                    st.return()
+                        
+            # Assets table
+            st.subheader("📋 دارایی‌های پرتفوی")
+            assets_df = pd.DataFrame(portfolio_value['assets'])
+            
+            # Format the dataframe for better display
+            display_df = assets_df.copy()
+            display_df['buy_price'] = display_df['buy_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['current_price'] = display_df['current_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['invested'] = display_df['invested'].apply(lambda x: f"${x:,.2f}")
+            display_df['current_value'] = display_df['current_value'].apply(lambda x: f"${x:,.2f}")
+            display_df['pnl'] = display_df['pnl'].apply(lambda x: f"${x:,.2f}")
+            display_df['pnl_percent'] = display_df['pnl_percent'].apply(lambda x: f"{x:+.2f}%")
+            
+            st.dataframe(display_df, use_container_width=True)
+            
+            # Export portfolio data
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📥 خروجی Excel"):
+                    StreamlitUI.export_to_excel(assets_df)
+            with col2:
+                if st.button("📊 نمودار پرتفوی"):
+                    StreamlitUI.show_portfolio_chart(portfolio_value)
+                    
+        else:
+            st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
+    
+    @staticmethod
+    def export_to_excel(df: pd.DataFrame):
+        """Export portfolio to Excel"""
+        try:
+            from io import BytesIO
+            import base64
+            
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, sheet_name='Portfolio', index=False)
+            
+            excel_data = output.getvalue()
+            b64 = base64.b64encode(excel_data).decode()
+            href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="portfolio.xlsx">دانلود فایل Excel</a>'
+            st.markdown(href, unsafe_allow_html=True)
+            st.success("✅ فایل Excel آماده دانلود است")
+        except Exception as e:
+            st.error(f"❌ خطا در ایجاد فایل Excel: {e}")
+    
+    @staticmethod
+    def show_portfolio_chart(portfolio_value: Dict):
+        """Show portfolio distribution chart"""
+        try:
+            assets = portfolio_value['assets']
+            if not assets:
+                st.warning("هیچ دارایی برای نمایش وجود ندارد")
+                return
+            
+            symbols = [asset['symbol'] for asset in assets]
+            values = [asset['current_value'] for asset in assets]
+            
+            fig = go.Figure(data=[go.Pie(labels=symbols, values=values, hole=.3)])
+            fig.update_layout(title="توزیع دارایی‌های پرتفوی")
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"❌ خطا در ایجاد نمودار: {e}")
 
-                st.warning("تحلیل تکنیکال در دسترس نیست")
-        
-        # Display charts
-        if show_charts:
-            if analysis and analysis.get('historical_data') is not None:
-                historical_data = analysis.get('historical_data')
-                # Price chart
-                fig_price = ChartRenderer.render_price_chart(
-                    historical_data, symbol, period, T["price_chart"]
-                )
-                st.plotly_chart(fig_price, use_container_width=True)
-                
-                # Technical indicators
-                fig_rsi, fig_macd = ChartRenderer.render_technical_indicators(historical_data)
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.plotly_chart(fig_rsi, use_container_width=True)
-                with col2:
-                    st.plotly_chart(fig_macd, use_container_width=True)
-            else:
-                st.warning("نمودارها در دسترس نیستند")
-        
-        # Display portfolio
-        if show_portfolio:
-            ui.display_portfolio(scanner, T)
-        
-        # Market scan feature
-        if scan_all:
-            st.info("اسکن تمام بازار در حال اجرا... این عملیات ممکن است چند دقیقه طول بکشد.")
-            market_scan_results = scanner.scan_all_market()
-            st.header("🌐 نتایج اسکن کامل بازار")
-            
-            if market_scan_results:
-                for sym, result in market_scan_results.items():
-                    with st.expander(f"{sym.upper()} - روند: {result['signals'].get('trend', 'نامشخص')}"):
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("قیمت", f"${result['indicators'].get('current_price', 0):.2f}")
-                        with col2:
-                            rsi = result['indicators'].get('rsi', 0)
-                            st.metric("RSI", f"{rsi:.1f}")
-                        with col3:
-                            trend_icon = {
-                                'strong_bullish': '🚀', 'weak_bullish': '📈',
-                                'weak_bearish': '📉', 'strong_bearish': '⚠️'
-                            }.get(result['signals'].get('trend', 'neutral'), '⚪')
-                            st.metric("سیگنال", trend_icon)
-                        
-                        if result['recommendations']:
-                            st.info("توصیه: " + result['recommendations'][0])
-    
 # ==================== SECTION 10: MAIN APPLICATION ====================
 def main():
     """Main application entry point"""
@@ -1213,38 +1258,73 @@ def main():
         # Setup UI with persistent sidebar
         st.title("📊 اسکنر بازار CoinState Pro")
         
-        # Add automatic API status check on startup - با بررسی وجود last_check
-        if scanner.api_client and hasattr(scanner.api_client, 'last_check'):
-            if not scanner.api_client.last_check:
+        # Add automatic API status check on startup - با بررسی ایمن
+        if hasattr(scanner, 'api_client') and scanner.api_client:
+            if hasattr(scanner.api_client, 'last_check'):
+                if not scanner.api_client.last_check:
+                    scanner.api_client._check_health()
+            else:
+                # اگر last_check وجود ندارد، باز هم سلامت را بررسی کن
                 scanner.api_client._check_health()
-        elif scanner.api_client:
-            # اگر last_check وجود ندارد، باز هم سلامت را بررسی کن
-            scanner.api_client._check_health()
         
         # Sidebar controls with persistence
         (symbol, period, show_charts, 
          show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
         
         # نمایش وضعیت API در صفحه اصلی با بررسی ایمن
-        if scanner.api_client:
-            api_status = "✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند" if scanner.api_client.is_healthy else "⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود"
-            
-            if scanner.api_client.is_healthy:
-                st.success(api_status)
-            else:
-                st.warning(api_status)
-                
-                if hasattr(scanner.api_client, 'last_error') and scanner.api_client.last_error:
-                    st.info(f"علت: {scanner.api_client.last_error}")
+        if hasattr(scanner, 'api_client') and scanner.api_client:
+            if hasattr(scanner.api_client, 'is_healthy'):
+                if scanner.api_client.is_healthy:
+                    st.success("✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند")
+                    
+                    # نمایش اطلاعات اضافی درباره API
+                    with st.expander("📊 اطلاعات API"):
+                        if hasattr(scanner.api_client, 'last_check'):
+                            st.write(f"آخرین بررسی: {scanner.api_client.last_check.strftime('%Y-%m-%d %H:%M:%S')}")
+                        st.write(f"کلید API: {scanner.api_client.api_key[:10]}...")
+                        st.write(f"آدرس سرور: {scanner.api_client.base_url}")
+                else:
+                    st.warning("⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود")
+                    
+                    if hasattr(scanner.api_client, 'last_error') and scanner.api_client.last_error:
+                        st.info(f"علت قطعی: {scanner.api_client.last_error}")
+                    
+                    # پیشنهادات برای رفع مشکل
+                    with st.expander("🛠️ راه‌حل‌های پیشنهادی"):
+                        st.markdown("""
+                        1. بررسی اتصال اینترنت - از بخش عیب‌یابی سایدبار استفاده کنید
+                        2. تست API Key - مطمئن شوید کلید معتبر است
+                        3. استفاده از VPN - ممکن است IP شما محدود شده باشد
+                        4. بروزرسانی کلید - از پنل کاربری کلید جدید دریافت کنید
+                        """)
         
-        # Get market data
+        # Get market data با مدیریت خطای پیشرفته
         with st.spinner(T["loading"]):
-            if scanner.api_client and scanner.api_client.is_healthy:
-                market_data = scanner.api_client.get_realtime_data(symbol)
-            else:
+            try:
+                if (hasattr(scanner, 'api_client') and scanner.api_client and 
+                    hasattr(scanner.api_client, 'is_healthy') and scanner.api_client.is_healthy):
+                    market_data = scanner.api_client.get_realtime_data(symbol)
+                    if market_data:
+                        st.success("✅ داده‌های بازار با موفقیت دریافت شد")
+                    else:
+                        st.warning("⚠️ داده‌های بازار دریافت نشد - از داده‌های نمونه استفاده می‌شود")
+                        market_data = None
+                else:
+                    market_data = None
+                    st.info("🔁 استفاده از داده‌های نمونه به دلیل قطعی API")
+                
+                # انجام تحلیل تکنیکال
+                analysis = scanner.run_analysis(symbol, period)
+                if analysis:
+                    st.success("✅ تحلیل تکنیکال با موفقیت انجام شد")
+                else:
+                    st.warning("⚠️ تحلیل تکنیکال انجام نشد")
+
+            except Exception as e:
+                logger.error(f"Error in data fetching: {e}")
+                st.error(f"❌ خطا در دریافت داده‌ها: {str(e)}")
                 market_data = None
-            
-            analysis = scanner.run_analysis(symbol, period)
+                analysis = None
         
         # Display market overview
         if market_data:
@@ -1253,40 +1333,100 @@ def main():
             st.warning("⚠️ داده‌های بازار در دسترس نیست. از داده‌های نمونه استفاده می‌شود.")
             # Generate sample market data
             sample_market_data = {
-                'price': 50000,
-                'priceChange24h': 2.5,
-                'high24h': 52000,
-                'low24h': 49000,
-                'volume': 25000000
+                'price': 45000 + np.random.uniform(-5000, 5000),
+                'priceChange24h': np.random.uniform(-10, 10),
+                'high24h': 50000 + np.random.uniform(0, 5000),
+                'low24h': 40000 + np.random.uniform(0, 5000),
+                'volume': np.random.uniform(10000000, 50000000)
             }
             ui.display_market_overview(sample_market_data, T)
+            
+            # اطلاعات درباره داده‌های نمونه
+            st.info("""
+            📝 توجه: در حال حاضر از داده‌های نمونه استفاده می‌شود. 
+            برای دسترسی به داده‌های زنده بازار، لطفا اتصال API را بررسی کنید.
+            """)
         
         # Display analysis dashboard
         if show_analysis:
             if analysis:
                 ui.display_analysis_dashboard(analysis, T)
+                
+                # اطلاعات تکمیلی تحلیل
+                with st.expander("📈 جزئیات تحلیل تکنیکال"):
+                    if 'indicators' in analysis:
+                        indicators = analysis['indicators']
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric("قیمت فعلی", f"${indicators.get('current_price', 0):,.2f}")
+                            st.metric("SMA 20", f"${indicators.get('sma_20', 0):,.2f}")
+                            
+                        with col2:
+                            st.metric("RSI", f"{indicators.get('rsi', 50):.1f}")
+                            st.metric("SMA 50", f"${indicators.get('sma_50', 0):,.2f}")
+                            
+                        with col3:
+                            macd = indicators.get('macd', 0)
+                            st.metric("MACD", f"{macd:.4f}")
+                            st.metric("MACD Signal", f"{indicators.get('macd_signal', 0):.4f}")
             else:
                 st.warning("تحلیل تکنیکال در دسترس نیست")
+                
+                # ایجاد تحلیل نمونه در صورت عدم دسترسی
+                if st.button("🧪 ایجاد تحلیل نمونه"):
+                    sample_analysis = create_sample_analysis(symbol, period)
+                    if sample_analysis:
+                        ui.display_analysis_dashboard(sample_analysis, T)
         
         # Display charts
         if show_charts:
             if analysis and analysis.get('historical_data') is not None:
                 historical_data = analysis.get('historical_data')
+                
                 # Price chart
+                st.subheader("📊 نمودار قیمت")
                 fig_price = ChartRenderer.render_price_chart(
                     historical_data, symbol, period, T["price_chart"]
                 )
                 st.plotly_chart(fig_price, use_container_width=True)
                 
                 # Technical indicators
+                st.subheader("📈 اندیکاتورهای تکنیکال")
                 fig_rsi, fig_macd = ChartRenderer.render_technical_indicators(historical_data)
                 col1, col2 = st.columns(2)
                 with col1:
                     st.plotly_chart(fig_rsi, use_container_width=True)
                 with col2:
                     st.plotly_chart(fig_macd, use_container_width=True)
+                    
+                # اطلاعات تکمیلی نمودار
+                with st.expander("ℹ️ راهنمای نمودارها"):
+                    st.markdown("""
+                    نمودار کندل‌استیک (Candlestick):
+                    - 📈 سبز: قیمت بسته شدن بالاتر از باز شدن (صعود)
+                    - 📉 قرمز: قیمت بسته شدن پایین‌تر از باز شدن (نزول)
+                    - خطوط بالا/پایین:最高/最低 قیمت در بازه زمانی
+                    
+                    اندیکاتور RSI:
+                    - 🔴 بالای 70: اشباع خرید (احتمال correction)
+                    - 🟢 زیر 30: اشباع فروش (فرصت خرید)
+                    - ⚪ بین 30-70: منطقه نرمال
+                    
+                    اندیکاتور MACD:
+                    - 📈 خط MACD بالای Signal: سیگنال خرید
+                    - 📉 خط MACD زیر Signal: سیگنال فروش
+                    - 📊 هیستوگرام: قدرت روند
+                    """)
             else:
                 st.warning("نمودارها در دسترس نیستند")
+                
+                # ایجاد نمودارهای نمونه
+                if st.button("📈 نمایش نمودارهای نمونه"):
+                    sample_data = create_sample_chart_data(period)
+                    if sample_data is not None:
+                        fig_price = ChartRenderer.render_price_chart(sample_data, symbol, period, "نمودار نمونه")
+                        st.plotly_chart(fig_price, use_container_width=True)
         
         # Display portfolio
         if show_portfolio:
@@ -1294,48 +1434,203 @@ def main():
         
         # Market scan feature
         if scan_all:
-            st.info("اسکن تمام بازار در حال اجرا... این عملیات ممکن است چند دقیقه طول بکشد.")
-            market_scan_results = scanner.scan_all_market()
+            st.info("🌐 اسکن تمام بازار در حال اجرا... این عملیات ممکن است چند دقیقه طول بکشد.")
+            
+            # نوار پیشرفت
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            market_scan_results = {}
+            symbols_to_scan = Config.SYMBOLS[:6]  # Limit to 6 for performance
+            
+            for i, sym in enumerate(symbols_to_scan):
+                status_text.text(f"در حال اسکن {sym}... ({i+1}/{len(symbols_to_scan)})")
+                progress_bar.progress((i + 1) / len(symbols_to_scan))
+                
+                analysis = scanner.run_analysis(sym, "24h")
+                if analysis:
+                    market_scan_results[sym] = analysis
+                
+                time.sleep(0.5)  # Rate limiting
+            
+            progress_bar.empty()
+            status_text.empty()
+            
+            # نمایش نتایج اسکن
             st.header("🌐 نتایج اسکن کامل بازار")
             
             if market_scan_results:
+                # خلاصه نتایج
+                total_symbols = len(market_scan_results)
+                bullish_count = sum(1 for r in market_scan_results.values() 
+                                  if r['signals'].get('trend') in ['strong_bullish', 'weak_bullish'])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("تعداد نمادها", total_symbols)
+                with col2:
+                    st.metric("نمادهای صعودی", bullish_count)
+                with col3:
+                    st.metric("نمادهای نزولی", total_symbols - bullish_count)
+                
+                # نمایش جزئیات هر نماد
                 for sym, result in market_scan_results.items():
-                    with st.expander(f"{sym.upper()} - روند: {result['signals'].get('trend', 'نامشخص')}"):
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("قیمت", f"${result['indicators'].get('current_price', 0):.2f}")
-                        with col2:
-                            rsi = result['indicators'].get('rsi', 0)
-                            st.metric("RSI", f"{rsi:.1f}")
-                        with col3:
-                            trend_icon = {
-                                'strong_bullish': '🚀', 'weak_bullish': '📈',
-                                'weak_bearish': '📉', 'strong_bearish': '⚠️'
-                            }.get(result['signals'].get('trend', 'neutral'), '⚪')
-                            st.metric("سیگنال", trend_icon)
+                    trend = result['signals'].get('trend', 'neutral')
+                    trend_color = {
+                        'strong_bullish': '🟢',
+                        'weak_bullish': '🟡', 
+                        'weak_bearish': '🟠',
+                        'strong_bearish': '🔴',
+                        'neutral': '⚪'
+                    }.get(trend, '⚪')
+                    
+                    with st.expander(f"{trend_color} {sym.upper()} - {trend}"):
+                        col1, col2, col3, col4 = st.columns(4)
                         
-                        if result['recommendations']:
-                            st.info("توصیه: " + result['recommendations'][0])
+                        with col1:
+                            price = result['indicators'].get('current_price', 0)
+                            st.metric("قیمت", f"${price:.2f}")
+                        
+                        with col2:
+                            rsi = result['indicators'].get('rsi', 50)
+                            rsi_color = "normal" if 30 <= rsi <= 70 else "inverse"
+                            st.metric("RSI", f"{rsi:.1f}", delta_color=rsi_color)
+                        
+                        with col3:
+                            macd_signal = result['signals'].get('macd', 'neutral')
+                            signal_icon = "🟢" if macd_signal == 'bullish' else "🔴" if macd_signal == 'bearish' else "⚪"
+                            st.metric("MACD", signal_icon)
+                        
+                        with col4:
+                            if result['recommendations']:
+                                st.info(result['recommendations'][0])
             else:
                 st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
+        
+        # پاورقی و اطلاعات برنامه
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("🛠️ توسعه داده شده توسط:")
+            st.markdown("CoinState Scanner Pro v2.0")
+            
+        with col2:
+            st.markdown("📊 داده‌ها:")
+            if market_data and hasattr(scanner, 'api_client') and scanner.api_client and scanner.api_client.is_healthy:
+                st.markdown("✅ داده‌های زنده")
+            else:
+                st.markdown("🔁 داده‌های نمونه")
+                
+        with col3:
+            st.markdown("🕒 آخرین بروزرسانی:")
+            st.markdown(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     except Exception as e:
         logger.error(f"Application error: {str(e)}", exc_info=True)
         
-        st.error("خطا در اجرای برنامه. جزئیات خطا:")
+        st.error("🚨 خطای غیرمنتظره در اجرای برنامه")
         
         import traceback
         error_details = traceback.format_exc()
         
-        with st.expander("جزئیات فنی خطا (برای توسعه‌دهنده)"):
+        with st.expander("🔧 جزئیات فنی خطا (برای توسعه‌دهنده)"):
             st.code(error_details, language='python')
         
-        st.info("""
-        **راه‌حل‌های فوری:**
-        1. دکمه 'بررسی سلامت API' در سایدبار را بزنید
-        2. صفحه را رفرش کنید (F5)
-        3. از بخش عیب‌یابی پیشرفته در سایدبار استفاده کنید
+        st.markdown("""
+        🛠️ راه‌حل‌های فوری:
+        
+        1. رفرش صفحه - دکمه F5 یا 🔄 را بزنید
+        2. بررسی سلامت API - از بخش سایدبار استفاده کنید
+        3. پاک کردن حافظه - از بخش عیب‌یابی پیشرفته
+        4. گزارش خطا - اطلاعات بالا را برای پشتیبانی ارسال کنید
+        
+        📞 پشتیبانی فنی:
+        - گزارش خطاها را به توسعه‌دهنده ارسال کنید
+        - در صورت تکرار خطا، برنامه را restart کنید
         """)
+        
+        # دکمه رفرش خودکار
+        if st.button("🔄 تلاش مجدد (رفرش صفحه)"):
+            st.rerun()
+
+def create_sample_analysis(symbol: str, period: str) -> Dict:
+    """Create sample analysis for demonstration"""
+    try:
+        # ایجاد داده‌های نمونه برای تحلیل
+        sample_data = pd.DataFrame({
+            'time': [datetime.now() - timedelta(hours=i) for i in range(100)][::-1],
+            'open': np.random.normal(50000, 5000, 100),
+            'high': np.random.normal(52000, 5000, 100),
+            'low': np.random.normal(48000, 5000, 100),
+            'close': np.random.normal(50000, 5000, 100),
+            'volume': np.random.uniform(1000000, 5000000, 100)
+        })
+        
+        # محاسبه اندیکاتورها
+        sample_data = TechnicalAnalyzer.calculate_indicators(sample_data)
+        
+        # آخرین مقادیر
+        last_row = sample_data.iloc[-1]
+        indicators = {
+            'current_price': last_row.get('close', 50000),
+            'rsi': min(max(last_row.get('RSI', 50), 0), 100),
+            'macd': last_row.get('MACD', 0),
+            'macd_signal': last_row.get('MACD_Signal', 0),
+            'macd_histogram': last_row.get('MACD_Histogram', 0),
+            'sma_20': last_row.get('SMA_20', 50000),
+            'sma_50': last_row.get('SMA_50', 50000)
+        }
+        
+        # تولید سیگنال‌ها
+        signals = TechnicalAnalyzer.generate_signals(indicators)
+        recommendations = TechnicalAnalyzer.generate_recommendations(signals, indicators)
+        
+        return {
+            'symbol': symbol,
+            'period': period,
+            'timestamp': datetime.now(),
+            'indicators': indicators,
+            'signals': signals,
+            'recommendations': recommendations,
+            'historical_data': sample_data
+        }
+    except Exception as e:
+        logger.error(f"Error creating sample analysis: {e}")
+        return None
+
+def create_sample_chart_data(period: str) -> pd.DataFrame:
+    """Create sample data for charts"""
+    try:
+        period_points = {
+            "24h": 24, "1w": 42, "1m": 30, "3m": 90,
+            "6m": 180, "1y": 365, "all": 100
+        }
+        
+        count = period_points.get(period, 100)
+        times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
+        
+        data = []
+        current_price = 50000
+        
+        for i in range(count):
+            change = current_price * 0.02 * np.random.randn()
+            current_price = max(current_price + change, 1000)
+            
+            data.append({
+                'time': times[i],
+                'open': current_price * (1 + np.random.uniform(-0.01, 0.01)),
+                'high': current_price * (1 + np.random.uniform(0, 0.02)),
+                'low': current_price * (1 - np.random.uniform(0, 0.02)),
+                'close': current_price,
+                'volume': np.random.uniform(1000000, 5000000)
+            })
+        
+        df = pd.DataFrame(data)
+        return TechnicalAnalyzer.calculate_indicators(df)
+    except Exception as e:
+        logger.error(f"Error creating sample chart data: {e}")
+        return None
 
 if __name__ == "__main__":
     main()
