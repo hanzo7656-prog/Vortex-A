@@ -1053,7 +1053,7 @@ class StreamlitUI:
         with col2:
             change_24h = market_data.get('priceChange24h', 0)
             change_color = "normal" if change_24h >= 0 else "inverse"
-            st.metric(T["change"], f"{change_24h:+.2f}%", delta_color=orange_color)
+            st.metric(T["change"], f"{change_24h:+.2f}%", delta_color=change_color)
         
         with col3:
             high_24h = market_data.get('high24h', price)
