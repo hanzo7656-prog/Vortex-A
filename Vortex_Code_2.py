@@ -851,40 +851,163 @@ class StreamlitUI:
     """Streamlit user interface components"""
     
     @staticmethod
-    def setup_sidebar(scanner: MarketScanner, T: Dict) -> Tuple[str, str, bool, bool]:
-        """Setup sidebar controls"""
+    def setup_sidebar(scanner: MarketScanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, Dict]:
+        """Setup sidebar controls with persistence"""
+        
+        # Initialize session state for persistence
+        if 'sidebar_state' not in st.session_state:
+            st.session_state.sidebar_state = {
+                'language': "فارسی",
+                'symbol': Config.SYMBOLS[0],
+                'period': list(Config.PERIODS.keys())[0],
+                'show_charts': True,
+                'show_analysis': True,
+                'show_portfolio': False
+            }
+        
         st.sidebar.header(T["settings"])
         
-        # Language selection
-        language = st.sidebar.selectbox(T["language"], ["فارسی", "English"])
+        # Language selection with persistence
+        language = st.sidebar.selectbox(
+            T["language"], 
+            ["فارسی", "English"],
+            index=0 if st.session_state.sidebar_state['language'] == "فارسی" else 1
+        )
+        st.session_state.sidebar_state['language'] = language
         T = TranslationManager.get_text(language)
         
-        # Symbol selection
+        # Symbol selection with persistence
         symbol = st.sidebar.selectbox(
             T["select_symbol"],
             options=Config.SYMBOLS,
-            index=0,
+            index=Config.SYMBOLS.index(st.session_state.sidebar_state['symbol']),
             format_func=lambda x: x.capitalize().replace('-', ' ')
         )
+        st.session_state.sidebar_state['symbol'] = symbol
         
-        # Period selection
+        # Period selection with persistence
+        period_options = list(Config.PERIODS.keys())
+        period_index = period_options.index(st.session_state.sidebar_state['period'])
         period = st.sidebar.selectbox(
             T["select_interval"],
-            options=list(Config.PERIODS.keys()),
-            format_func=lambda x: Config.PERIODS[x] if language == "فارسی" else x,
-            index=0
+            options=period_options,
+            index=period_index,
+            format_func=lambda x: Config.PERIODS[x] if language == "فارسی" else x
         )
+        st.session_state.sidebar_state['period'] = period
         
-        # Display options
-        show_charts = st.sidebar.checkbox("📊 نمایش نمودارها", value=True)
-        show_analysis = st.sidebar.checkbox("🔍 نمایش تحلیل پیشرفته", value=True)
+        # Display options with persistence
+        show_charts = st.sidebar.checkbox(
+            "📊 نمایش نمودارها", 
+            value=st.session_state.sidebar_state['show_charts']
+        )
+        st.session_state.sidebar_state['show_charts'] = show_charts
         
-        # Additional features
-        show_portfolio = st.sidebar.checkbox("💼 نمایش پرتفوی", value=False)
-        scan_all = st.sidebar.button(T["scan_all"])
+        show_analysis = st.sidebar.checkbox(
+            "🔍 نمایش تحلیل پیشرفته", 
+            value=st.session_state.sidebar_state['show_analysis']
+        )
+        st.session_state.sidebar_state['show_analysis'] = show_analysis
+        
+        # Additional features with persistence
+        show_portfolio = st.sidebar.checkbox(
+            "💼 نمایش پرتفوی", 
+            value=st.session_state.sidebar_state['show_portfolio']
+        )
+        st.session_state.sidebar_state['show_portfolio'] = show_portfolio
+        
+        # API Health Check Section
+        st.sidebar.header("🔧 سلامت سرویس")
+        
+        # API Status Indicator
+        if scanner.api_client and scanner.api_client.is_healthy:
+            st.sidebar.success("✅ API متصل")
+        else:
+            st.sidebar.error("❌ API قطع")
+            
+            if scanner.api_client and scanner.api_client.last_error:
+                with st.sidebar.expander("جزئیات خطا"):
+                    st.error(scanner.api_client.last_error)
+        
+        # API Health Check Button
+        if st.sidebar.button("🔄 بررسی سلامت API", use_container_width=True):
+            with st.sidebar:
+                with st.spinner("در حال بررسی..."):
+                    if scanner.api_client:
+                        scanner.api_client._check_health()
+                        st.rerun()
+        
+        # Advanced API Troubleshooting
+        with st.sidebar.expander("عیب‌یابی پیشرفته"):
+            if st.button("🔑 تست API Key"):
+                StreamlitUI.test_api_key()
+            
+            if st.button("🌐 تست اتصال اینترنت"):
+                StreamlitUI.test_internet_connection()
+            
+            st.info("""
+            **راهنمای عیب‌یابی:**
+            - اگر API Key نامعتبر است، از پنل کاربری جدید دریافت کنید
+            - اگر اتصال اینترنت مشکل دارد، VPN روشن کنید
+            - برای مشکلات فنی با پشتیبانی تماس بگیرید
+            """)
+        
+        scan_all = st.sidebar.button(T["scan_all"], use_container_width=True)
         
         return symbol, period, show_charts, show_analysis, show_portfolio, scan_all, T
     
+    @staticmethod
+    def test_api_key():
+        """Test the current API key"""
+        import requests
+        
+        try:
+            url = "https://openapiv1.coinstats.app/coins/bitcoin"
+            headers = {"X-API-KEY": Config.COINSTATE_API_KEY}
+            response = requests.get(url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                st.success("✅ API Key معتبر است")
+                data = response.json()
+                st.json({
+                    "name": data.get('name', 'N/A'),
+                    "price": data.get('price', 'N/A'),
+                    "symbol": data.get('symbol', 'N/A')
+                })
+            elif response.status_code == 401:
+                st.error("❌ API Key نامعتبر است - لطفا کلید جدید دریافت کنید")
+            elif response.status_code == 403:
+                st.error("❌ دسترسی غیرمجاز - ممکن است IP محدود شده باشد")
+            else:
+                st.warning(f"⚠️ پاسخ غیرمنتظره: کد {response.status_code}")
+                
+        except Exception as e:
+            st.error(f"❌ خطای اتصال: {str(e)}")
+    
+    @staticmethod
+    def test_internet_connection():
+        """Test internet connection"""
+        import requests
+        
+        try:
+            # Test connection to a reliable server
+            response = requests.get("https://www.google.com", timeout=5)
+            if response.status_code == 200:
+                st.success("✅ اتصال اینترنت برقرار است")
+            else:
+                st.warning("⚠️ اتصال اینترنت مشکل دارد")
+        except:
+            st.error("❌ اتصال اینترنت قطع است")
+            
+        try:
+            # Test DNS resolution
+            import socket
+            socket.gethostbyname("openapiv1.coinstats.app")
+            st.success("✅ DNS درست کار می‌کند")
+        except:
+            st.error("❌ مشکل در DNS - سعی کنید از VPN استفاده کنید")
+
+    # بقیه متدها بدون تغییر...
     @staticmethod
     def display_market_overview(market_data: Dict, T: Dict):
         """Display market overview cards"""
