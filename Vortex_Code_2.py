@@ -961,7 +961,7 @@ class StreamlitUI:
 
             if st.button("پاک کردن حافظه موقت"):
                 streamlitUI.clear_cache()
-                st.return()
+                st.rerun()
                 
             st.info("""
             **راهنمای عیب‌یابی:**
