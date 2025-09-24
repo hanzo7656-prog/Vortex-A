@@ -1123,7 +1123,7 @@ class StreamlitUI:
         st.subheader("💡 توصیه‌های معاملاتی")
         recommendations = analysis.get('recommendations', [])
         if recommendations:
-            for i, rec in enumerate(analysis.get(recommendations, 1):
+            for i, rec in enumerate(recommendations, 1):
                 if any(word in rec for word in ['صعودی', 'خرید', 'طلا']):
                     st.success(f"{i}. {rec}")
                 elif any(word in rec for word in ['نزولی', 'فروش', 'مرگ', 'احتیاط']):
