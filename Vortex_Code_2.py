@@ -1508,7 +1508,7 @@ def main():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown("🛠️ توسعه داده شده توسط:")
+            st.markdown(" توسعه داده شده توسط:")
             st.markdown("CoinState Scanner Pro v2.0")
             
         with col2:
@@ -1516,21 +1516,21 @@ def main():
             if market_data and hasattr(scanner, 'api_client') and scanner.api_client and scanner.api_client.is_healthy:
                 st.markdown("✅ داده‌های زنده")
             else:
-                st.markdown("🔁 داده‌های نمونه")
+                st.markdown(" داده‌های نمونه")
                 
         with col3:
-            st.markdown("🕒 آخرین بروزرسانی:")
+            st.markdown("آخرین بروزرسانی:")
             st.markdown(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     except Exception as e:
         logger.error(f"Application error: {str(e)}", exc_info=True)
         
-        st.error("🚨 خطای غیرمنتظره در اجرای برنامه")
+        st.error(" خطای غیرمنتظره در اجرای برنامه")
         
         import traceback
         error_details = traceback.format_exc()
         
-        with st.expander("🔧 جزئیات فنی خطا (برای توسعه‌دهنده)"):
+        with st.expander(" جزئیات فنی خطا (برای توسعه‌دهنده)"):
             st.code(error_details, language='python')
         
         st.markdown("""
@@ -1541,7 +1541,7 @@ def main():
         3. پاک کردن حافظه - از بخش عیب‌یابی پیشرفته
         4. گزارش خطا - اطلاعات بالا را برای پشتیبانی ارسال کنید
         
-        📞 پشتیبانی فنی:
+         پشتیبانی فنی:
         - گزارش خطاها را به توسعه‌دهنده ارسال کنید
         - در صورت تکرار خطا، برنامه را restart کنید
         """)
