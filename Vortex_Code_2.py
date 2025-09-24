@@ -1116,7 +1116,7 @@ class StreamlitUI:
             price = analysis['indicators'].get('current_price', 0)
             sma50 = analysis['indicators'].get('sma_50', price)
             status = "بالاتر از SMA50" if price > sma50 else "پایین‌تر از SMA50"
-            color "normal" if price > sma50 else "inverse"
+            color = "normal" if price > sma50 else "inverse"
             st.metric("موقعیت قیمت", status, delta_color=color)
         
         # Recommendations
