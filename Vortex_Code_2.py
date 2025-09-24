@@ -1148,70 +1148,7 @@ class StreamlitUI:
             st.dataframe(assets_df, use_container_width=True)
         else:
             st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
-# ==================== SECTION 10: MAIN APPLICATION ====================
-def main():
-    """Main application entry point"""
-    logger.info("Starting Enhanced CoinState Scanner")
-    
-    try:
-        # Initialize scanner
-        scanner = MarketScanner()
-        ui = StreamlitUI()
-        
-        # Setup UI with persistent sidebar
-        st.title("📊 اسکنر بازار CoinState Pro")
-        
-        # Add automatic API status check on startup
-        if scanner.api_client and not scanner.api_client.last_check:
-            scanner.api_client._check_health()
-        
-        # Sidebar controls with persistence
-        (symbol, period, show_charts, 
-         show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
-        
-        # نمایش وضعیت API در صفحه اصلی
-        if scanner.api_client:
-            if scanner.api_client.is_healthy:
-                st.success("✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند")
-            else:
-                st.warning(f"⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود")
-                if scanner.api_client.last_error:
-                    st.info(f"علت: {scanner.api_client.last_error}")
-        
-        # Get market data
-        with st.spinner(T["loading"]):
-            if scanner.api_client and scanner.api_client.is_healthy:
-                market_data = scanner.api_client.get_realtime_data(symbol)
-            else:
-                market_data = None
-            
-            analysis = scanner.run_analysis(symbol, period)
-        
-        # Display market overview
-        if market_data:
-            ui.display_market_overview(market_data, T)
-        else:
-            st.warning("⚠️ داده‌های بازار در دسترس نیست. از داده‌های نمونه استفاده می‌شود.")
-            # Generate sample market data
-            sample_market_data = {
-                'price': 50000,
-                'priceChange24h': 2.5,
-                'high24h': 52000,
-                'low24h': 49000,
-                'volume': 25000000
-            }
-            ui.display_market_overview(sample_market_data, T)
-        
-        
-        # تحلیل تکنیکال
-        with st.spinner("در حال انجام تحلیل تکنیکال..."):
-            analysis = scanner.run_analysis(symbol, period)
-        
-        # Display analysis dashboard
-        if show_analysis:
-            if analysis:
-                ui.display_analysis_dashboard(analysis, T)
-            else:
+
                 st.warning("تحلیل تکنیکال در دسترس نیست")
         
         # Display charts
