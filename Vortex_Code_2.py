@@ -120,9 +120,9 @@ class TranslationManager:
     def get_text(language: str) -> Dict:
         return TranslationManager.TEXTS.get(language, TranslationManager.TEXTS["English"])
 
-# ==================== SECTION 3: API CLIENT (Enhanced) ====================
+# ==================== SECTION 3: API CLIENT ====================
 class CoinStateAPIClient:
-    """Enhanced API client with health checking"""
+    """Enhanced API client for CoinState with better error handling"""
     
     def __init__(self, api_key: str, base_url: str):
         self.api_key = api_key
@@ -130,7 +130,8 @@ class CoinStateAPIClient:
         self.session = self._create_session()
         self.is_healthy = False
         self.last_error = None
-        self._check_health()
+        self.last_check = None  # اضافه کردن این خطا
+        self._check_health()  # بررسی سلامت هنگام راه‌اندازی
     
     def _check_health(self):
         """Check if API is healthy"""
@@ -141,6 +142,7 @@ class CoinStateAPIClient:
             if response.status_code == 200:
                 self.is_healthy = True
                 self.last_error = None
+                self.last_check = datetime.now()
                 logger.info("✅ API health check passed")
             elif response.status_code == 401:
                 self.is_healthy = False
@@ -150,15 +152,27 @@ class CoinStateAPIClient:
                 self.is_healthy = False
                 self.last_error = "دسترسی غیرمجاز - ممکن است IP محدود شده باشد"
                 logger.error("❌ API access forbidden")
+            elif response.status_code == 429:
+                self.is_healthy = False
+                self.last_error = "محدودیت تعداد درخواست - لطفا کمی صبر کنید"
+                logger.error("❌ API rate limit exceeded")
             else:
                 self.is_healthy = False
                 self.last_error = f"خطای سرور: کد {response.status_code}"
                 logger.error(f"❌ API error: {response.status_code}")
                 
+        except requests.exceptions.Timeout:
+            self.is_healthy = False
+            self.last_error = "اتصال timeout شد - سرور پاسخ نمی‌دهد"
+            logger.error("❌ API connection timeout")
+        except requests.exceptions.ConnectionError:
+            self.is_healthy = False
+            self.last_error = "خطای اتصال - اینترنت یا DNS مشکل دارد"
+            logger.error("❌ API connection error")
         except Exception as e:
             self.is_healthy = False
-            self.last_error = f"خطای اتصال: {str(e)}"
-            logger.error(f"❌ API connection failed: {str(e)}")
+            self.last_error = f"خطای ناشناخته: {str(e)}"
+            logger.error(f"❌ Unknown API error: {str(e)}")
             
     def _create_session(self) -> requests.Session:
         """Create session with retry strategy"""
