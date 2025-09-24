@@ -1199,8 +1199,6 @@ class StreamlitUI:
                         
                         if result['recommendations']:
                             st.info("توصیه: " + result['recommendations'][0])
-            else:
-                st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
     
 # ==================== SECTION 10: MAIN APPLICATION ====================
 def main():
