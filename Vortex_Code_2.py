@@ -1246,7 +1246,7 @@ class StreamlitUI:
             
 # ==================== SECTION 10: MAIN APPLICATION ====================
 def main():
-    """Main application entry point"""
+    ""Main application entry point"""
     logger.info("Starting Enhanced CoinState Scanner")
     
     try:
