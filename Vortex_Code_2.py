@@ -1265,6 +1265,125 @@ def main():
             else:
                 st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
     
+# ==================== SECTION 10: MAIN APPLICATION ====================
+def main():
+    """Main application entry point"""
+    logger.info("Starting Enhanced CoinState Scanner")
+    
+    try:
+        # Initialize scanner
+        scanner = MarketScanner()
+        ui = StreamlitUI()
+        
+        # Setup UI with persistent sidebar
+        st.title("📊 اسکنر بازار CoinState Pro")
+        
+        # Add automatic API status check on startup - با بررسی وجود last_check
+        if scanner.api_client and hasattr(scanner.api_client, 'last_check'):
+            if not scanner.api_client.last_check:
+                scanner.api_client._check_health()
+        elif scanner.api_client:
+            # اگر last_check وجود ندارد، باز هم سلامت را بررسی کن
+            scanner.api_client._check_health()
+        
+        # Sidebar controls with persistence
+        (symbol, period, show_charts, 
+         show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
+        
+        # نمایش وضعیت API در صفحه اصلی با بررسی ایمن
+        if scanner.api_client:
+            api_status = "✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند" if scanner.api_client.is_healthy else "⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود"
+            
+            if scanner.api_client.is_healthy:
+                st.success(api_status)
+            else:
+                st.warning(api_status)
+                
+                if hasattr(scanner.api_client, 'last_error') and scanner.api_client.last_error:
+                    st.info(f"علت: {scanner.api_client.last_error}")
+        
+        # Get market data
+        with st.spinner(T["loading"]):
+            if scanner.api_client and scanner.api_client.is_healthy:
+                market_data = scanner.api_client.get_realtime_data(symbol)
+            else:
+                market_data = None
+            
+            analysis = scanner.run_analysis(symbol, period)
+        
+        # Display market overview
+        if market_data:
+            ui.display_market_overview(market_data, T)
+        else:
+            st.warning("⚠️ داده‌های بازار در دسترس نیست. از داده‌های نمونه استفاده می‌شود.")
+            # Generate sample market data
+            sample_market_data = {
+                'price': 50000,
+                'priceChange24h': 2.5,
+                'high24h': 52000,
+                'low24h': 49000,
+                'volume': 25000000
+            }
+            ui.display_market_overview(sample_market_data, T)
+        
+        # Display analysis dashboard
+        if show_analysis:
+            if analysis:
+                ui.display_analysis_dashboard(analysis, T)
+            else:
+                st.warning("تحلیل تکنیکال در دسترس نیست")
+        
+        # Display charts
+        if show_charts:
+            if analysis and analysis.get('historical_data') is not None:
+                historical_data = analysis.get('historical_data')
+                # Price chart
+                fig_price = ChartRenderer.render_price_chart(
+                    historical_data, symbol, period, T["price_chart"]
+                )
+                st.plotly_chart(fig_price, use_container_width=True)
+                
+                # Technical indicators
+                fig_rsi, fig_macd = ChartRenderer.render_technical_indicators(historical_data)
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.plotly_chart(fig_rsi, use_container_width=True)
+                with col2:
+                    st.plotly_chart(fig_macd, use_container_width=True)
+            else:
+                st.warning("نمودارها در دسترس نیستند")
+        
+        # Display portfolio
+        if show_portfolio:
+            ui.display_portfolio(scanner, T)
+        
+        # Market scan feature
+        if scan_all:
+            st.info("اسکن تمام بازار در حال اجرا... این عملیات ممکن است چند دقیقه طول بکشد.")
+            market_scan_results = scanner.scan_all_market()
+            st.header("🌐 نتایج اسکن کامل بازار")
+            
+            if market_scan_results:
+                for sym, result in market_scan_results.items():
+                    with st.expander(f"{sym.upper()} - روند: {result['signals'].get('trend', 'نامشخص')}"):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("قیمت", f"${result['indicators'].get('current_price', 0):.2f}")
+                        with col2:
+                            rsi = result['indicators'].get('rsi', 0)
+                            st.metric("RSI", f"{rsi:.1f}")
+                        with col3:
+                            trend_icon = {
+                                'strong_bullish': '🚀', 'weak_bullish': '📈',
+                                'weak_bearish': '📉', 'strong_bearish': '⚠️'
+                            }.get(result['signals'].get('trend', 'neutral'), '⚪')
+                            st.metric("سیگنال", trend_icon)
+                        
+                        if result['recommendations']:
+                            st.info("توصیه: " + result['recommendations'][0])
+            else:
+                st.warning("هیچ داده‌ای از اسکن بازار دریافت نشد.")
+    
     except Exception as e:
         logger.error(f"Application error: {str(e)}", exc_info=True)
         
