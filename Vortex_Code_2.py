@@ -1154,7 +1154,7 @@ class StreamlitUI:
                 if quantity > 0 and buy_price > 0:
                     if scanner.portfolio_manager.add_to_portfolio(symbol, quantity, buy_price, notes):
                         st.success("✅ دارایی به پرتفوی اضافه شد")
-                        st.return()
+                        st.rerun()
                     else:
                         st.error("❌ خطا در افزودن دارایی")
                 else:
