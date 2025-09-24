@@ -1095,10 +1095,10 @@ class StreamlitUI:
                     'weak_bearish': '📉', 'strong_bearish': '⚠️'
                 }
                 trend_text = {
-                    'strong_bullish': 'صعودی قوی'
-                    'weak_bullish': 'صعودی ضعیف'
-                    'weak_bearish': 'نزولی ضعیف'
-                    'strong_bearish': 'نزولی قوی'
+                    'strong_bullish': 'صعودی قوی',
+                    'weak_bullish': 'صعودی ضعیف',
+                    'weak_bearish': 'نزولی ضعیف',
+                    'strong_bearish': 'نزولی قوی',
                     'neutral': 'خنثی'
                 }
                 st.metric("روند بازار", f"{trend_icons.get(trend, '⚪')} {trend}")
