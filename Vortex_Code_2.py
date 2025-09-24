@@ -1181,69 +1181,69 @@ class StreamlitUI:
                 if st.button("بروزرسانی قیمت‌ها"):
                     st.return()
                     # Assets table
-            st.subheader("📋 دارایی‌های پرتفوی")
-            assets_df = pd.DataFrame(portfolio_value['assets'])
-            
-            # Format the dataframe for better display
-            display_df = assets_df.copy()
-            display_df['buy_price'] = display_df['buy_price'].apply(lambda x: f"${x:,.2f}")
-            display_df['current_price'] = display_df['current_price'].apply(lambda x: f"${x:,.2f}")
-            display_df['invested'] = display_df['invested'].apply(lambda x: f"${x:,.2f}")
-            display_df['current_value'] = display_df['current_value'].apply(lambda x: f"${x:,.2f}")
-            display_df['pnl'] = display_df['pnl'].apply(lambda x: f"${x:,.2f}")
-            display_df['pnl_percent'] = display_df['pnl_percent'].apply(lambda x: f"{x:+.2f}%")
-            
-            st.dataframe(display_df, use_container_width=True)
-            
-            # Export portfolio data
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("📥 خروجی Excel"):
-                    StreamlitUI.export_to_excel(assets_df)
-            with col2:
-                if st.button("📊 نمودار پرتفوی"):
-                    StreamlitUI.show_portfolio_chart(portfolio_value)
-                    
-        else:
-            st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
-    
-    @staticmethod
-    def export_to_excel(df: pd.DataFrame):
-        """Export portfolio to Excel"""
-        try:
-            from io import BytesIO
-            import base64
-            
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, sheet_name='Portfolio', index=False)
-            
-            excel_data = output.getvalue()
-            b64 = base64.b64encode(excel_data).decode()
-            href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="portfolio.xlsx">دانلود فایل Excel</a>'
-            st.markdown(href, unsafe_allow_html=True)
-            st.success("✅ فایل Excel آماده دانلود است")
-        except Exception as e:
-            st.error(f"❌ خطا در ایجاد فایل Excel: {e}")
-    
-    @staticmethod
-    def show_portfolio_chart(portfolio_value: Dict):
-        """Show portfolio distribution chart"""
-        try:
-            assets = portfolio_value['assets']
-            if not assets:
-                st.warning("هیچ دارایی برای نمایش وجود ندارد")
-                return
-            
-            symbols = [asset['symbol'] for asset in assets]
-            values = [asset['current_value'] for asset in assets]
-            
-            fig = go.Figure(data=[go.Pie(labels=symbols, values=values, hole=.3)])
-            fig.update_layout(title="توزیع دارایی‌های پرتفوی")
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as e:
-            st.error(f"❌ خطا در ایجاد نمودار: {e}")
+            st.subheader("📋 دارایی‌های پرتفوی")
+            assets_df = pd.DataFrame(portfolio_value['assets'])
 
+            # Format the dataframe for better display
+            display_df = assets_df.copy()
+            display_df['buy_price'] = display_df['buy_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['current_price'] = display_df['current_price'].apply(lambda x: f"${x:,.2f}")
+            display_df['invested'] = display_df['invested'].apply(lambda x: f"${x:,.2f}")
+            display_df['current_value'] = display_df['current_value'].apply(lambda x: f"${x:,.2f}")
+            display_df['pnl'] = display_df['pnl'].apply(lambda x: f"${x:,.2f}")
+            display_df['pnl_percent'] = display_df['pnl_percent'].apply(lambda x: f"{x:+.2f}%")
+
+            st.dataframe(display_df, use_container_width=True)
+
+            # Export portfolio data
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📥 خروجی Excel"):
+                    StreamlitUI.export_to_excel(assets_df)
+            with col2:
+                if st.button("📊 نمودار پرتفوی"):
+                    StreamlitUI.show_portfolio_chart(portfolio_value)
+                    
+        else:
+            st.info("🔄 پرتفوی شما خالی است. اولین دارایی خود را اضافه کنید.")
+            
+    @staticmethod
+    def export_to_excel(df: pd.DataFrame):
+        """Export portfolio to Excel"""
+        try:
+            from io import BytesIO
+            import base64
+            
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                 df.to_excel(writer, sheet_name='Portfolio', index=False)
+                
+            excel_data = output.getvalue()
+            b64 = base64.b64encode(excel_data).decode()
+            href = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}" download="portfolio.xlsx">دانلود فایل Excel</a>'
+            st.markdown(href, unsafe_allow_html=True)
+            st.success("✅ فایل Excel آماده دانلود است")
+        except Exception as e:
+            st.error(f"❌ خطا در ایجاد فایل Excel: {e}")
+            
+    @staticmethod
+    def show_portfolio_chart(portfolio_value: Dict):
+        """Show portfolio distribution chart"""
+        try:
+            assets = portfolio_value['assets']
+            if not assets:
+                st.warning("هیچ دارایی برای نمایش وجود ندارد")
+                return
+                
+            symbols = [asset['symbol'] for asset in assets]
+            values = [asset['current_value'] for asset in assets]
+            
+            fig = go.Figure(data=[go.Pie(labels=symbols, values=values, hole=.3)])
+            fig.update_layout(title="توزیع دارایی‌های پرتفوی")
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"❌ خطا در ایجاد نمودار: {e}")
+            
 # ==================== SECTION 10: MAIN APPLICATION ====================
 def main():
     """Main application entry point"""
