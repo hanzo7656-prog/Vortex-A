@@ -1179,8 +1179,8 @@ class StreamlitUI:
                          delta_color=pnl_color)
             with clo4:
                 if st.button("بروزرسانی قیمت‌ها"):
-                    st.return()   
-            # Assets table
+                    st.return()
+                    # Assets table
             st.subheader("📋 دارایی‌های پرتفوی")
             assets_df = pd.DataFrame(portfolio_value['assets'])
             
