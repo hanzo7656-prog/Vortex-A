@@ -124,7 +124,7 @@ class TranslationManager:
 class CoinStateAPIClient:
     """Enhanced API client for CoinState with better error handling"""
     
-    def init(self, api_key: str, base_url: str):
+    def __init__(self, api_key: str, base_url: str):
         self.api_key = api_key
         self.base_url = base_url
         self.session = self._create_session()
