@@ -866,7 +866,7 @@ class StreamlitUI:
     
     @staticmethod
     def setup_sidebar(scanner: MarketScanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, Dict]:
-        """Setup sidebar controls with persistence"""
+        """Setup sidebar controls with enhanced persistence"""
         
         # Initialize session state for persistence
         if 'sidebar_state' not in st.session_state:
@@ -876,8 +876,13 @@ class StreamlitUI:
                 'period': list(Config.PERIODS.keys())[0],
                 'show_charts': True,
                 'show_analysis': True,
-                'show_portfolio': False
+                'show_portfolio': False,
+                'scan_filter': 'all',
+                'max_symbols': 20,
+                'notifications_seen': {}
             }
+
+        st.sidebar.write(f"حالت ذخیره شده: {st.session_state.sidebar_state['symbol']}")
         
         st.sidebar.header(T["settings"])
         
