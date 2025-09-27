@@ -1180,8 +1180,8 @@ class StreamlitUI:
         st.session_state.sidebar_state['language'] = language
         T = TranslationManager.get_text(language)
     
-       # Symbol selection with persistence
-       symbol = st.sidebar.selectbox(
+        # Symbol selection with persistence
+        symbol = st.sidebar.selectbox(
             T["select_symbol"],
             options=Config.SYMBOLS,
             index=Config.SYMBOLS.index(st.session_state.sidebar_state['symbol']),
