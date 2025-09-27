@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 
 class Config:
     """Configuration class for all constants"""
-    COINSTATE_API_KEY = "7qmXYUHlF+DWnF9fYml4Klz+/leL7EBRH+mA2WrpsEc="
-    COINSTATE_BASE_URL = "https://openapiv1.coinstats.app"
+    COINSTATE_BASE_URL = "https://crypto-scanner-backend.onrender.com/api"
     
     SYMBOLS = [
         "bitcoin", "ethereum", "binancecoin", "cardano", "ripple", "solana",
@@ -127,12 +126,32 @@ class CoinStateAPIClient:
     def __init__(self, api_key: str, base_url: str):
         self.api_key = api_key
         self.base_url = base_url
-        self.session = self._create_session()
+        self.session = requests.session()
         self.is_healthy = False
         self.last_error = None
         self.last_check = None  # اضافه کردن این خطا
         self._check_health()  # بررسی سلامت هنگام راه‌اندازی
-    
+
+    def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
+        try:
+            # دریافت داده از سرور میانی شما
+            url = f"{self.base_url}/coins"
+            response = self.session.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                # پیدا کردن ارز مورد نظر در لیست
+                coins = data.get('coins', [])
+                for coin in coins:
+                    if (coin.get('id') == coin_id or 
+                        coin.get('name', '').lower() == coin_id.lower() or
+                        coin.get('symbol', '').lower() == coin_id.lower()):
+                        return coin
+                return None
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching from middleware: {str(e)}")
+            return None
     def _check_health(self):
         """Check if API is healthy"""
         try:
