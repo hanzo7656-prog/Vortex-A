@@ -134,7 +134,7 @@ class CoinStateAPIClient:
     def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
         try:
             # دریافت داده از سرور میانی شما
-            url = f"{self.base_url}/coins"
+            url = f"{self.base_url}/coins/{coin_id}"
             response = self.session.get(url, timeout=15)
             
             if response.status_code == 200:
@@ -231,7 +231,7 @@ class CoinStateAPIClient:
     def get_historical_data(self, coin_id: str, period: str) -> Optional[pd.DataFrame]:
         """Get historical data with improved error handling"""
         try:
-            url = f"{self.base_url}/coins/charts"
+            url = f"{self.base_url}/historical/{coin_id}?period={period}"
             api_period = Config.PERIOD_MAPPING.get(period, "24h")
             
             params = {"period": api_period, "coinIds": coin_id}
