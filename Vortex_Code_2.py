@@ -1960,48 +1960,442 @@ class StreamlitUI:
                 with col2:
                     if status['last_scan_time']:
                         st.metric("آخرین اسکن", status['last_scan_time'].strftime('%H:%M:%S'))
-                    st.metric("اندازه کش", status['cache_size'])
-                
-                if status['last_error'] and status['last_error'] != 'API Client موجود نیست':
-                    st.warning(f"آخرین خطا: {status['last_error']}")
+# ==================== SECTION 9: STREAMLIT UI COMPONENTS (کامل و اصلاح شده) ====================
+class StreamlitUI:
+    """کامپوننت‌های رابط کاربری Streamlit با پشتیبانی از سرور میانی و کنترل‌های پیشرفته"""
+    
+    @staticmethod
+    def setup_sidebar(scanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, Dict]:
+        """Setup sidebar controls with enhanced persistence and advanced scan options"""
+    
+        # Initialize session state for persistence
+        if 'sidebar_state' not in st.session_state:
+            st.session_state.sidebar_state = {
+                'language': "فارسی",
+                'symbol': Config.SYMBOLS[0],
+                'period': list(Config.PERIODS.keys())[0],
+                'show_charts': True,
+                'show_analysis': True,
+                'show_portfolio': False,
+                'scan_filter': 'all',
+                'max_symbols': 20,
+                'notifications_seen': {}
+            }
+
+        st.sidebar.header(T["settings"])
+    
+        # Language selection with persistence
+        language = st.sidebar.selectbox(
+            T["language"], 
+            ["فارسی", "English"],
+            index=0 if st.session_state.sidebar_state['language'] == "فارسی" else 1
+        )
+        st.session_state.sidebar_state['language'] = language
+        T = TranslationManager.get_text(language)
+    
+        # Symbol selection with persistence
+        symbol = st.sidebar.selectbox(
+            T["select_symbol"],
+            options=Config.SYMBOLS,
+            index=Config.SYMBOLS.index(st.session_state.sidebar_state['symbol']),
+            format_func=lambda x: x.capitalize().replace('-', ' ')
+        )
+        st.session_state.sidebar_state['symbol'] = symbol
+    
+        # Period selection with persistence
+        period_options = list(Config.PERIODS.keys())
+        period_index = period_options.index(st.session_state.sidebar_state['period'])
+        period = st.sidebar.selectbox(
+            T["select_interval"],
+            options=period_options,
+            index=period_index,
+            format_func=lambda x: Config.PERIODS[x] if language == "فارسی" else x
+        )
+        st.session_state.sidebar_state['period'] = period
+    
+        # Display options with persistence
+        show_charts = st.sidebar.checkbox(
+            "📊 نمایش نمودارها", 
+            value=st.session_state.sidebar_state['show_charts']
+        )
+        st.session_state.sidebar_state['show_charts'] = show_charts
+    
+        show_analysis = st.sidebar.checkbox(
+             "🔍 نمایش تحلیل پیشرفته", 
+             value=st.session_state.sidebar_state['show_analysis']
+        )
+        st.session_state.sidebar_state['show_analysis'] = show_analysis
+
+        # Additional features with persistence
+        show_portfolio = st.sidebar.checkbox(
+            "💼 نمایش پرتفوی", 
+            value=st.session_state.sidebar_state['show_portfolio']
+        )
+        st.session_state.sidebar_state['show_portfolio'] = show_portfolio
+    
+        # API Health Check Section - ✅ اصلاح شده با بررسی وجود api_client
+        st.sidebar.header("🔧 سلامت سرویس")
+    
+        # ✅ بررسی ایمن وجود api_client و attributeهایش
+        api_healthy = False
+        last_error = None
+        last_check = None
+    
+        if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
+            if hasattr(scanner.api_client, 'is_healthy'):
+                api_healthy = scanner.api_client.is_healthy
+            if hasattr(scanner.api_client, 'last_error'):
+                last_error = scanner.api_client.last_error
+            if hasattr(scanner.api_client, 'last_check'):
+                last_check = scanner.api_client.last_check
+    
+        # API Status Indicator
+        if api_healthy:
+            st.sidebar.success("✅ سرور میانی متصل")
+            # نمایش اطلاعات اضافی فقط اگر api_client سالم است
+            with st.sidebar.expander("📊 اطلاعات سرور"):
+                st.write("✅ وضعیت: فعال")
+                if last_check:
+                    st.write(f"⏰ آخرین بررسی: {last_check.strftime('%H:%M:%S')}")
+                st.write("🌐 منبع داده: سرور میانی شما")
+        else:
+            st.sidebar.error("❌ سرور میانی قطع")
+        
+            if last_error:
+                with st.sidebar.expander("جزئیات خطا"):
+                     st.error(last_error)
             else:
-                st.info("اطلاعات وضعیت در دسترس نیست")
+                with st.sidebar.expander("جزئیات خطا"):
+                    st.error("API Client ایجاد نشده یا خطای ناشناخته")
+    
+        # API Health Check Button - ✅ اصلاح شده
+        if st.sidebar.button("🔄 بررسی سلامت سرور", use_container_width=True):
+            with st.sidebar:
+                with st.spinner("در حال بررسی..."):
+                    if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
+                        if hasattr(scanner.api_client, '_check_health'):
+                            scanner.api_client._check_health()
+                    st.rerun()
+    
+        # بقیه کد بدون تغییر...
+        scan_all = st.sidebar.button(T["scan_all"], use_container_width=True)
+    
+        return symbol, period, show_charts, show_analysis, show_portfolio, scan_all, T
+
+    # ==================== متد جدید: کنترل‌های پیشرفته اسکن ====================
+    @staticmethod
+    def setup_advanced_scan_controls(scanner, T: Dict) -> Dict:
+        """کنترل‌های پیشرفته اسکن در سایدبار"""
+        st.sidebar.header("🎛️ کنترل‌های پیشرفته اسکن")
+        
+        # انتخاب تعداد ارزها
+        scan_limit = st.sidebar.selectbox(
+            "تعداد ارزها برای اسکن",
+            options=[100, 500, 1000],
+            index=0,
+            help="تعداد ارزهایی که می‌خواهید اسکن شوند"
+        )
+        
+        # انتخاب نوع فیلتر
+        filter_type = st.sidebar.selectbox(
+            "فیلتر اسکن",
+            options=["volume", "liquidity", "price_change_24h", "market_cap", "signals"],
+            index=0,
+            format_func=lambda x: {
+                "volume": "📊 حجم معاملات بالا",
+                "liquidity": "💧 نقدینگی بالا", 
+                "price_change_24h": "📈 تغییرات قیمت ۲۴h",
+                "market_cap": "💰 مارکت کپ بالا",
+                "signals": "🎯 سیگنال‌های تکنیکال"
+            }.get(x, x),
+            help="معیار فیلتر کردن ارزها"
+        )
+        
+        # فیلترهای سفارشی (اختیاری)
+        custom_filters = {}
+        with st.sidebar.expander("⚙️ فیلترهای سفارشی (اختیاری)"):
+            st.write("**فیلتر حجم معاملات:**")
+            col1, col2 = st.columns(2)
+            with col1:
+                min_volume = st.number_input("حداقل حجم (USD)", min_value=0, value=1000000, step=1000000)
+            with col2:
+                max_volume = st.number_input("حداکثر حجم (USD)", min_value=0, value=1000000000, step=10000000)
+            
+            st.write("**فیلتر تغییرات قیمت:**")
+            col3, col4 = st.columns(2)
+            with col3:
+                min_price_change = st.number_input("حداقل تغییر (%)", min_value=0.0, value=1.0, step=0.5)
+            with col4:
+                max_price_change = st.number_input("حداکثر تغییر (%)", min_value=0.0, value=50.0, step=1.0)
+            
+            # ذخیره فیلترها اگر مقدار معتبر دارند
+            if min_volume > 0:
+                custom_filters["min_volume"] = min_volume
+            if max_volume > 0 and max_volume > min_volume:
+                custom_filters["max_volume"] = max_volume
+            if min_price_change > 0:
+                custom_filters["min_price_change"] = min_price_change
+            if max_price_change > 0 and max_price_change > min_price_change:
+                custom_filters["max_price_change"] = max_price_change
+        
+        # دکمه اسکن پیشرفته
+        advanced_scan = st.sidebar.button(
+            "🚀 اجرای اسکن پیشرفته", 
+            use_container_width=True,
+            type="primary",
+            help="اجرای اسکن با تنظیمات انتخاب شده"
+        )
+        
+        return {
+            "scan_limit": scan_limit,
+            "filter_type": filter_type,
+            "custom_filters": custom_filters if custom_filters else None,
+            "advanced_scan": advanced_scan
+        }
+
+    # ==================== متد جدید: نمایش نتایج اسکن پیشرفته ====================
+    @staticmethod
+    def display_advanced_scan_results(scan_data: Dict, T: Dict):
+        """نمایش نتایج اسکن پیشرفته"""
+        if not scan_data or not scan_data.get("success"):
+            st.error("❌ خطا در دریافت نتایج اسکن")
+            return
+        
+        st.header("🎯 نتایج اسکن پیشرفته بازار")
+        
+        # اطلاعات کلی اسکن
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("تعداد ارزها", scan_data.get("total_coins", 0))
+        with col2:
+            st.metric("حالت اسکن", scan_data.get("scan_mode", "unknown"))
+        with col3:
+            filter_desc = scan_data.get("filter_description", "unknown")
+            st.metric("فیلتر اعمال شده", filter_desc)
+        with col4:
+            scan_time = scan_data.get("scan_time", "")
+            time_display = scan_time.split('T')[1][:8] if scan_time else "نامشخص"
+            st.metric("زمان اسکن", time_display)
+        
+        # نمایش جدول نتایج
+        results = scan_data.get("scan_results", [])
+        if results:
+            df = pd.DataFrame(results)
+            
+            # ایجاد نمایش زیبا از داده‌ها
+            st.subheader(f"📋 لیست ارزها (بر اساس {filter_desc})")
+            
+            # انتخاب ستون‌های مهم برای نمایش
+            display_columns = ['symbol', 'name', 'price', 'priceChange24h', 'volume', 'marketCap']
+            available_columns = [col for col in display_columns if col in df.columns]
+            
+            if available_columns:
+                display_df = df[available_columns].copy()
+                
+                # فرمت کردن اعداد برای نمایش بهتر
+                if 'price' in display_df.columns:
+                    display_df['price'] = display_df['price'].apply(
+                        lambda x: f"${x:,.2f}" if x >= 1 else f"${x:.6f}"
+                    )
+                
+                if 'priceChange24h' in display_df.columns:
+                    display_df['priceChange24h'] = display_df['priceChange24h'].apply(
+                        lambda x: f"{x:+.2f}%"
+                    )
+                
+                if 'volume' in display_df.columns:
+                    display_df['volume'] = display_df['volume'].apply(
+                        lambda x: f"${x/1000000:.1f}M" if x >= 1000000 else f"${x:,.0f}"
+                    )
+                
+                if 'marketCap' in display_df.columns:
+                    display_df['marketCap'] = display_df['marketCap'].apply(
+                        lambda x: f"${x/1000000000:.1f}B" if x >= 1000000000 else f"${x/1000000:.1f}M"
+                    )
+                
+                # نمایش جدول
+                st.dataframe(display_df, use_container_width=True, height=400)
+                
+                # آمار تکمیلی
+                with st.expander("📊 آمار تکمیلی نتایج"):
+                    if 'priceChange24h' in df.columns:
+                        avg_change = df['priceChange24h'].mean()
+                        max_change = df['priceChange24h'].max()
+                        min_change = df['priceChange24h'].min()
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("میانگین تغییرات", f"{avg_change:+.2f}%")
+                        with col2:
+                            st.metric("بیشترین افزایش", f"{max_change:+.2f}%")
+                        with col3:
+                            st.metric("بیشترین کاهش", f"{min_change:+.2f}%")
+                
+                # دانلود نتایج
+                st.subheader("📥 ذخیره نتایج")
+                csv = df.to_csv(index=False, encoding='utf-8-sig')
+                st.download_button(
+                    label="💾 دانلود نتایج (CSV)",
+                    data=csv,
+                    file_name=f"advanced_scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    help="دانلود کامل نتایج اسکن در فرمت CSV"
+                )
+            else:
+                st.warning("⚠️ ستون‌های مورد نیاز برای نمایش وجود ندارد")
+        else:
+            st.warning("⚠️ هیچ نتیجه‌ای برای نمایش وجود ندارد")
+            
+        # نمایش اطلاعات فنی
+        with st.expander("🔧 اطلاعات فنی اسکن"):
+            performance = scan_data.get("performance", {})
+            st.json({
+                "filters_applied": scan_data.get("filter_applied"),
+                "request_limit": performance.get("request_limit"),
+                "actual_results": performance.get("actual_results"),
+                "response_time": performance.get("response_time")
+            })
+
+    # ==================== متدهای قبلی (بدون تغییر) ====================
+    @staticmethod
+    def test_middleware_connection(api_client):
+        """Test connection to middleware server"""
+        import requests
+        
+        try:
+            if not api_client:
+                st.error("❌ API Client موجود نیست")
+                return
+            
+            # تست endpoint سلامت
+            health_url = f"{api_client.base_url}/health"
+            response = requests.get(health_url, timeout=10)
+            
+            if response.status_code == 200:
+                st.success("✅ اتصال به سرور میانی برقرار است")
+                health_data = response.json()
+                st.json(health_data)
+            else:
+                st.error(f"❌ خطای سرور: کد {response.status_code}")
+                
+            # تست endpoint داده‌ها
+            data_url = f"{api_client.base_url}/coins"
+            response = requests.get(data_url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                coin_count = len(data.get('coins', []))
+                st.success(f"✅ داده‌ها قابل دسترسی هستند ({coin_count} ارز)")
+            else:
+                st.warning(f"⚠️ داده‌ها در دسترس نیستند: کد {response.status_code}")
+                
+        except Exception as e:
+            st.error(f"❌ خطای اتصال: {str(e)}")
 
     @staticmethod
-    def display_performance_report(scanner, symbol: str):
-        """Display performance report for a symbol"""
+    def test_sample_data():
+        """Test sample data generation"""
         try:
-            if hasattr(scanner, 'get_symbol_performance_report'):
-                report = scanner.get_symbol_performance_report(symbol)
-                if report:
-                    st.subheader(f"📈 گزارش عملکرد {symbol.upper()}")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        # نمایش امتیاز عملکرد
-                        score = report['performance_score']
-                        if score >= 70:
-                            st.success(f"🏆 امتیاز: {score:.1f}/100 (عالی)")
-                        elif score >= 50:
-                            st.info(f"📊 امتیاز: {score:.1f}/100 (متوسط)")
-                        else:
-                            st.warning(f"⚠️ امتیاز: {score:.1f}/100 (ضعیف)")
-                    
-                    with col2:
-                        st.metric("روند", report['trend'])
-                    
-                    with col3:
-                        st.metric("تغییر 24h", f"{report['24h_change']:+.2f}%")
-                    
-                    # نمایش توصیه‌ها
-                    if report['recommendations']:
-                        st.info("💡 توصیه‌ها:")
-                        for rec in report['recommendations']:
-                            st.write(f"• {rec}")
-        except Exception as e:
-            st.error(f"❌ خطا در نمایش گزارش عملکرد: {e}")
-
+            # ایجاد داده‌های نمونه
+            sample_data = pd.DataFrame({
+                'time': [datetime.now() - timedelta(hours=i) for i in range(24)][::-1],
+                'open': np.random.normal(50000, 1000, 24),
+                'high': np.random.normal(51000, 1000, 24),
+                'low': np.random.normal(49000, 1000, 24),
+                'close': np.random.normal(50500, 1000, 24),
+                'volume': np.random.uniform(1000000, 5000000, 24)
+            })
             
+            # تحلیل تکنیکال نمونه
+            analyzer = TechnicalAnalyzer()
+            analyzed_data = analyzer.calculate_indicators(sample_data)
+            
+            st.success("✅ داده‌های نمونه با موفقیت ایجاد شدند")
+            st.dataframe(analyzed_data.tail(5))
+            
+            # نمایش اندیکاتورها
+            last_row = analyzed_data.iloc[-1]
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("RSI", f"{last_row.get('RSI', 50):.1f}")
+            with col2:
+                st.metric("MACD", f"{last_row.get('MACD', 0):.4f}")
+            with col3:
+                st.metric("SMA 20", f"{last_row.get('SMA_20', 0):.0f}")
+                
+        except Exception as e:
+            st.error(f"❌ خطا در ایجاد داده‌های نمونه: {str(e)}")
+
+    @staticmethod
+    def clear_cache(scanner):
+        """Clear all caches"""
+        try:
+            # پاک کردن کش session state
+            keys = list(st.session_state.keys())
+            for key in keys:
+                if key != 'sidebar_state':
+                    del st.session_state[key]
+            
+            # پاک کردن کش اسکنر
+            if hasattr(scanner, 'clear_cache'):
+                scanner.clear_cache()
+            
+            st.success("✅ حافظه موقت پاک شد")
+        except Exception as e:
+            st.error(f"❌ خطا در پاک کردن حافظه: {str(e)}")
+    
+    @staticmethod
+    def display_market_overview(market_data: Dict, T: Dict):
+        """Display market overview cards"""
+        if not market_data:
+            st.warning(T["no_data"])
+            return
+        
+        # ایجاد کارت‌های متریک
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            price = market_data.get('price', 0)
+            st.metric(T["price"], f"${price:,.2f}" if price >= 1 else f"${price:.4f}")
+        
+        with col2:
+            change_24h = market_data.get('priceChange24h', 0)
+            change_color = "normal" if change_24h >= 0 else "inverse"
+            st.metric(T["change"], f"{change_24h:+.2f}%", delta_color=change_color)
+        
+        with col3:
+            high_24h = market_data.get('high24h', market_data.get('price', 0))
+            st.metric(T["high"], f"${high_24h:,.2f}" if high_24h >= 1 else f"${high_24h:.4f}")
+        
+        with col4:
+            low_24h = market_data.get('low24h', market_data.get('price', 0))
+            st.metric(T["low"], f"${low_24h:,.2f}" if low_24h >= 1 else f"${low_24h:.4f}")
+        
+        with col5:
+            volume = market_data.get('volume', 0)
+            if volume > 1000000:
+                st.metric(T["volume"], f"${volume/1000000:.1f}M")
+            else:
+                st.metric(T["volume"], f"${volume:,.0f}")
+        
+        # اطلاعات اضافی در صورت موجود بودن
+        if any(key in market_data for key in ['marketCap', 'priceChange1h']):
+            with st.expander("📈 اطلاعات تکمیلی"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    market_cap = market_data.get('marketCap', 0)
+                    if market_cap > 0:
+                        st.metric("مارکت کپ", f"${market_cap/1000000000:.1f}B")
+                with col2:
+                    change_1h = market_data.get('priceChange1h', 0)
+                    if change_1h != 0:
+                        st.metric("تغییر 1h", f"{change_1h:+.2f}%")
+                with col3:
+                    last_updated = market_data.get('lastUpdated', '')
+                    if last_updated:
+                        st.metric("آخرین بروزرسانی", last_updated.split('T')[0])
+
+    # ... (بقیه متدهای قبلی بدون تغییر مانند display_analysis_dashboard, display_portfolio, etc.)
 # ==================== SECTION 10: MAIN APPLICATION ==========================
 def main():
     """Main application entry point"""
