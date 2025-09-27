@@ -1533,14 +1533,14 @@ class StreamlitUI:
         api_client = scanner.api_client if (scanner and hasattr(scanner, 'api_client')) else None
         portfolio_value = scanner.portfolio_manager.get_portfolio_value(api_client)
         
-           if portfolio_value['assets']:
-                col1, col2, col3, col4 = st.columns(4)
+        if portfolio_value['assets']:
+            col1, col2, col3, col4 = st.columns(4)
             
-           with col1:
+            with col1:
                 st.metric("💰 سرمایه‌گذاری شده", f"${portfolio_value['total_invested']:,.2f}")
-           with col2:
-               st.metric("💵 ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
-           with col3:
+            with col2:
+                st.metric("💵 ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
+            with col3:
                 pnl = portfolio_value['total_pnl']
                 pnl_percent = portfolio_value['total_pnl_percent']
                 pnl_color = "normal" if pnl >= 0 else "inverse"
