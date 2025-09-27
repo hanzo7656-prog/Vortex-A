@@ -123,11 +123,10 @@ class TranslationManager:
 class CoinStateAPIClient:
     """Enhanced API client for CoinState with better error handling"""
     
-    def __init__(self, api_key: str, base_url: str):
-        self.api_key = api_key
+    def __init__(self, base-url: str):
         self.base_url = base_url
         self.session = requests.session()
-        self.is_healthy = False
+        self.is_healthy = True
         self.last_error = None
         self.last_check = None  # اضافه کردن این خطا
         self._check_health()  # بررسی سلامت هنگام راه‌اندازی
@@ -152,6 +151,7 @@ class CoinStateAPIClient:
         except Exception as e:
             logger.error(f"Error fetching from middleware: {str(e)}")
             return None
+            
     def _check_health(self):
         """Check if API is healthy"""
         try:
@@ -759,7 +759,7 @@ class MarketScanner:
         self.config = Config()
         try:
             # ایجاد API Client با مدیریت خطا
-            self.api_client = CoinStateAPIClient(self.config.COINSTATE_API_KEY, self.config.COINSTATE_BASE_URL)
+            self.api_client = CoinStateAPIClient(self.config.COINSTATE_BASE_URL)
             logger.info("API Client created successfully")
         except Exception as e:
             logger.error(f"Error creating API client: {e}")
