@@ -766,6 +766,7 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Portfolio history error: {e}")
             return pd.DataFrame()
+            
 # ==================== SECTION 8: MARKET SCANNER (کامل و اصلاح شده) ====================
 class MarketScanner:
     """اپلیکیشن اصلی اسکنر بازار با پشتیبانی کامل از سرور میانی"""
@@ -816,6 +817,321 @@ class MarketScanner:
         
         return FallbackClient()
     
+    def get_market_data(self, symbol: str) -> Optional[Dict]:
+        """دریافت داده‌های بازار با کشینگ"""
+        cache_key = f"market_{symbol}"
+        
+        # بررسی کش (5 دقیقه اعتبار)
+        if (cache_key in self.scan_cache and 
+            datetime.now() - self.scan_cache[cache_key]['timestamp'] < timedelta(minutes=5)):
+            logger.info(f"📦 استفاده از داده‌های کش شده برای {symbol}")
+            return self.scan_cache[cache_key]['data']
+        
+        try:
+            if self.api_client and self.api_client.is_healthy:
+                market_data = self.api_client.get_coin_data(symbol)
+                
+                # ذخیره در کش
+                if market_data:
+                    self.scan_cache[cache_key] = {
+                        'data': market_data,
+                        'timestamp': datetime.now()
+                    }
+                
+                return market_data
+            else:
+                logger.warning(f"⚠️ سرور میانی در دسترس نیست - داده‌های نمونه برای {symbol}")
+                return self._generate_sample_market_data(symbol)
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده‌های بازار برای {symbol}: {e}")
+            return self._generate_sample_market_data(symbol)
+    
+    def _generate_sample_market_data(self, symbol: str) -> Dict:
+        """ایجاد داده‌های نمونه برای بازار"""
+        base_prices = {
+            "bitcoin": 45000, "ethereum": 3000, "binancecoin": 600,
+            "cardano": 0.5, "ripple": 0.6, "solana": 100,
+            "polkadot": 7, "dogecoin": 0.1, "avalanche": 40,
+            "matic-network": 1, "litecoin": 70, "cosmos": 10
+        }
+        
+        base_price = base_prices.get(symbol, 100)
+        change_24h = np.random.uniform(-10, 10)
+        
+        return {
+            'id': symbol,
+            'name': symbol.capitalize(),
+            'symbol': symbol.upper()[:4],
+            'price': base_price * (1 + np.random.uniform(-0.1, 0.1)),
+            'priceChange24h': change_24h,
+            'priceChange1h': np.random.uniform(-2, 2),
+            'high24h': base_price * (1 + np.random.uniform(0.05, 0.15)),
+            'low24h': base_price * (1 - np.random.uniform(0.05, 0.15)),
+            'volume': np.random.uniform(10000000, 500000000),
+            'marketCap': np.random.uniform(100000000, 100000000000),
+            'lastUpdated': datetime.now().isoformat()
+        }
+    
+    def get_historical_data(self, symbol: str, period: str) -> pd.DataFrame:
+        """دریافت داده‌های تاریخی با کشینگ"""
+        cache_key = f"historical_{symbol}_{period}"
+        
+        # بررسی کش (10 دقیقه اعتبار برای داده‌های تاریخی)
+        if (cache_key in self.scan_cache and 
+            datetime.now() - self.scan_cache[cache_key]['timestamp'] < timedelta(minutes=10)):
+            logger.info(f"📦 استفاده از داده‌های تاریخی کش شده برای {symbol} - {period}")
+            return self.scan_cache[cache_key]['data']
+        
+        try:
+            if self.api_client:
+                historical_data = self.api_client.get_historical_data(symbol, period)
+                
+                # ذخیره در کش
+                if historical_data is not None and not historical_data.empty:
+                    self.scan_cache[cache_key] = {
+                        'data': historical_data,
+                        'timestamp': datetime.now()
+                    }
+                
+                return historical_data
+            else:
+                return self.api_client._generate_sample_data(period)
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده‌های تاریخی برای {symbol}: {e}")
+            return self._generate_fallback_historical_data(period)
+    
+    def _generate_fallback_historical_data(self, period: str) -> pd.DataFrame:
+        """داده‌های تاریخی جایگزین در صورت خطا"""
+        return pd.DataFrame({
+            'time': [datetime.now() - timedelta(hours=i) for i in range(24)][::-1],
+            'open': [50000] * 24, 'high': [51000] * 24, 
+            'low': [49000] * 24, 'close': [50500] * 24,
+            'volume': [1000000] * 24
+        })
+    
+    def run_technical_analysis(self, historical_data: pd.DataFrame) -> pd.DataFrame:
+        """اجرای تحلیل تکنیکال روی داده‌های تاریخی"""
+        try:
+            if historical_data is None or historical_data.empty:
+                logger.warning("⚠️ داده‌های تاریخی برای تحلیل خالی هستند")
+                return pd.DataFrame()
+            
+            # محاسبه اندیکاتورها
+            analyzed_data = self.technical_analyzer.calculate_indicators(historical_data.copy())
+            logger.info(f"✅ تحلیل تکنیکال انجام شد: {len(analyzed_data)} نقطه داده")
+            
+            return analyzed_data
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در تحلیل تکنیکال: {e}")
+            return historical_data  # بازگشت داده‌های اصلی در صورت خطا
+    
+    def generate_trading_signals(self, analyzed_data: pd.DataFrame, current_price: float) -> Dict:
+        """تولید سیگنال‌های معاملاتی"""
+        try:
+            if analyzed_data.empty:
+                return {
+                    'signals': {'error': 'داده‌ای برای تحلیل وجود ندارد'},
+                    'recommendations': ['داده کافی نیست']
+                }
+            
+            # دریافت آخرین مقادیر اندیکاتورها
+            last_row = analyzed_data.iloc[-1]
+            
+            indicators = {
+                'current_price': current_price,
+                'rsi': last_row.get('RSI', 50),
+                'macd': last_row.get('MACD', 0),
+                'macd_signal': last_row.get('MACD_Signal', 0),
+                'macd_histogram': last_row.get('MACD_Histogram', 0),
+                'sma_20': last_row.get('SMA_20', current_price),
+                'sma_50': last_row.get('SMA_50', current_price)
+            }
+            
+            # تولید سیگنال‌ها
+            signals = self.technical_analyzer.generate_signals(indicators)
+            recommendations = self.technical_analyzer.generate_recommendations(signals, indicators)
+            
+            return {
+                'indicators': indicators,
+                'signals': signals,
+                'recommendations': recommendations
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در تولید سیگنال‌ها: {e}")
+            return {
+                'signals': {'error': str(e)},
+                'recommendations': ['خطا در تحلیل سیگنال‌ها']
+            }
+    
+    def run_complete_analysis(self, symbol: str, period: str) -> Optional[Dict]:
+        """اجرای تحلیل کامل برای یک نماد"""
+        try:
+            logger.info(f"🔍 شروع تحلیل برای {symbol} - دوره {period}")
+            
+            # دریافت داده‌های بازار
+            market_data = self.get_market_data(symbol)
+            current_price = market_data.get('price', 0) if market_data else 0
+            
+            # دریافت داده‌های تاریخی
+            historical_data = self.get_historical_data(symbol, period)
+            if historical_data is None or historical_data.empty:
+                logger.warning(f"⚠️ داده‌های تاریخی برای {symbol} دریافت نشد")
+                return None
+            
+            # تحلیل تکنیکال
+            analyzed_data = self.run_technical_analysis(historical_data)
+            
+            # تولید سیگنال‌ها
+            trading_signals = self.generate_trading_signals(analyzed_data, current_price)
+            
+            # ایجاد نتیجه نهایی
+            analysis_result = {
+                'symbol': symbol,
+                'period': period,
+                'timestamp': datetime.now(),
+                'market_data': market_data,
+                'historical_data': analyzed_data,
+                **trading_signals
+            }
+            
+            # ذخیره در دیتابیس
+            self.data_manager.save_analysis(analysis_result)
+            logger.info(f"✅ تحلیل کامل {symbol} تکمیل شد")
+            
+            return analysis_result
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در تحلیل کامل {symbol}: {e}")
+            return None
+    
+    def scan_single_symbol(self, symbol: str, period: str = "24h") -> Optional[Dict]:
+        """اسکن یک نماد خاص"""
+        return self.run_complete_analysis(symbol, period)
+    
+    def scan_multiple_symbols(self, symbols: List[str], period: str = "24h") -> Dict[str, Optional[Dict]]:
+        """اسکن چندین نماد به صورت بهینه"""
+        results = {}
+        total_symbols = len(symbols)
+        
+        logger.info(f"🌐 شروع اسکن {total_symbols} نماد")
+        
+        for i, symbol in enumerate(symbols):
+            try:
+                # نمایش پیشرفت
+                progress = (i + 1) / total_symbols * 100
+                logger.info(f"📊 اسکن {symbol} ({i+1}/{total_symbols}) - {progress:.1f}%")
+                
+                # اجرای تحلیل
+                analysis = self.run_complete_analysis(symbol, period)
+                results[symbol] = analysis
+                
+                # تاخیر برای جلوگیری از overload
+                if i < total_symbols - 1:  # برای آخرین مورد نیاز نیست
+                    time.sleep(0.3)
+                    
+            except Exception as e:
+                logger.error(f"❌ خطا در اسکن {symbol}: {e}")
+                results[symbol] = None
+        
+        # به‌روزرسانی زمان آخرین اسکن
+        self.last_scan_time = datetime.now()
+        logger.info(f"✅ اسکن {len(results)} نماد تکمیل شد")
+        
+        return results
+    
+    def scan_all_market(self, period: str = "24h") -> Dict[str, Optional[Dict]]:
+        """اسکن تمام بازار"""
+        return self.scan_multiple_symbols(self.config.SYMBOLS[:6], period)
+    
+    def get_scanner_status(self) -> Dict:
+        """دریافت وضعیت فعلی اسکنر"""
+# ==================== SECTION 8: MARKET SCANNER (کامل و اصلاح شده) ====================
+class MarketScanner:
+    """اپلیکیشن اصلی اسکنر بازار با پشتیبانی کامل از سرور میانی و فیلترهای پیشرفته"""
+    
+    def __init__(self):
+        self.config = Config()
+        
+        try:
+            # ✅ ایجاد API Client برای سرور میانی شما
+            self.api_client = MiddlewareAPIClient(self.config.MIDDLEWARE_BASE_URL)
+            logger.info("✅ API Client برای سرور میانی ایجاد شد")
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در ایجاد API Client: {e}")
+            # ایجاد یک نمونه پایه برای جلوگیری از crash
+            self.api_client = self._create_fallback_client()
+        
+        self.data_manager = DataManager()
+        self.technical_analyzer = TechnicalAnalyzer()
+        self.chart_renderer = ChartRenderer()
+        self.portfolio_manager = PortfolioManager(self.data_manager)
+        self.last_scan_time = None
+        self.scan_cache = {}  # کش برای بهبود عملکرد
+    
+    def _create_fallback_client(self):
+        """ایجاد client جایگزین در صورت خطا"""
+        class FallbackClient:
+            def __init__(self):
+                self.is_healthy = False
+                self.last_error = "Client ایجاد نشد"
+            
+            def get_coin_data(self, coin_id):
+                return None
+            
+            def get_historical_data(self, coin_id, period):
+                return self._generate_sample_data(period)
+            
+            def _generate_sample_data(self, period):
+                # داده‌های نمونه پایه
+                return pd.DataFrame({
+                    'time': [datetime.now() - timedelta(hours=i) for i in range(100)][::-1],
+                    'open': np.random.normal(50000, 5000, 100),
+                    'high': np.random.normal(52000, 5000, 100),
+                    'low': np.random.normal(48000, 5000, 100),
+                    'close': np.random.normal(50000, 5000, 100),
+                    'volume': np.random.uniform(1000000, 5000000, 100)
+                })
+        
+        return FallbackClient()
+
+    # ==================== متد جدید: اسکن با فیلترهای پیشرفته ====================
+    def scan_with_filters(self, limit: int = 100, filter_type: str = "volume", custom_filters: Dict = None) -> Dict:
+        """اسکن بازار با فیلترهای پیشرفته"""
+        try:
+            # پارامترهای درخواست
+            params = {"limit": limit, "filter": filter_type}
+            
+            # اضافه کردن فیلترهای سفارشی اگر وجود دارند
+            if custom_filters:
+                params.update(custom_filters)
+                endpoint = "/scan-custom"
+            else:
+                endpoint = "/scan-all"
+            
+            # ارسال درخواست به سرور میانی
+            url = f"{self.config.MIDDLEWARE_BASE_URL}{endpoint}"
+            logger.info(f"🌐 ارسال درخواست اسکن پیشرفته: {url} با پارامترها: {params}")
+            
+            response = requests.get(url, params=params, timeout=60)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ اسکن با فیلتر {filter_type} تکمیل شد: {data.get('total_coins', 0)} ارز")
+                return data
+            else:
+                logger.error(f"❌ خطا در اسکن با فیلتر: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در اسکن با فیلتر: {e}")
+            return None
+
+    # ==================== متدهای قبلی (بدون تغییر) ====================
     def get_market_data(self, symbol: str) -> Optional[Dict]:
         """دریافت داده‌های بازار با کشینگ"""
         cache_key = f"market_{symbol}"
