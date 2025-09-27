@@ -43,9 +43,9 @@ class Config:
         "6m": "6 ماه", "1y": "1 سال", "all": "همه زمان"
     }
     
-    PERIOD_MAPPING = {
-        "24h": "24h", "1w": "1w", "1m": "1m", "3m": "3m",
-        "6m": "6m", "1y": "1y", "all": "all"
+    PERIODS = {
+        "24h": "24 ساعت", "1w": "1 هفته", "1m": "1 ماه", "3m": "3 ماه",
+        "6m": "6 ماه", "1y": "1 سال", "all": "همه زمان"
     }
 
 # ==================== SECTION 2: MULTILINGUAL SUPPORT ====================
@@ -119,86 +119,24 @@ class TranslationManager:
     def get_text(language: str) -> Dict:
         return TranslationManager.TEXTS.get(language, TranslationManager.TEXTS["English"])
 
-# ==================== SECTION 3: API CLIENT ====================
-class CoinStateAPIClient:
-    """Enhanced API client for CoinState with better error handling"""
+# ===================== SECTION 3: MIDDLESERVER CLIENT ===============================
+class MiddlewareAPIClient:
+    """API Client ساده‌شده برای ارتباط با سرور میانی شما"""
     
-    def __init__(self, base-url: str):
+    def init(self, base_url: str):
         self.base_url = base_url
-        self.session = requests.session()
-        self.is_healthy = True
+        self.session = self._create_session()
+        self.is_healthy = False
         self.last_error = None
-        self.last_check = None  # اضافه کردن این خطا
-        self._check_health()  # بررسی سلامت هنگام راه‌اندازی
-
-    def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
-        try:
-            # دریافت داده از سرور میانی شما
-            url = f"{self.base_url}/coins/{coin_id}"
-            response = self.session.get(url, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                # پیدا کردن ارز مورد نظر در لیست
-                coins = data.get('coins', [])
-                for coin in coins:
-                    if (coin.get('id') == coin_id or 
-                        coin.get('name', '').lower() == coin_id.lower() or
-                        coin.get('symbol', '').lower() == coin_id.lower()):
-                        return coin
-                return None
-            return None
-        except Exception as e:
-            logger.error(f"Error fetching from middleware: {str(e)}")
-            return None
-            
-    def _check_health(self):
-        """Check if API is healthy"""
-        try:
-            test_url = f"{self.base_url}/coins/bitcoin"
-            response = self.session.get(test_url, headers=self._get_headers(), timeout=10)
-            
-            if response.status_code == 200:
-                self.is_healthy = True
-                self.last_error = None
-                self.last_check = datetime.now()
-                logger.info("✅ API health check passed")
-            elif response.status_code == 401:
-                self.is_healthy = False
-                self.last_error = "API Key نامعتبر یا منقضی شده"
-                logger.error("❌ API Key authentication failed")
-            elif response.status_code == 403:
-                self.is_healthy = False
-                self.last_error = "دسترسی غیرمجاز - ممکن است IP محدود شده باشد"
-                logger.error("❌ API access forbidden")
-            elif response.status_code == 429:
-                self.is_healthy = False
-                self.last_error = "محدودیت تعداد درخواست - لطفا کمی صبر کنید"
-                logger.error("❌ API rate limit exceeded")
-            else:
-                self.is_healthy = False
-                self.last_error = f"خطای سرور: کد {response.status_code}"
-                logger.error(f"❌ API error: {response.status_code}")
-                
-        except requests.exceptions.Timeout:
-            self.is_healthy = False
-            self.last_error = "اتصال timeout شد - سرور پاسخ نمی‌دهد"
-            logger.error("❌ API connection timeout")
-        except requests.exceptions.ConnectionError:
-            self.is_healthy = False
-            self.last_error = "خطای اتصال - اینترنت یا DNS مشکل دارد"
-            logger.error("❌ API connection error")
-        except Exception as e:
-            self.is_healthy = False
-            self.last_error = f"خطای ناشناخته: {str(e)}"
-            logger.error(f"❌ Unknown API error: {str(e)}")
-            
+        self.last_check = None
+        self._check_health()  # بررسی سلامت سرور میانی هنگام راه‌اندازی
+    
     def _create_session(self) -> requests.Session:
         """Create session with retry strategy"""
         session = requests.Session()
         retry_strategy = requests.packages.urllib3.util.Retry(
             total=3,
-            backoff_factor=0.5,
+            backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
         )
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
@@ -206,136 +144,185 @@ class CoinStateAPIClient:
         session.mount("http://", adapter)
         return session
     
-    def _get_headers(self) -> Dict:
-        return {
-            "X-API-KEY": self.api_key,
-            "Content-Type": "application/json"
-        }
-    
-    def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
-        """Get real-time data for a specific coin"""
+    def _check_health(self):
+        """بررسی سلامت سرور میانی"""
         try:
-            url = f"{self.base_url}/coins/{coin_id}"
-            response = self.session.get(url, headers=self._get_headers(), timeout=10)
+            # تست endpoint سلامت سرور میانی
+            health_url = f"{self.base_url}/health"
+            response = self.session.get(health_url, timeout=10)
             
             if response.status_code == 200:
-                return response.json()
+                self.is_healthy = True
+                self.last_error = None
+                self.last_check = datetime.now()
+                logger.info("✅ سرور میانی سالم است")
             else:
-                logger.error(f"API Error: {response.status_code} for {coin_id}")
+                self.is_healthy = False
+                self.last_error = f"سرور میانی خطا داد: کد {response.status_code}"
+                logger.error(f"❌ خطای سرور میانی: {response.status_code}")
+                
+        except requests.exceptions.Timeout:
+            self.is_healthy = False
+            self.last_error = "اتصال به سرور میانی timeout شد"
+            logger.error("❌ timeout اتصال به سرور میانی")
+        except requests.exceptions.ConnectionError:
+            self.is_healthy = False
+            self.last_error = "خطای اتصال به سرور میانی"
+            logger.error("❌ خطای اتصال به سرور میانی")
+        except Exception as e:
+            self.is_healthy = False
+            self.last_error = f"خطای ناشناخته: {str(e)}"
+            logger.error(f"❌ خطای ناشناخته در بررسی سلامت: {str(e)}")
+    
+    def get_all_coins(self, limit: int = 100) -> Optional[Dict]:
+        """دریافت تمام ارزها از سرور میانی"""
+        try:
+            url = f"{self.base_url}/coins"
+            params = {"limit": limit} if limit else {}
+            
+            logger.info(f"🌐 دریافت داده از سرور میانی: {url}")
+            response = self.session.get(url, params=params, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ داده دریافت شد: {len(data.get('coins', []))} ارز")
+                return data
+            else:
+                logger.error(f"❌ خطای سرور میانی: کد {response.status_code}")
                 return None
                 
         except Exception as e:
-            logger.error(f"Connection error for {coin_id}: {str(e)}")
+            logger.error(f"❌ خطا در دریافت داده از سرور میانی: {str(e)}")
             return None
     
-    def get_historical_data(self, coin_id: str, period: str) -> Optional[pd.DataFrame]:
-        """Get historical data with improved error handling"""
+    def get_coin_data(self, coin_id: str) -> Optional[Dict]:
+        """دریافت داده‌های یک ارز خاص"""
         try:
-            url = f"{self.base_url}/historical/{coin_id}?period={period}"
-            api_period = Config.PERIOD_MAPPING.get(period, "24h")
+            # اول تمام ارزها را بگیریم
+            all_data = self.get_all_coins()
+            if not all_data:
+                return None
             
-            params = {"period": api_period, "coinIds": coin_id}
-            response = self.session.get(url, params=params, headers=self._get_headers(), timeout=15)
+            # پیدا کردن ارز مورد نظر
+            coins = all_data.get('coins', [])
             
-            if response.status_code == 200:
-                return self._process_historical_data(response.json(), coin_id, period)
-            else:
-                logger.warning(f"Using sample data for {coin_id} - API status: {response.status_code}")
-                return self._generate_sample_data(period)
-                
+            # جستجو با انواع نام‌های ممکن
+            coin_id_lower = coin_id.lower()
+            for coin in coins:
+                # بررسی با id، name، symbol
+                if (coin.get('id', '').lower() == coin_id_lower or 
+                    coin.get('name', '').lower() == coin_id_lower or
+                    coin.get('symbol', '').lower() == coin_id_lower):
+
+                    logger.info(f"✅ ارز {coin_id} پیدا شد")
+                    return coin
+            
+            logger.warning(f"⚠️ ارز {coin_id} پیدا نشد")
+            return None
+            
         except Exception as e:
-            logger.error(f"Historical data error for {coin_id}: {str(e)}")
-            return self._generate_sample_data(period)
+            logger.error(f"❌ خطا در یافتن ارز {coin_id}: {str(e)}")
+            return None
     
-    def _process_historical_data(self, data: Dict, coin_id: str, period: str) -> pd.DataFrame:
-        """Process historical data from API response"""
-        if not data or not isinstance(data, list):
-            return self._generate_sample_data(period)
-        
-        coin_data = data[0]
-        if coin_data.get('errorMessage'):
-            logger.warning(f"API error for {coin_id}: {coin_data['errorMessage']}")
-            return self._generate_sample_data(period)
-        
-        chart_data = coin_data.get('chart', [])
-        processed_data = []
-        
-        for point in chart_data:
-            if isinstance(point, list) and len(point) >= 4:
-                processed_data.append({
-                    'time': pd.to_datetime(point[0], unit='s'),
-                    'price': point[1]
-                })
-        
-        if processed_data:
-            df = pd.DataFrame(processed_data)
-            df = df.drop_duplicates(subset=['time']).sort_values('time')
-            return self._create_ohlc_data(df, period)
-        
+    def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
+        """متد سازگار با کد موجود - دریافت داده real-time"""
+        return self.get_coin_data(coin_id)
+    
+    def get_historical_data(self, coin_id: str, period: str) -> Optional[pd.DataFrame]:
+        """دریافت داده‌های تاریخی - فعلاً از نمونه داده استفاده می‌کنیم"""
+        logger.info(f"📊 استفاده از داده‌های نمونه برای {coin_id} - دوره {period}")
         return self._generate_sample_data(period)
     
-    def _create_ohlc_data(self, price_df: pd.DataFrame, period: str) -> pd.DataFrame:
-        """Create OHLC data from price data"""
-        if price_df.empty:
-            return self._generate_sample_data(period)
-        
-        # Determine resampling frequency based on period
-        freq_map = {
-            "24h": '1H', "1w": '4H', "1m": '1D', 
-            "3m": '1D', "6m": '1D', "1y": '1D', "all": '1W'
-        }
-        freq = freq_map.get(period, '1D')
-        
+    def _generate_sample_data(self, period: str) -> pd.DataFrame:
+        """ایجاد داده‌های نمونه واقع‌گرایانه"""
         try:
-            price_df = price_df.set_index('time')
-            resampled = price_df['price'].resample(freq)
+            period_points = {
+                "24h": 24, "1w": 42, "1m": 30, "3m": 90,
+                "6m": 180, "1y": 365, "all": 100
+            }
             
-            ohlc_data = resampled.agg({
-                'open': 'first',
-                'high': 'max', 
-                'low': 'min',
-                'close': 'last'
-            }).dropna()
+            count = period_points.get(period, 100)
+            base_price = 45000  # قیمت پایه بیت‌کوین
             
-            # Add realistic volume data
-            ohlc_data['volume'] = (ohlc_data['close'] * 
-                                 np.random.uniform(1000, 10000, len(ohlc_data)))
+            # ایجاد timeline بر اساس دوره
+            if period == "24h":
+                times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
+            else:
+                times = [datetime.now() - timedelta(days=i) for i in range(count)][::-1]
             
-            return ohlc_data.reset_index()
+            data = []
+            current_price = base_price
+            
+            for i, time_point in enumerate(times):
+                # تغییرات قیمت واقع‌گرایانه
+                volatility = 0.02  # 2% نوسان
+                if period in ["1y", "all"]:
+                    volatility = 0.04  # نوسان بیشتر برای دوره‌های طولانی
+                
+                change = current_price * volatility * np.random.randn()
+                current_price = max(current_price + change, base_price * 0.3)  # حداقل 30% قیمت پایه
+                
+                # ایجاد داده OHLC واقع‌گرایانه
+                open_price = current_price * (1 + np.random.uniform(-0.005, 0.005))
+                high_price = max(open_price, current_price) * (1 + np.random.uniform(0, 0.015))
+                low_price = min(open_price, current_price) * (1 - np.random.uniform(0, 0.015))
+                close_price = current_price
+                
+                data.append({
+                    'time': time_point,
+                    'open': open_price,
+                    'high': high_price,
+                    'low': low_price,
+                    'close': close_price,
+                    'volume': np.random.uniform(1000000, 50000000)  # حجم معاملات واقع‌گرایانه
+                })
+            
+            df = pd.DataFrame(data)
+            logger.info(f"✅ داده‌های نمونه برای دوره {period} ایجاد شد: {len(df)} نقطه داده")
+            return df
             
         except Exception as e:
-            logger.error(f"OHLC creation error: {str(e)}")
-            return self._generate_sample_data(period)
-    
-    def _generate_sample_data(self, period: str) -> pd.DataFrame:
-        """Generate realistic sample data when API fails"""
-        period_points = {
-            "24h": 24, "1w": 42, "1m": 30, "3m": 90,
-            "6m": 180, "1y": 365, "all": 100
-        }
-        
-        count = period_points.get(period, 100)
-        base_price = 50000
-        times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
-        
-        data = []
-        current_price = base_price
-        
-        for i in range(count):
-            change = current_price * 0.02 * np.random.randn()
-            current_price = max(current_price + change, base_price * 0.5)
-            
-            data.append({
-                'time': times[i],
-                'open': current_price * (1 + np.random.uniform(-0.01, 0.01)),
-                'high': current_price * (1 + np.random.uniform(0, 0.02)),
-                'low': current_price * (1 - np.random.uniform(0, 0.02)),
-                'close': current_price,
-                'volume': np.random.uniform(1000000, 5000000)
+            logger.error(f"❌ خطا در ایجاد داده‌های نمونه: {str(e)}")
+            # بازگشت داده‌های ساده در صورت خطا
+            return pd.DataFrame({
+                'time': [datetime.now()],
+                'open': [50000], 'high': [51000], 'low': [49000], 
+                'close': [50500], 'volume': [1000000]
             })
+    
+    def scan_multiple_coins(self, coin_ids: List[str]) -> Dict[str, Optional[Dict]]:
+        """اسکن چندین ارز به صورت بهینه"""
+        results = {}
         
-        return pd.DataFrame(data)
+        try:
+            # دریافت تمام داده‌ها در یک درخواست
+            all_data = self.get_all_coins(limit=100)
+            if not all_data:
+                return {coin_id: None for coin_id in coin_ids}
+            
+            coins_map = {}
+            for coin in all_data.get('coins', []):
+                # ایجاد map برای جستجوی سریع
 
+                id_key = coin.get('id', '').lower()
+                name_key = coin.get('name', '').lower()
+                symbol_key = coin.get('symbol', '').lower()
+                
+                coins_map[id_key] = coin
+                coins_map[name_key] = coin
+                coins_map[symbol_key] = coin
+            
+            # جستجوی هر ارز
+            for coin_id in coin_ids:
+                coin_id_lower = coin_id.lower()
+                results[coin_id] = coins_map.get(coin_id_lower)
+            
+            logger.info(f"✅ اسکن {len(coin_ids)} ارز تکمیل شد")
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در اسکن چندین ارز: {str(e)}")
+            return {coin_id: None for coin_id in coin_ids}
 # ==================== SECTION 4: DATA MANAGER & CACHING ====================
 class DataManager:
     """Enhanced data management with SQLite caching"""
@@ -750,20 +737,21 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Portfolio calculation error: {e}")
             return {"total_value": 0, "assets": []}
-
 # ==================== SECTION 8: MARKET SCANNER ====================
 class MarketScanner:
-    """Main market scanner application"""
+    """Main market scanner application with middleware support"""
     
     def __init__(self):
         self.config = Config()
+        
         try:
-            # ایجاد API Client با مدیریت خطا
-            self.api_client = CoinStateAPIClient(self.config.COINSTATE_BASE_URL)
-            logger.info("API Client created successfully")
+            # ✅ استفاده از سرور میانی به جای API اصلی
+            self.api_client = MiddlewareAPIClient(self.config.MIDDLEWARE_BASE_URL)
+            logger.info("✅ API Client برای سرور میانی ایجاد شد")
+            
         except Exception as e:
-            logger.error(f"Error creating API client: {e}")
-            # اگر API client ساخته نشد، یک نمونه خالی ایجاد می‌کنیم
+            logger.error(f"❌ خطا در ایجاد API Client: {e}")
+            # ایجاد client پایه حتی در صورت خطا
             self.api_client = None
         
         self.data_manager = DataManager()
@@ -771,65 +759,41 @@ class MarketScanner:
         self.chart_renderer = ChartRenderer()
         self.portfolio_manager = PortfolioManager(self.data_manager)
     
-    def _generate_sample_data(self, period: str) -> pd.DataFrame:
-        """Generate sample data when API is not available"""
-        period_points = {
-            "24h": 24, "1w": 42, "1m": 30, "3m": 90,
-            "6m": 180, "1y": 365, "all": 100
-        }
-        
-        count = period_points.get(period, 100)
-        base_price = 50000
-        times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
-        
-        data = []
-        current_price = base_price
-        
-        for i in range(count):
-            change = current_price * 0.02 * np.random.randn()
-            current_price = max(current_price + change, base_price * 0.5)
-            
-            data.append({
-                'time': times[i],
-                'open': current_price * (1 + np.random.uniform(-0.01, 0.01)),
-                'high': current_price * (1 + np.random.uniform(0, 0.02)),
-                'low': current_price * (1 - np.random.uniform(0, 0.02)),
-                'close': current_price,
-                'volume': np.random.uniform(1000000, 5000000)
-            })
-        
-        return pd.DataFrame(data)
-        
     def run_analysis(self, symbol: str, period: str) -> Optional[Dict]:
-        """Run complete technical analysis"""
+        """اجرای تحلیل تکنیکال با پشتیبانی از سرور میانی"""
         try:
-            # اگر api_client موجود نیست، از تحلیل صرف نظر کن
-            if self.api_client is None:
-                logger.warning("API client not available, using sample data for analysis")
-                historical_data = self._generate_sample_data(period)
+            # دریافت داده از سرور میانی
+            if self.api_client and self.api_client.is_healthy:
+                market_data = self.api_client.get_coin_data(symbol)
+                historical_data = self.api_client.get_historical_data(symbol, period)
             else:
-                # Get historical data
-                historical_data = self.get_historical_data(symbol, period)
+                # استفاده از داده‌های نمونه در صورت عدم دسترسی
+                logger.warning("⚠️ استفاده از داده‌های نمونه به دلیل قطعی سرور")
+                market_data = None
+                historical_data = self.api_client._generate_sample_data(period) if self.api_client else None
             
             if historical_data is None or historical_data.empty:
+                logger.warning(f"⚠️ داده‌ای برای {symbol} دریافت نشد")
                 return None
             
-            # Calculate indicators
+            # محاسبه اندیکاتورها
             historical_data = self.technical_analyzer.calculate_indicators(historical_data)
             
-            # Get latest values
+            # دریافت آخرین مقادیر
             last_row = historical_data.iloc[-1]
+            current_price = market_data.get('price', last_row.get('close', 0)) if market_data else last_row.get('close', 0)
+            
             indicators = {
-                'current_price': last_row.get('close', 0),
+                'current_price': current_price,
                 'rsi': last_row.get('RSI', 50),
                 'macd': last_row.get('MACD', 0),
                 'macd_signal': last_row.get('MACD_Signal', 0),
                 'macd_histogram': last_row.get('MACD_Histogram', 0),
-                'sma_20': last_row.get('SMA_20', 0),
-                'sma_50': last_row.get('SMA_50', 0)
+                'sma_20': last_row.get('SMA_20', current_price),
+                'sma_50': last_row.get('SMA_50', current_price)
             }
             
-            # Generate signals and recommendations
+            # تولید سیگنال‌ها و توصیه‌ها
             signals = self.technical_analyzer.generate_signals(indicators)
             recommendations = self.technical_analyzer.generate_recommendations(signals, indicators)
             
@@ -837,48 +801,44 @@ class MarketScanner:
                 'symbol': symbol,
                 'period': period,
                 'timestamp': datetime.now(),
+                'market_data': market_data,
                 'indicators': indicators,
                 'signals': signals,
                 'recommendations': recommendations,
                 'historical_data': historical_data
             }
             
-            # Save to database
+            # ذخیره در دیتابیس
             self.data_manager.save_analysis(analysis_results)
+            logger.info(f"✅ تحلیل {symbol} تکمیل شد")
             
             return analysis_results
             
         except Exception as e:
-            logger.error(f"Analysis error for {symbol}: {e}")
+            logger.error(f"❌ خطا در تحلیل {symbol}: {e}")
             return None
     
-    def get_historical_data(self, symbol: str, period: str) -> Optional[pd.DataFrame]:
-        """Get historical data with caching"""
-        # Try cache first
-        cached_data = self.data_manager.load_price_data(symbol, period)
-        if cached_data is not None:
-            return cached_data
-        
-        # Fetch from API
-        api_data = self.api_client.get_historical_data(symbol, period)
-        if api_data is not None and not api_data.empty:
-            self.data_manager.save_price_data(symbol, period, api_data)
-        
-        return api_data
-    
     def scan_all_market(self) -> Dict:
-        """Scan entire cryptocurrency market"""
+        """اسکن تمام بازار با بهینه‌سازی"""
         results = {}
         
         with st.spinner("در حال اسکن تمام بازار..."):
-            for symbol in self.config.SYMBOLS[:6]:  # Limit to 6 for performance
-                analysis = self.run_analysis(symbol, "24h")
-                if analysis:
-                    results[symbol] = analysis
-                
-                time.sleep(0.5)  # Rate limiting
+            # استفاده از متد بهینه‌شده برای اسکن چندین ارز
+            if self.api_client:
+                batch_results = self.api_client.scan_multiple_coins(self.config.SYMBOLS[:6])
+
+                for symbol, market_data in batch_results.items():
+                    if market_data:
+                        analysis = self.run_analysis(symbol, "24h")
+                        if analysis:
+                            results[symbol] = analysis
+                    else:
+                        logger.warning(f"⚠️ داده‌ای برای {symbol} دریافت نشد")
+            
+            logger.info(f"✅ اسکن بازار تکمیل شد: {len(results)} ارز تحلیل شد")
         
         return results
+
 # ==================== SECTION 9: STREAMLIT UI COMPONENTS ====================
 class StreamlitUI:
     """Streamlit user interface components"""
