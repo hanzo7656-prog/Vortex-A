@@ -120,7 +120,7 @@ logger = logging.getLogger(__name__)
 
 class Config:
     """Configuration class for all constants"""
-    MIDDLEWARE_BASE_URL = "https://crypto-scanner-backend.onrender.com"
+    MIDDLEWARE_BASE_URL = "https://server-test-ovta.onrender.com"
     
     SYMBOLS = [
         "bitcoin", "ethereum", "binancecoin", "cardano", "ripple", "solana",
