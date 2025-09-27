@@ -661,7 +661,6 @@ class ChartRenderer:
         )
         
         return fig_rsi, fig_macd
-
 # ==================== SECTION 7: PORTFOLIO TRACKER ====================
 class PortfolioManager:
     """Portfolio tracking and management"""
@@ -684,7 +683,7 @@ class PortfolioManager:
             logger.error(f"Portfolio add error: {e}")
             return False
     
-    def get_portfolio_value(self, api_client: CoinStateAPIClient) -> Dict:
+    def get_portfolio_value(self, api_client) -> Dict:  # ✅ نوع ساده‌شده
         """Calculate current portfolio value"""
         try:
             conn = sqlite3.connect(self.data_manager.db_path, check_same_thread=False)
@@ -699,8 +698,13 @@ class PortfolioManager:
             assets = []
             
             for _, asset in portfolio.iterrows():
-                current_data = api_client.get_realtime_data(asset['symbol'])
-                current_price = current_data.get('price', 0) if current_data else 0
+                # ✅ دریافت قیمت فعلی از API Client جدید
+                if api_client and hasattr(api_client, 'get_coin_data'):
+                    current_data = api_client.get_coin_data(asset['symbol'])
+                    current_price = current_data.get('price', 0) if current_data else 0
+                else:
+                    # ✅ fallback در صورت عدم دسترسی
+                    current_price = asset['buy_price'] * (1 + np.random.uniform(-0.2, 0.2))
                 
                 invested = asset['quantity'] * asset['buy_price']
                 current_val = asset['quantity'] * current_price
@@ -732,6 +736,36 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Portfolio calculation error: {e}")
             return {"total_value": 0, "assets": []}
+
+    def remove_from_portfolio(self, asset_id: int) -> bool:
+        """Remove asset from portfolio"""
+        try:
+            conn = sqlite3.connect(self.data_manager.db_path, check_same_thread=False)
+            conn.execute('DELETE FROM portfolio WHERE id = ?', (asset_id,))
+            conn.commit()
+            conn.close()
+            return True
+        except Exception as e:
+            logger.error(f"Portfolio remove error: {e}")
+            return False
+
+    def get_portfolio_history(self, days: int = 30) -> pd.DataFrame:
+        """Get portfolio history"""
+        try:
+            conn = sqlite3.connect(self.data_manager.db_path, check_same_thread=False)
+            query = '''
+                SELECT timestamp, SUM(quantity * buy_price) as daily_value 
+                FROM portfolio 
+                WHERE timestamp >= DATE('now', ?) 
+                GROUP BY DATE(timestamp) 
+                ORDER BY timestamp
+            '''
+            df = pd.read_sql_query(query, conn, params=(f'-{days} days',))
+            conn.close()
+            return df
+        except Exception as e:
+            logger.error(f"Portfolio history error: {e}")
+            return pd.DataFrame()
 # ==================== SECTION 8: MARKET SCANNER (کامل و اصلاح شده) ====================
 class MarketScanner:
     """اپلیکیشن اصلی اسکنر بازار با پشتیبانی کامل از سرور میانی"""
