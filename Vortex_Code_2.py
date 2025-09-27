@@ -737,51 +737,178 @@ class PortfolioManager:
         except Exception as e:
             logger.error(f"Portfolio calculation error: {e}")
             return {"total_value": 0, "assets": []}
-# ==================== SECTION 8: MARKET SCANNER ====================
+# ==================== SECTION 8: MARKET SCANNER (کامل و اصلاح شده) ====================
 class MarketScanner:
-    """Main market scanner application with middleware support"""
+    """اپلیکیشن اصلی اسکنر بازار با پشتیبانی کامل از سرور میانی"""
     
-    def __init__(self):
+    def init(self):
         self.config = Config()
         
         try:
-            # ✅ استفاده از سرور میانی به جای API اصلی
+            # ✅ ایجاد API Client برای سرور میانی شما
             self.api_client = MiddlewareAPIClient(self.config.MIDDLEWARE_BASE_URL)
             logger.info("✅ API Client برای سرور میانی ایجاد شد")
             
         except Exception as e:
             logger.error(f"❌ خطا در ایجاد API Client: {e}")
-            # ایجاد client پایه حتی در صورت خطا
-            self.api_client = None
+            # ایجاد یک نمونه پایه برای جلوگیری از crash
+            self.api_client = self._create_fallback_client()
         
         self.data_manager = DataManager()
         self.technical_analyzer = TechnicalAnalyzer()
         self.chart_renderer = ChartRenderer()
         self.portfolio_manager = PortfolioManager(self.data_manager)
+        self.last_scan_time = None
+        self.scan_cache = {}  # کش برای بهبود عملکرد
     
-    def run_analysis(self, symbol: str, period: str) -> Optional[Dict]:
-        """اجرای تحلیل تکنیکال با پشتیبانی از سرور میانی"""
-        try:
-            # دریافت داده از سرور میانی
-            if self.api_client and self.api_client.is_healthy:
-                market_data = self.api_client.get_coin_data(symbol)
-                historical_data = self.api_client.get_historical_data(symbol, period)
-            else:
-                # استفاده از داده‌های نمونه در صورت عدم دسترسی
-                logger.warning("⚠️ استفاده از داده‌های نمونه به دلیل قطعی سرور")
-                market_data = None
-                historical_data = self.api_client._generate_sample_data(period) if self.api_client else None
+    def _create_fallback_client(self):
+        """ایجاد client جایگزین در صورت خطا"""
+        class FallbackClient:
+            def init(self):
+                self.is_healthy = False
+                self.last_error = "Client ایجاد نشد"
             
-            if historical_data is None or historical_data.empty:
-                logger.warning(f"⚠️ داده‌ای برای {symbol} دریافت نشد")
+            def get_coin_data(self, coin_id):
                 return None
             
-            # محاسبه اندیکاتورها
-            historical_data = self.technical_analyzer.calculate_indicators(historical_data)
+            def get_historical_data(self, coin_id, period):
+                return self._generate_sample_data(period)
             
-            # دریافت آخرین مقادیر
-            last_row = historical_data.iloc[-1]
-            current_price = market_data.get('price', last_row.get('close', 0)) if market_data else last_row.get('close', 0)
+            def _generate_sample_data(self, period):
+                # داده‌های نمونه پایه
+                return pd.DataFrame({
+                    'time': [datetime.now() - timedelta(hours=i) for i in range(100)][::-1],
+                    'open': np.random.normal(50000, 5000, 100),
+                    'high': np.random.normal(52000, 5000, 100),
+                    'low': np.random.normal(48000, 5000, 100),
+                    'close': np.random.normal(50000, 5000, 100),
+                    'volume': np.random.uniform(1000000, 5000000, 100)
+                })
+        
+        return FallbackClient()
+    
+    def get_market_data(self, symbol: str) -> Optional[Dict]:
+        """دریافت داده‌های بازار با کشینگ"""
+        cache_key = f"market_{symbol}"
+        
+        # بررسی کش (5 دقیقه اعتبار)
+        if (cache_key in self.scan_cache and 
+            datetime.now() - self.scan_cache[cache_key]['timestamp'] < timedelta(minutes=5)):
+            logger.info(f"📦 استفاده از داده‌های کش شده برای {symbol}")
+            return self.scan_cache[cache_key]['data']
+        
+        try:
+            if self.api_client and self.api_client.is_healthy:
+                market_data = self.api_client.get_coin_data(symbol)
+                
+                # ذخیره در کش
+                if market_data:
+                    self.scan_cache[cache_key] = {
+                        'data': market_data,
+                        'timestamp': datetime.now()
+                    }
+                
+                return market_data
+            else:
+                logger.warning(f"⚠️ سرور میانی در دسترس نیست - داده‌های نمونه برای {symbol}")
+                return self._generate_sample_market_data(symbol)
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده‌های بازار برای {symbol}: {e}")
+            return self._generate_sample_market_data(symbol)
+    
+    def _generate_sample_market_data(self, symbol: str) -> Dict:
+        """ایجاد داده‌های نمونه برای بازار"""
+        base_prices = {
+            "bitcoin": 45000, "ethereum": 3000, "binancecoin": 600,
+            "cardano": 0.5, "ripple": 0.6, "solana": 100,
+            "polkadot": 7, "dogecoin": 0.1, "avalanche": 40,
+            "matic-network": 1, "litecoin": 70, "cosmos": 10
+        }
+        
+        base_price = base_prices.get(symbol, 100)
+        change_24h = np.random.uniform(-10, 10)
+        
+        return {
+            'id': symbol,
+            'name': symbol.capitalize(),
+            'symbol': symbol.upper()[:4],
+            'price': base_price * (1 + np.random.uniform(-0.1, 0.1)),
+            'priceChange24h': change_24h,
+            'priceChange1h': np.random.uniform(-2, 2),
+            'high24h': base_price * (1 + np.random.uniform(0.05, 0.15)),
+            'low24h': base_price * (1 - np.random.uniform(0.05, 0.15)),
+            'volume': np.random.uniform(10000000, 500000000),
+            'marketCap': np.random.uniform(100000000, 100000000000),
+            'lastUpdated': datetime.now().isoformat()
+        }
+    
+    def get_historical_data(self, symbol: str, period: str) -> pd.DataFrame:
+        """دریافت داده‌های تاریخی با کشینگ"""
+        cache_key = f"historical_{symbol}_{period}"
+        
+        # بررسی کش (10 دقیقه اعتبار برای داده‌های تاریخی)
+        if (cache_key in self.scan_cache and 
+            datetime.now() - self.scan_cache[cache_key]['timestamp'] < timedelta(minutes=10)):
+            logger.info(f"📦 استفاده از داده‌های تاریخی کش شده برای {symbol} - {period}")
+            return self.scan_cache[cache_key]['data']
+        
+        try:
+            if self.api_client:
+                historical_data = self.api_client.get_historical_data(symbol, period)
+                
+                # ذخیره در کش
+                if historical_data is not None and not historical_data.empty:
+                    self.scan_cache[cache_key] = {
+                        'data': historical_data,
+                        'timestamp': datetime.now()
+                    }
+                
+                return historical_data
+            else:
+                return self.api_client._generate_sample_data(period)
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده‌های تاریخی برای {symbol}: {e}")
+            return self._generate_fallback_historical_data(period)
+    
+    def _generate_fallback_historical_data(self, period: str) -> pd.DataFrame:
+        """داده‌های تاریخی جایگزین در صورت خطا"""
+        return pd.DataFrame({
+            'time': [datetime.now() - timedelta(hours=i) for i in range(24)][::-1],
+            'open': [50000] * 24, 'high': [51000] * 24, 
+            'low': [49000] * 24, 'close': [50500] * 24,
+            'volume': [1000000] * 24
+        })
+    
+    def run_technical_analysis(self, historical_data: pd.DataFrame) -> pd.DataFrame:
+        """اجرای تحلیل تکنیکال روی داده‌های تاریخی"""
+        try:
+            if historical_data is None or historical_data.empty:
+                logger.warning("⚠️ داده‌های تاریخی برای تحلیل خالی هستند")
+                return pd.DataFrame()
+            
+            # محاسبه اندیکاتورها
+            analyzed_data = self.technical_analyzer.calculate_indicators(historical_data.copy())
+            logger.info(f"✅ تحلیل تکنیکال انجام شد: {len(analyzed_data)} نقطه داده")
+            
+            return analyzed_data
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در تحلیل تکنیکال: {e}")
+            return historical_data  # بازگشت داده‌های اصلی در صورت خطا
+    
+    def generate_trading_signals(self, analyzed_data: pd.DataFrame, current_price: float) -> Dict:
+        """تولید سیگنال‌های معاملاتی"""
+        try:
+            if analyzed_data.empty:
+                return {
+                    'signals': {'error': 'داده‌ای برای تحلیل وجود ندارد'},
+                    'recommendations': ['داده کافی نیست']
+                }
+            
+            # دریافت آخرین مقادیر اندیکاتورها
+            last_row = analyzed_data.iloc[-1]
             
             indicators = {
                 'current_price': current_price,
@@ -793,51 +920,203 @@ class MarketScanner:
                 'sma_50': last_row.get('SMA_50', current_price)
             }
             
-            # تولید سیگنال‌ها و توصیه‌ها
+            # تولید سیگنال‌ها
             signals = self.technical_analyzer.generate_signals(indicators)
             recommendations = self.technical_analyzer.generate_recommendations(signals, indicators)
             
-            analysis_results = {
+            return {
+                'indicators': indicators,
+                'signals': signals,
+                'recommendations': recommendations
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در تولید سیگنال‌ها: {e}")
+            return {
+                'signals': {'error': str(e)},
+                'recommendations': ['خطا در تحلیل سیگنال‌ها']
+            }
+    
+    def run_complete_analysis(self, symbol: str, period: str) -> Optional[Dict]:
+        """اجرای تحلیل کامل برای یک نماد"""
+        try:
+            logger.info(f"🔍 شروع تحلیل برای {symbol} - دوره {period}")
+            
+            # دریافت داده‌های بازار
+            market_data = self.get_market_data(symbol)
+            current_price = market_data.get('price', 0) if market_data else 0
+            
+            # دریافت داده‌های تاریخی
+            historical_data = self.get_historical_data(symbol, period)
+            if historical_data is None or historical_data.empty:
+                logger.warning(f"⚠️ داده‌های تاریخی برای {symbol} دریافت نشد")
+                return None
+            
+            # تحلیل تکنیکال
+            analyzed_data = self.run_technical_analysis(historical_data)
+            
+            # تولید سیگنال‌ها
+            trading_signals = self.generate_trading_signals(analyzed_data, current_price)
+            
+            # ایجاد نتیجه نهایی
+            analysis_result = {
                 'symbol': symbol,
                 'period': period,
                 'timestamp': datetime.now(),
                 'market_data': market_data,
-                'indicators': indicators,
-                'signals': signals,
-                'recommendations': recommendations,
-                'historical_data': historical_data
+                'historical_data': analyzed_data,
+                **trading_signals
             }
             
             # ذخیره در دیتابیس
-            self.data_manager.save_analysis(analysis_results)
-            logger.info(f"✅ تحلیل {symbol} تکمیل شد")
+            self.data_manager.save_analysis(analysis_result)
+            logger.info(f"✅ تحلیل کامل {symbol} تکمیل شد")
             
-            return analysis_results
+            return analysis_result
             
         except Exception as e:
-            logger.error(f"❌ خطا در تحلیل {symbol}: {e}")
+            logger.error(f"❌ خطا در تحلیل کامل {symbol}: {e}")
             return None
     
-    def scan_all_market(self) -> Dict:
-        """اسکن تمام بازار با بهینه‌سازی"""
+    def scan_single_symbol(self, symbol: str, period: str = "24h") -> Optional[Dict]:
+        """اسکن یک نماد خاص"""
+        return self.run_complete_analysis(symbol, period)
+    
+    def scan_multiple_symbols(self, symbols: List[str], period: str = "24h") -> Dict[str, Optional[Dict]]:
+        """اسکن چندین نماد به صورت بهینه"""
         results = {}
+        total_symbols = len(symbols)
         
-        with st.spinner("در حال اسکن تمام بازار..."):
-            # استفاده از متد بهینه‌شده برای اسکن چندین ارز
-            if self.api_client:
-                batch_results = self.api_client.scan_multiple_coins(self.config.SYMBOLS[:6])
-
-                for symbol, market_data in batch_results.items():
-                    if market_data:
-                        analysis = self.run_analysis(symbol, "24h")
-                        if analysis:
-                            results[symbol] = analysis
-                    else:
-                        logger.warning(f"⚠️ داده‌ای برای {symbol} دریافت نشد")
-            
-            logger.info(f"✅ اسکن بازار تکمیل شد: {len(results)} ارز تحلیل شد")
+        logger.info(f"🌐 شروع اسکن {total_symbols} نماد")
+        
+        for i, symbol in enumerate(symbols):
+            try:
+                # نمایش پیشرفت
+                progress = (i + 1) / total_symbols * 100
+                logger.info(f"📊 اسکن {symbol} ({i+1}/{total_symbols}) - {progress:.1f}%")
+                
+                # اجرای تحلیل
+                analysis = self.run_complete_analysis(symbol, period)
+                results[symbol] = analysis
+                
+                # تاخیر برای جلوگیری از overload
+                if i < total_symbols - 1:  # برای آخرین مورد نیاز نیست
+                    time.sleep(0.3)
+                    
+            except Exception as e:
+                logger.error(f"❌ خطا در اسکن {symbol}: {e}")
+                results[symbol] = None
+        
+        # به‌روزرسانی زمان آخرین اسکن
+        self.last_scan_time = datetime.now()
+        logger.info(f"✅ اسکن {len(results)} نماد تکمیل شد")
         
         return results
+    
+    def scan_all_market(self, period: str = "24h") -> Dict[str, Optional[Dict]]:
+        """اسکن تمام بازار"""
+        return self.scan_multiple_symbols(self.config.SYMBOLS[:6], period)
+    
+    def get_scanner_status(self) -> Dict:
+        """دریافت وضعیت فعلی اسکنر"""
+        status = {
+            'api_healthy': self.api_client.is_healthy if self.api_client else False,
+            'last_scan_time': self.last_scan_time,
+            'cache_size': len(self.scan_cache),
+            'symbols_available': len(self.config.SYMBOLS),
+            'last_error': self.api_client.last_error if self.api_client else 'API Client موجود نیست'
+        }
+        
+        if self.api_client and hasattr(self.api_client, 'last_check'):
+            status['last_health_check'] = self.api_client.last_check
+        
+        return status
+    
+    def clear_cache(self):
+        """پاک کردن کش"""
+        self.scan_cache.clear()
+        logger.info("✅ کش اسکنر پاک شد")
+    
+    def health_check(self) -> bool:
+        """بررسی سلامت اسکنر"""
+        try:
+            if not self.api_client:
+                logger.error("❌ API Client موجود نیست")
+                return False
+            
+            # بررسی سلامت سرور میانی
+            if hasattr(self.api_client, '_check_health'):
+                self.api_client._check_health()
+            
+            status = self.get_scanner_status()
+            logger.info(f"🔧 وضعیت اسکنر: {status}")
+            
+            return status['api_healthy']
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در بررسی سلامت اسکنر: {e}")
+            return False
+    
+    def get_symbol_performance_report(self, symbol: str) -> Optional[Dict]:
+        """گزارش عملکرد برای یک نماد خاص"""
+        try:
+            analysis = self.run_complete_analysis(symbol, "24h")
+            if not analysis:
+                return None
+            
+            market_data = analysis.get('market_data', {})
+            signals = analysis.get('signals', {})
+            indicators = analysis.get('indicators', {})
+            
+            # محاسبه امتیاز عملکرد
+            performance_score = self._calculate_performance_score(signals, indicators)
+            
+            return {
+                'symbol': symbol,
+                'performance_score': performance_score,
+                'current_price': market_data.get('price', 0),
+                '24h_change': market_data.get('priceChange24h', 0),
+                'trend': signals.get('trend', 'unknown'),
+                'rsi_status': signals.get('rsi', 'neutral'),
+                'macd_status': signals.get('macd', 'neutral'),
+                'recommendations': analysis.get('recommendations', []),
+                'timestamp': analysis.get('timestamp')
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ خطا در ایجاد گزارش عملکرد برای {symbol}: {e}")
+            return None
+    
+    def _calculate_performance_score(self, signals: Dict, indicators: Dict) -> float:
+        """محاسبه امتیاز عملکرد بر اساس سیگنال‌ها"""
+        score = 50.0  # امتیاز پایه
+        
+        # امتیاز بر اساس RSI
+        rsi = indicators.get('rsi', 50)
+        if 30 <= rsi <= 70:
+            score += 10
+        elif rsi < 30 or rsi > 70:
+            score -= 5
+        
+        # امتیاز بر اساس روند
+        trend = signals.get('trend', 'neutral')
+        if trend == 'strong_bullish':
+            score += 20
+        elif trend == 'weak_bullish':
+            score += 10
+        elif trend == 'weak_bearish':
+            score -= 10
+        elif trend == 'strong_bearish':
+            score -= 20
+        
+        # امتیاز بر اساس MACD
+        macd_signal = signals.get('macd', 'neutral')
+        if macd_signal == 'bullish':
+            score += 15
+        elif macd_signal == 'bearish':
+            score -= 15
+        
+        return max(0, min(100, score))  # محدود کردن بین 0-100
 
 # ==================== SECTION 9: STREAMLIT UI COMPONENTS ====================
 class StreamlitUI:
