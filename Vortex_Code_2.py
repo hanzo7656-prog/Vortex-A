@@ -12,94 +12,7 @@ from typing import Dict, List, Optional, Tuple
 import threading
 from collections import defaultdict
 
-# ==================== SECTION 1: NOTIFICATION MANAGER ====================
-class NotificationManager:
-    """مدیریت نوتیفیکیشن‌های هوشمند با زمان‌بندی خودکار"""
-    
-    def __init__(self):
-        self.notifications = []
-        self.notification_timers = {}
-        self.notification_history = defaultdict(list)
-        self.lock = threading.Lock()
-    
-    def add_notification(self, message: str, level: str = "info", auto_hide: bool = True, duration: int = 5):
-        """افزودن نوتیفیکیشن جدید"""
-        with self.lock:
-            notification_id = f"{level}_{int(time.time() * 1000)}"
-            notification = {
-                "id": notification_id,
-                "message": message,
-                "level": level,
-                "auto_hide": auto_hide,
-                "duration": duration,
-                "timestamp": datetime.now(),
-                "visible": True
-            }
-            
-            self.notifications.append(notification)
-            
-            # ذخیره در تاریخچه
-            self.notification_history[level].append(notification)
-            
-            # تنظیم تایمر برای مخفی شدن خودکار
-            if auto_hide and level in ["info", "success"]:
-                timer = threading.Timer(duration, self._auto_hide_notification, [notification_id])
-                self.notification_timers[notification_id] = timer
-                timer.start()
-            
-            return notification_id
-    
-    def _auto_hide_notification(self, notification_id: str):
-        """مخفی کردن خودکار نوتیفیکیشن"""
-        with self.lock:
-            for notification in self.notifications:
-                if notification["id"] == notification_id:
-                    notification["visible"] = False
-                    break
-    
-    def remove_notification(self, notification_id: str):
-        """حذف دستی نوتیفیکیشن"""
-        with self.lock:
-            # توقف تایمر اگر وجود دارد
-            if notification_id in self.notification_timers:
-                self.notification_timers[notification_id].cancel()
-                del self.notification_timers[notification_id]
-            
-            # حذف نوتیفیکیشن
-            self.notifications = [n for n in self.notifications if n["id"] != notification_id]
-    
-    def get_visible_notifications(self):
-        """دریافت نوتیفیکیشن‌های قابل نمایش"""
-        with self.lock:
-            return [n for n in self.notifications if n["visible"]]
-    
-    def clear_all_notifications(self):
-        """پاک کردن تمام نوتیفیکیشن‌ها"""
-        with self.lock:
-            # توقف تمام تایمرها
-            for timer in self.notification_timers.values():
-                timer.cancel()
-            
-            self.notification_timers.clear()
-            self.notifications.clear()
-    
-    def should_show_notification(self, message: str, level: str) -> bool:
-        """بررسی آیا باید نوتیفیکیشن نمایش داده شود"""
-        with self.lock:
-            # برای خطاها و اخطارها همیشه نمایش بده
-            if level in ["error", "warning"]:
-                return True
-            
-            # برای اطلاعات عمومی، اگر اخیراً نمایش داده شده نمایش نده
-            recent_threshold = datetime.now() - timedelta(minutes=5)
-            recent_notifications = [
-                n for n in self.notification_history[level] 
-                if n["timestamp"] > recent_threshold and n["message"] == message
-            ]
-            
-            return len(recent_notifications) == 0
-
-# ==================== SECTION 2: CONFIGURATION & SETUP ====================
+# ==================== SECTION 1: CONFIGURATION & SETUP ====================
 st.set_page_config(
     page_title="CoinState Market Scanner Pro",
     page_icon="📊",
@@ -132,7 +45,7 @@ class Config:
         "6m": "6 ماه", "1y": "1 سال", "all": "همه زمان"
     }
 
-# ==================== SECTION 3: MULTILINGUAL SUPPORT ====================
+# ==================== SECTION 2: MULTILINGUAL SUPPORT ====================
 class TranslationManager:
     """Manager for multilingual text support"""
     
@@ -203,12 +116,93 @@ class TranslationManager:
     def get_text(language: str) -> Dict:
         return TranslationManager.TEXTS.get(language, TranslationManager.TEXTS["English"])
 
+# ==================== SECTION 3: NOTIFICATION MANAGER ====================
+class NotificationManager:
+    """مدیریت نوتیفیکیشن‌های هوشمند"""
+    
+    def __init__(self):
+        self.notifications = []
+        self.notification_timers = {}
+        self.notification_history = defaultdict(list)
+        self.lock = threading.Lock()
+    
+    def add_notification(self, message: str, level: str = "info", auto_hide: bool = True, duration: int = 5):
+        """افزودن نوتیفیکیشن جدید"""
+        with self.lock:
+            notification_id = f"{level}_{int(time.time() * 1000)}"
+            notification = {
+                "id": notification_id,
+                "message": message,
+                "level": level,
+                "auto_hide": auto_hide,
+                "duration": duration,
+                "timestamp": datetime.now(),
+                "visible": True
+            }
+            
+            self.notifications.append(notification)
+            
+            # ذخیره در تاریخچه
+            self.notification_history[level].append(notification)
+            
+            # تنظیم تایمر برای مخفی شدن خودکار
+            if auto_hide and level in ["info", "success"]:
+                timer = threading.Timer(duration, self._auto_hide_notification, [notification_id])
+                self.notification_timers[notification_id] = timer
+                timer.start()
+            
+            return notification_id
+    
+    def _auto_hide_notification(self, notification_id: str):
+        """مخفی کردن خودکار نوتیفیکیشن"""
+        with self.lock:
+            for notification in self.notifications:
+                if notification["id"] == notification_id:
+                    notification["visible"] = False
+                    break
+    
+    def remove_notification(self, notification_id: str):
+        """حذف دستی نوتیفیکیشن"""
+        with self.lock:
+            if notification_id in self.notification_timers:
+                self.notification_timers[notification_id].cancel()
+                del self.notification_timers[notification_id]
+            
+            self.notifications = [n for n in self.notifications if n["id"] != notification_id]
+    
+    def get_visible_notifications(self):
+        """دریافت نوتیفیکیشن‌های قابل نمایش"""
+        with self.lock:
+            return [n for n in self.notifications if n["visible"]]
+    
+    def clear_all_notifications(self):
+        """پاک کردن تمام نوتیفیکیشن‌ها"""
+        with self.lock:
+            for timer in self.notification_timers.values():
+                timer.cancel()
+            self.notification_timers.clear()
+            self.notifications.clear()
+    
+    def should_show_notification(self, message: str, level: str) -> bool:
+        """بررسی آیا باید نوتیفیکیشن نمایش داده شود"""
+        with self.lock:
+            if level in ["error", "warning"]:
+                return True
+            
+            recent_threshold = datetime.now() - timedelta(minutes=5)
+            recent_notifications = [
+                n for n in self.notification_history[level] 
+                if n["timestamp"] > recent_threshold and n["message"] == message
+            ]
+            
+            return len(recent_notifications) == 0
+
 # ==================== SECTION 4: MIDDLEWARE CLIENT ====================
 class MiddlewareAPIClient:
     """API Client برای ارتباط با سرور میانی"""
     
     def __init__(self, base_url: str):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')
         self.session = self._create_session()
         self.is_healthy = False
         self.last_error = None
@@ -257,35 +251,38 @@ class MiddlewareAPIClient:
             self.last_error = f"خطای ناشناخته: {str(e)}"
             logger.error(f"❌ خطای ناشناخته در بررسی سلامت: {str(e)}")
     
-    def get_all_coins(self, limit: int = 100) -> Optional[Dict]:
-        """دریافت تمام ارزها از سرور میانی"""
+    def get_scan_data(self, limit: int = 100, filter_type: str = "volume") -> Optional[Dict]:
+        """دریافت داده‌های اسکن از سرور میانی"""
         try:
-            url = f"{self.base_url}/coins"
-            params = {"limit": limit} if limit else {}
+            url = f"{self.base_url}/scan-all"
+            params = {
+                "limit": limit,
+                "filter": filter_type
+            }
             
-            logger.info(f"🌐 دریافت داده از سرور میانی: {url}")
-            response = self.session.get(url, params=params, timeout=15)
+            logger.info(f"🌐 دریافت داده از: {url}")
+            response = self.session.get(url, params=params, timeout=30)
             
             if response.status_code == 200:
                 data = response.json()
-                logger.info(f"✅ داده دریافت شد: {len(data.get('coins', []))} ارز")
+                logger.info(f"✅ داده دریافت شد: {len(data.get('scan_results', []))} ارز")
                 return data
             else:
-                logger.error(f"❌ خطای سرور میانی: کد {response.status_code}")
+                logger.error(f"❌ خطا: کد {response.status_code}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ خطا در دریافت داده از سرور میانی: {str(e)}")
+            logger.error(f"❌ خطا در دریافت داده: {str(e)}")
             return None
     
     def get_coin_data(self, coin_id: str) -> Optional[Dict]:
         """دریافت داده‌های یک ارز خاص"""
         try:
-            all_data = self.get_all_coins()
-            if not all_data:
+            scan_data = self.get_scan_data(limit=50)
+            if not scan_data or 'scan_results' not in scan_data:
                 return None
             
-            coins = all_data.get('coins', [])
+            coins = scan_data.get('scan_results', [])
             coin_id_lower = coin_id.lower()
             
             for coin in coins:
@@ -301,98 +298,6 @@ class MiddlewareAPIClient:
         except Exception as e:
             logger.error(f"❌ خطا در یافتن ارز {coin_id}: {str(e)}")
             return None
-    
-    def get_realtime_data(self, coin_id: str) -> Optional[Dict]:
-        """متد سازگار با کد موجود - دریافت داده real-time"""
-        return self.get_coin_data(coin_id)
-    
-    def get_historical_data(self, coin_id: str, period: str) -> Optional[pd.DataFrame]:
-        """دریافت داده‌های تاریخی"""
-        logger.info(f"📊 استفاده از داده‌های نمونه برای {coin_id} - دوره {period}")
-        return self._generate_sample_data(period)
-    
-    def _generate_sample_data(self, period: str) -> pd.DataFrame:
-        """ایجاد داده‌های نمونه واقع‌گرایانه"""
-        try:
-            period_points = {
-                "24h": 24, "1w": 42, "1m": 30, "3m": 90,
-                "6m": 180, "1y": 365, "all": 100
-            }
-            
-            count = period_points.get(period, 100)
-            base_price = 45000
-            
-            if period == "24h":
-                times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
-            else:
-                times = [datetime.now() - timedelta(days=i) for i in range(count)][::-1]
-            
-            data = []
-            current_price = base_price
-            
-            for i, time_point in enumerate(times):
-                volatility = 0.02
-                if period in ["1y", "all"]:
-                    volatility = 0.04
-                
-                change = current_price * volatility * np.random.randn()
-                current_price = max(current_price + change, base_price * 0.3)
-                
-                open_price = current_price * (1 + np.random.uniform(-0.005, 0.005))
-                high_price = max(open_price, current_price) * (1 + np.random.uniform(0, 0.015))
-                low_price = min(open_price, current_price) * (1 - np.random.uniform(0, 0.015))
-                close_price = current_price
-                
-                data.append({
-                    'time': time_point,
-                    'open': open_price,
-                    'high': high_price,
-                    'low': low_price,
-                    'close': close_price,
-                    'volume': np.random.uniform(1000000, 50000000)
-                })
-            
-            df = pd.DataFrame(data)
-            logger.info(f"✅ داده‌های نمونه برای دوره {period} ایجاد شد: {len(df)} نقطه داده")
-            return df
-            
-        except Exception as e:
-            logger.error(f"❌ خطا در ایجاد داده‌های نمونه: {str(e)}")
-            return pd.DataFrame({
-                'time': [datetime.now()],
-                'open': [50000], 'high': [51000], 'low': [49000], 
-                'close': [50500], 'volume': [1000000]
-            })
-    
-    def scan_multiple_coins(self, coin_ids: List[str]) -> Dict[str, Optional[Dict]]:
-        """اسکن چندین ارز به صورت بهینه"""
-        results = {}
-        
-        try:
-            all_data = self.get_all_coins(limit=100)
-            if not all_data:
-                return {coin_id: None for coin_id in coin_ids}
-            
-            coins_map = {}
-            for coin in all_data.get('coins', []):
-                id_key = coin.get('id', '').lower()
-                name_key = coin.get('name', '').lower()
-                symbol_key = coin.get('symbol', '').lower()
-                
-                coins_map[id_key] = coin
-                coins_map[name_key] = coin
-                coins_map[symbol_key] = coin
-            
-            for coin_id in coin_ids:
-                coin_id_lower = coin_id.lower()
-                results[coin_id] = coins_map.get(coin_id_lower)
-            
-            logger.info(f"✅ اسکن {len(coin_ids)} ارز تکمیل شد")
-            return results
-            
-        except Exception as e:
-            logger.error(f"❌ خطا در اسکن چندین ارز: {str(e)}")
-            return {coin_id: None for coin_id in coin_ids}
 
 # ==================== SECTION 5: DATA MANAGER & CACHING ====================
 class DataManager:
@@ -469,26 +374,71 @@ class DataManager:
         except Exception as e:
             logger.error(f"Cache load error: {e}")
             return None
+
+    @staticmethod
+    def generate_sample_market_data(symbol: str) -> Dict:
+        """ایجاد داده‌های نمونه برای بازار"""
+        base_prices = {
+            "bitcoin": 45000, "ethereum": 3000, "binancecoin": 600,
+            "cardano": 0.5, "ripple": 0.6, "solana": 100,
+            "polkadot": 7, "dogecoin": 0.1, "avalanche": 40,
+            "matic-network": 1, "litecoin": 70, "cosmos": 10
+        }
+        
+        base_price = base_prices.get(symbol, 100)
+        change_24h = np.random.uniform(-10, 10)
+        
+        return {
+            'id': symbol,
+            'name': symbol.capitalize().replace('-', ' '),
+            'symbol': symbol.upper()[:4],
+            'price': base_price * (1 + np.random.uniform(-0.1, 0.1)),
+            'priceChange24h': change_24h,
+            'priceChange1h': np.random.uniform(-2, 2),
+            'high24h': base_price * (1 + np.random.uniform(0.05, 0.15)),
+            'low24h': base_price * (1 - np.random.uniform(0.05, 0.15)),
+            'volume': np.random.uniform(10000000, 500000000),
+            'marketCap': np.random.uniform(100000000, 100000000000),
+            'lastUpdated': datetime.now().isoformat()
+        }
     
-    def save_analysis(self, analysis_data: Dict):
-        """Save technical analysis results"""
-        try:
-            conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            conn.execute('''
-                INSERT OR REPLACE INTO analysis_results 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                analysis_data['symbol'], analysis_data['period'],
-                analysis_data['timestamp'], analysis_data['indicators']['rsi'],
-                analysis_data['indicators']['macd'], analysis_data['indicators']['macd_signal'],
-                analysis_data['indicators']['macd_histogram'], analysis_data['indicators']['sma_20'],
-                analysis_data['indicators']['sma_50'], analysis_data['indicators']['current_price'],
-                json.dumps(analysis_data['signals']), json.dumps(analysis_data['recommendations'])
-            ))
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.error(f"Analysis save error: {e}")
+    @staticmethod
+    def generate_sample_historical_data(period: str = "24h") -> pd.DataFrame:
+        """ایجاد داده‌های تاریخی نمونه"""
+        period_points = {
+            "24h": 24, "1w": 42, "1m": 30, "3m": 90,
+            "6m": 180, "1y": 365, "all": 100
+        }
+        
+        count = period_points.get(period, 100)
+        base_price = 45000
+        
+        if period == "24h":
+            times = [datetime.now() - timedelta(hours=i) for i in range(count)][::-1]
+        else:
+            times = [datetime.now() - timedelta(days=i) for i in range(count)][::-1]
+        
+        data = []
+        current_price = base_price
+        
+        for i, time_point in enumerate(times):
+            volatility = 0.02
+            if period in ["1y", "all"]:
+                volatility = 0.04
+            
+            change = current_price * volatility * np.random.randn()
+            current_price = max(current_price + change, base_price * 0.3)
+            
+            data.append({
+                'time': time_point,
+                'open': current_price * (1 + np.random.uniform(-0.005, 0.005)),
+                'high': current_price * (1 + np.random.uniform(0, 0.015)),
+                'low': current_price * (1 - np.random.uniform(0, 0.015)),
+                'close': current_price,
+                'volume': np.random.uniform(1000000, 50000000)
+            })
+        
+        return pd.DataFrame(data)
 
 # ==================== SECTION 6: TECHNICAL ANALYSIS ENGINE ====================
 class TechnicalAnalyzer:
@@ -814,72 +764,21 @@ class PortfolioManager:
             logger.error(f"Portfolio remove error: {e}")
             return False
 
-    def get_portfolio_history(self, days: int = 30) -> pd.DataFrame:
-        """Get portfolio history"""
-        try:
-            conn = sqlite3.connect(self.data_manager.db_path, check_same_thread=False)
-            query = '''
-                SELECT timestamp, SUM(quantity * buy_price) as daily_value 
-                FROM portfolio 
-                WHERE timestamp >= DATE('now', ?) 
-                GROUP BY DATE(timestamp) 
-                ORDER BY timestamp
-            '''
-            df = pd.read_sql_query(query, conn, params=(f'-{days} days',))
-            conn.close()
-            return df
-        except Exception as e:
-            logger.error(f"Portfolio history error: {e}")
-            return pd.DataFrame()
-
-# ==================== SECTION 9: MARKET SCANNER (کامل و اصلاح شده) ====================
+# ==================== SECTION 9: MARKET SCANNER (کامل) ====================
 class MarketScanner:
-    """اپلیکیشن اصلی اسکنر بازار با پشتیبانی کامل از سرور میانی و فیلترهای پیشرفته"""
+    """اپلیکیشن اصلی اسکنر بازار"""
     
     def __init__(self):
         self.config = Config()
         self.notification_manager = NotificationManager()
-        
-        try:
-            self.api_client = MiddlewareAPIClient(self.config.MIDDLEWARE_BASE_URL)
-            logger.info("✅ API Client برای سرور میانی ایجاد شد")
-            
-        except Exception as e:
-            logger.error(f"❌ خطا در ایجاد API Client: {e}")
-            self.api_client = self._create_fallback_client()
-        
+        self.api_client = MiddlewareAPIClient(self.config.MIDDLEWARE_BASE_URL)
         self.data_manager = DataManager()
         self.technical_analyzer = TechnicalAnalyzer()
         self.chart_renderer = ChartRenderer()
         self.portfolio_manager = PortfolioManager(self.data_manager)
         self.last_scan_time = None
         self.scan_cache = {}
-
-    def _create_fallback_client(self):
-        """ایجاد client جایگزین در صورت خطا"""
-        class FallbackClient:
-            def __init__(self):
-                self.is_healthy = False
-                self.last_error = "Client ایجاد نشد"
-            
-            def get_coin_data(self, coin_id):
-                return None
-            
-            def get_historical_data(self, coin_id, period):
-                return self._generate_sample_data(period)
-            
-            def _generate_sample_data(self, period):
-                return pd.DataFrame({
-                    'time': [datetime.now() - timedelta(hours=i) for i in range(100)][::-1],
-                    'open': np.random.normal(50000, 5000, 100),
-                    'high': np.random.normal(52000, 5000, 100),
-                    'low': np.random.normal(48000, 5000, 100),
-                    'close': np.random.normal(50000, 5000, 100),
-                    'volume': np.random.uniform(1000000, 5000000, 100)
-                })
-        
-        return FallbackClient()
-
+    
     def scan_with_filters(self, limit: int = 100, filter_type: str = "volume", custom_filters: Dict = None) -> Dict:
         """اسکن بازار با فیلترهای پیشرفته"""
         try:
@@ -892,17 +791,16 @@ class MarketScanner:
                 endpoint = "/scan-all"
             
             url = f"{self.config.MIDDLEWARE_BASE_URL}{endpoint}"
-            logger.info(f"🌐 ارسال درخواست اسکن پیشرفته: {url} با پارامترها: {params}")
+            logger.info(f"🌐 ارسال درخواست اسکن پیشرفته: {url}")
             
             response = requests.get(url, params=params, timeout=60)
             
             if response.status_code == 200:
                 data = response.json()
-                logger.info(f"✅ اسکن با فیلتر {filter_type} تکمیل شد: {data.get('total_coins', 0)} ارز")
+                logger.info(f"✅ اسکن با فیلتر {filter_type} تکمیل شد")
                 
-                # افزودن نوتیفیکیشن موفقیت
                 self.notification_manager.add_notification(
-                    f"اسکن {data.get('total_coins', 0)} ارز با فیلتر {filter_type} تکمیل شد",
+                    f"اسکن {data.get('total_coins', 0)} ارز با موفقیت انجام شد",
                     "success",
                     auto_hide=True,
                     duration=5
@@ -911,36 +809,105 @@ class MarketScanner:
                 return data
             else:
                 error_msg = f"خطای سرور: کد {response.status_code}"
-                logger.error(f"❌ {error_msg}")
+                logger.error(error_msg)
                 
-                # افزودن نوتیفیکیشن خطا
                 self.notification_manager.add_notification(
                     error_msg,
                     "error",
-                    auto_hide=False,
-                    duration=0
+                    auto_hide=False
                 )
                 
                 return None
                 
         except Exception as e:
-            error_msg = f"خطا در اسکن با فیلتر: {e}"
-            logger.error(f"❌ {error_msg}")
+            error_msg = f"خطا در اسکن: {str(e)}"
+            logger.error(error_msg)
             
             self.notification_manager.add_notification(
                 error_msg,
                 "error",
-                auto_hide=False,
-                duration=0
+                auto_hide=False
             )
             
             return None
+    
+    def get_market_data(self, symbol: str) -> Dict:
+        """دریافت داده‌های بازار"""
+        try:
+            if self.api_client.is_healthy:
+                coin_data = self.api_client.get_coin_data(symbol)
+                if coin_data:
+                    return coin_data
+            
+            return self.data_manager.generate_sample_market_data(symbol)
+            
+        except Exception as e:
+            logger.error(f"خطا در دریافت داده بازار: {e}")
+            return self.data_manager.generate_sample_market_data(symbol)
+    
+    def get_historical_data(self, symbol: str, period: str) -> pd.DataFrame:
+        """دریافت داده‌های تاریخی"""
+        try:
+            # اول از کش بخوان
+            cached_data = self.data_manager.load_price_data(symbol, period)
+            if cached_data is not None:
+                return cached_data
+            
+            # اگر کش نبود، نمونه ایجاد کن
+            df = self.data_manager.generate_sample_historical_data(period)
+            df = self.technical_analyzer.calculate_indicators(df)
+            
+            # در کش ذخیره کن
+            self.data_manager.save_price_data(symbol, period, df)
+            
+            return df
+        except Exception as e:
+            logger.error(f"خطا در ایجاد داده تاریخی: {e}")
+            return pd.DataFrame()
+    
+    def run_analysis(self, symbol: str, period: str) -> Optional[Dict]:
+        """اجرای تحلیل کامل"""
+        try:
+            # دریافت داده‌های بازار
+            market_data = self.get_market_data(symbol)
+            current_price = market_data.get('price', 0)
+            
+            # دریافت داده‌های تاریخی
+            historical_data = self.get_historical_data(symbol, period)
+            if historical_data.empty:
+                return None
+            
+            # تولید سیگنال‌ها
+            signals = self.technical_analyzer.generate_signals({
+                'rsi': historical_data['RSI'].iloc[-1] if 'RSI' in historical_data.columns else 50,
+                'macd': historical_data['MACD'].iloc[-1] if 'MACD' in historical_data.columns else 0,
+                'macd_signal': historical_data['MACD_Signal'].iloc[-1] if 'MACD_Signal' in historical_data.columns else 0,
+                'macd_histogram': historical_data['MACD_Histogram'].iloc[-1] if 'MACD_Histogram' in historical_data.columns else 0,
+                'sma_20': historical_data['SMA_20'].iloc[-1] if 'SMA_20' in historical_data.columns else current_price,
+                'sma_50': historical_data['SMA_50'].iloc[-1] if 'SMA_50' in historical_data.columns else current_price,
+                'current_price': current_price
+            })
+            
+            return {
+                'symbol': symbol,
+                'period': period,
+                'market_data': market_data,
+                'historical_data': historical_data,
+                'signals': signals,
+                'recommendations': self.technical_analyzer.generate_recommendations(signals, {
+                    'current_price': current_price,
+                    'rsi': historical_data['RSI'].iloc[-1] if 'RSI' in historical_data.columns else 50,
+                    'macd_histogram': historical_data['MACD_Histogram'].iloc[-1] if 'MACD_Histogram' in historical_data.columns else 0
+                })
+            }
+            
+        except Exception as e:
+            logger.error(f"خطا در تحلیل {symbol}: {e}")
+            return None
 
-    # ... (بقیه متدهای قبلی با اضافه کردن نوتیفیکیشن‌ها)
-
-# ==================== SECTION 10: STREAMLIT UI COMPONENTS (کامل و اصلاح شده) ====================
+# ==================== SECTION 10: STREAMLIT UI COMPONENTS (کامل) ====================
 class StreamlitUI:
-    """کامپوننت‌های رابط کاربری Streamlit با نوتیفیکیشن‌های هوشمند"""
+    """کامپوننت‌های رابط کاربری Streamlit"""
     
     @staticmethod
     def display_notifications(notification_manager: NotificationManager):
@@ -956,7 +923,6 @@ class StreamlitUI:
             notification_id = notification["id"]
             auto_hide = notification["auto_hide"]
             
-            # ایجاد استایل‌های مختلف برای سطوح مختلف
             if level == "error":
                 with st.container():
                     col1, col2 = st.columns([0.9, 0.1])
@@ -1002,14 +968,11 @@ class StreamlitUI:
                             if st.button("✕", key=f"close_{notification_id}"):
                                 notification_manager.remove_notification(notification_id)
                                 st.rerun()
-        
-        # فاصله بین نوتیفیکیشن‌ها
-        st.markdown("<br>", unsafe_allow_html=True)
-
+    
     @staticmethod
     def setup_sidebar(scanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, Dict]:
-        """Setup sidebar controls with advanced scan options"""
-        
+        """Setup sidebar controls with enhanced persistence"""
+    
         if 'sidebar_state' not in st.session_state:
             st.session_state.sidebar_state = {
                 'language': "فارسی",
@@ -1017,10 +980,7 @@ class StreamlitUI:
                 'period': list(Config.PERIODS.keys())[0],
                 'show_charts': True,
                 'show_analysis': True,
-                'show_portfolio': False,
-                'scan_filter': 'all',
-                'max_symbols': 20,
-                'notifications_seen': {}
+                'show_portfolio': False
             }
 
         st.sidebar.header(T["settings"])
@@ -1074,40 +1034,25 @@ class StreamlitUI:
     
         api_healthy = False
         last_error = None
-        last_check = None
     
         if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
             if hasattr(scanner.api_client, 'is_healthy'):
                 api_healthy = scanner.api_client.is_healthy
             if hasattr(scanner.api_client, 'last_error'):
                 last_error = scanner.api_client.last_error
-            if hasattr(scanner.api_client, 'last_check'):
-                last_check = scanner.api_client.last_check
     
         if api_healthy:
             st.sidebar.success("✅ سرور میانی متصل")
-            with st.sidebar.expander("📊 اطلاعات سرور"):
-                st.write("✅ وضعیت: فعال")
-                if last_check:
-                    st.write(f"⏰ آخرین بررسی: {last_check.strftime('%H:%M:%S')}")
-                st.write("🌐 منبع داده: سرور میانی شما")
         else:
             st.sidebar.error("❌ سرور میانی قطع")
-        
             if last_error:
                 with st.sidebar.expander("جزئیات خطا"):
-                     st.error(last_error)
-            else:
-                with st.sidebar.expander("جزئیات خطا"):
-                    st.error("API Client ایجاد نشده یا خطای ناشناخته")
+                    st.error(last_error)
     
         if st.sidebar.button("🔄 بررسی سلامت سرور", use_container_width=True):
-            with st.sidebar:
-                with st.spinner("در حال بررسی..."):
-                    if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
-                        if hasattr(scanner.api_client, '_check_health'):
-                            scanner.api_client._check_health()
-                    st.rerun()
+            if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
+                scanner.api_client._check_health()
+                st.rerun()
     
         scan_all = st.sidebar.button(T["scan_all"], use_container_width=True)
     
@@ -1115,14 +1060,13 @@ class StreamlitUI:
 
     @staticmethod
     def setup_advanced_scan_controls(scanner, T: Dict) -> Dict:
-        """کنترل‌های پیشرفته اسکن در سایدبار"""
+        """کنترل‌های پیشرفته اسکن"""
         st.sidebar.header("🎛️ کنترل‌های پیشرفته اسکن")
         
         scan_limit = st.sidebar.selectbox(
             "تعداد ارزها برای اسکن",
             options=[100, 500, 1000],
-            index=0,
-            help="تعداد ارزهایی که می‌خواهید اسکن شوند"
+            index=0
         )
         
         filter_type = st.sidebar.selectbox(
@@ -1135,41 +1079,20 @@ class StreamlitUI:
                 "price_change_24h": "📈 تغییرات قیمت ۲۴h",
                 "market_cap": "💰 مارکت کپ بالا",
                 "signals": "🎯 سیگنال‌های تکنیکال"
-            }.get(x, x),
-            help="معیار فیلتر کردن ارزها"
+            }.get(x, x)
         )
         
         custom_filters = {}
         with st.sidebar.expander("⚙️ فیلترهای سفارشی (اختیاری)"):
-            st.write("**فیلتر حجم معاملات:**")
-            col1, col2 = st.columns(2)
-            with col1:
-                min_volume = st.number_input("حداقل حجم (USD)", min_value=0, value=1000000, step=1000000)
-            with col2:
-                max_volume = st.number_input("حداکثر حجم (USD)", min_value=0, value=1000000000, step=10000000)
-            
-            st.write("**فیلتر تغییرات قیمت:**")
-            col3, col4 = st.columns(2)
-            with col3:
-                min_price_change = st.number_input("حداقل تغییر (%)", min_value=0.0, value=1.0, step=0.5)
-            with col4:
-                max_price_change = st.number_input("حداکثر تغییر (%)", min_value=0.0, value=50.0, step=1.0)
+            min_volume = st.number_input("حداقل حجم (USD)", min_value=0, value=1000000)
+            max_volume = st.number_input("حداکثر حجم (USD)", min_value=0, value=1000000000)
             
             if min_volume > 0:
                 custom_filters["min_volume"] = min_volume
-            if max_volume > 0 and max_volume > min_volume:
+            if max_volume > 0:
                 custom_filters["max_volume"] = max_volume
-            if min_price_change > 0:
-                custom_filters["min_price_change"] = min_price_change
-            if max_price_change > 0 and max_price_change > min_price_change:
-                custom_filters["max_price_change"] = max_price_change
         
-        advanced_scan = st.sidebar.button(
-            "🚀 اجرای اسکن پیشرفته", 
-            use_container_width=True,
-            type="primary",
-            help="اجرای اسکن با تنظیمات انتخاب شده"
-        )
+        advanced_scan = st.sidebar.button("🚀 اجرای اسکن پیشرفته", use_container_width=True)
         
         return {
             "scan_limit": scan_limit,
@@ -1178,43 +1101,171 @@ class StreamlitUI:
             "advanced_scan": advanced_scan
         }
 
-    # ... (بقیه متدهای UI)
+    @staticmethod
+    def display_market_overview(market_data: Dict, T: Dict):
+        """Display market overview cards"""
+        if not market_data:
+            st.warning(T["no_data"])
+            return
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            price = market_data.get('price', 0)
+            st.metric(T["price"], f"${price:,.2f}" if price >= 1 else f"${price:.4f}")
+        
+        with col2:
+            change_24h = market_data.get('priceChange24h', 0)
+            change_color = "normal" if change_24h >= 0 else "inverse"
+            st.metric(T["change"], f"{change_24h:+.2f}%", delta_color=change_color)
+        
+        with col3:
+            high_24h = market_data.get('high24h', market_data.get('price', 0))
+            st.metric(T["high"], f"${high_24h:,.2f}" if high_24h >= 1 else f"${high_24h:.4f}")
+        
+        with col4:
+            low_24h = market_data.get('low24h', market_data.get('price', 0))
+            st.metric(T["low"], f"${low_24h:,.2f}" if low_24h >= 1 else f"${low_24h:.4f}")
+        
+        with col5:
+            volume = market_data.get('volume', 0)
+            if volume > 1000000:
+                st.metric(T["volume"], f"${volume/1000000:.1f}M")
+            else:
+                st.metric(T["volume"], f"${volume:,.0f}")
 
-# ==================== SECTION 11: MAIN APPLICATION ====================
+    @staticmethod
+    def display_technical_analysis(analysis: Dict, T: Dict):
+        """Display technical analysis dashboard"""
+        if not analysis:
+            st.warning("تحلیل تکنیکال در دسترس نیست")
+            return
+        
+        st.header("📊 دیشبورد تحلیل تکنیکال")
+        
+        indicators = analysis.get('indicators', {})
+        signals = analysis.get('signals', {})
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            rsi = indicators.get('rsi', 50)
+            if rsi < 30:
+                st.error(f"RSI: {rsi:.1f} (اشباع فروش)")
+            elif rsi > 70:
+                st.warning(f"RSI: {rsi:.1f} (اشباع خرید)")
+            else:
+                st.success(f"RSI: {rsi:.1f} (نرمال)")
+        
+        with col2:
+            trend = signals.get('trend', 'neutral')
+            if 'bullish' in trend:
+                st.success(f"روند: {trend}")
+            else:
+                st.error(f"روند: {trend}")
+        
+        with col3:
+            price = indicators.get('current_price', 0)
+            st.metric("قیمت فعلی", f"${price:,.2f}")
+        
+        with col4:
+            sma_20 = indicators.get('sma_20', price)
+            status = "بالاتر از SMA20" if price > sma_20 else "پایین‌تر از SMA20"
+            st.metric("موقعیت قیمت", status)
+        
+        # توصیه‌ها
+        recommendations = analysis.get('recommendations', [])
+        if recommendations:
+            st.subheader("💡 توصیه‌های معاملاتی")
+            for rec in recommendations:
+                st.write(f"• {rec}")
+
+    @staticmethod
+    def display_charts(analysis: Dict, T: Dict):
+        """Display price and indicator charts"""
+        if not analysis or 'historical_data' not in analysis:
+            st.warning("نمودارها در دسترس نیستند")
+            return
+        
+        historical_data = analysis['historical_data']
+        symbol = analysis.get('symbol', '')
+        period = analysis.get('period', '')
+        
+        # Price chart
+        st.subheader(T["price_chart"])
+        fig_price = ChartRenderer.render_price_chart(historical_data, symbol, period, T["price_chart"])
+        st.plotly_chart(fig_price, use_container_width=True)
+        
+        # Technical indicators
+        st.subheader(T["indicators"])
+        fig_rsi, fig_macd = ChartRenderer.render_technical_indicators(historical_data)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(fig_rsi, use_container_width=True)
+        with col2:
+            st.plotly_chart(fig_macd, use_container_width=True)
+
+    @staticmethod
+    def display_portfolio(scanner, T: Dict):
+        """Display portfolio tracker"""
+        st.header("💼 ردیابی پرتفوی")
+        
+        # فرم افزودن دارایی
+        with st.form("add_asset"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                symbol = st.selectbox("نماد", Config.SYMBOLS)
+            with col2:
+                quantity = st.number_input("مقدار", min_value=0.0, value=1.0)
+            with col3:
+                buy_price = st.number_input("قیمت خرید (USD)", min_value=0.0, value=1000.0)
+            
+            notes = st.text_input("یادداشت (اختیاری)")
+            
+            if st.form_submit_button("➕ افزودن به پرتفوی"):
+                if scanner.portfolio_manager.add_to_portfolio(symbol, quantity, buy_price, notes):
+                    st.success("✅ دارایی به پرتفوی اضافه شد")
+        
+        # نمایش پرتفوی
+        portfolio_value = scanner.portfolio_manager.get_portfolio_value(scanner.api_client)
+        if portfolio_value['assets']:
+            st.subheader("📋 دارایی‌های شما")
+            for asset in portfolio_value['assets']:
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.write(f"**{asset['symbol']}**")
+                with col2:
+                    st.write(f"مقدار: {asset['quantity']}")
+                with col3:
+                    st.write(f"سود/زیان: {asset['pnl_percent']:+.2f}%")
+                with col4:
+                    st.write(f"ارزش فعلی: ${asset['current_value']:,.2f}")
+
+# ==================== MAIN APPLICATION ====================
 def main():
-    """Main application entry point"""
-    logger.info("Starting Enhanced CoinState Scanner with Smart Notifications")
+    """تابع اصلی برنامه"""
+    logger.info("Starting CoinState Market Scanner Pro")
     
     try:
-        # Initialize scanner
+        # ایجاد اسکنر
         scanner = MarketScanner()
         ui = StreamlitUI()
-    
-        # Setup UI
-        st.title("📊 اسکنر بازار CoinState Pro - نسخه پیشرفته")
+        
+        # عنوان برنامه
+        st.title("📊 اسکنر بازار CoinState Pro")
         
         # نمایش نوتیفیکیشن‌ها
         ui.display_notifications(scanner.notification_manager)
         
-        # سایدبار اصلی
-        (symbol, period, show_charts, 
-         show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
+        # تنظیمات سایدبار
+        symbol, period, show_charts, show_analysis, show_portfolio, scan_all, T = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
         
-        # کنترل‌های پیشرفته اسکن
+        # کنترل‌های پیشرفته
         scan_controls = ui.setup_advanced_scan_controls(scanner, T)
         
-        # بخش اسکن پیشرفته
+        # اسکن پیشرفته
         if scan_controls["advanced_scan"]:
-            st.info(f"""
-            🌐 **اسکن پیشرفته در حال اجرا...**
-            - تعداد ارزها: **{scan_controls['scan_limit']}**
-            - فیلتر اعمال شده: **{scan_controls['filter_type']}**
-            - فیلترهای سفارشی: **{'فعال' if scan_controls['custom_filters'] else 'غیرفعال'}**
-            """)
-            
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
+            st.info(f"🌐 اسکن پیشرفته در حال اجرا...")
             with st.spinner("در حال اسکن بازار با فیلترهای پیشرفته..."):
                 scan_results = scanner.scan_with_filters(
                     limit=scan_controls["scan_limit"],
@@ -1222,19 +1273,39 @@ def main():
                     custom_filters=scan_controls["custom_filters"]
                 )
             
-            progress_bar.progress(100)
-            status_text.empty()
-            
-            if scan_results and scan_results.get("success"):
-                st.success("✅ اسکن پیشرفته با موفقیت تکمیل شد")
-                # نمایش نتایج...
-            else:
-                st.error("❌ خطا در اجرای اسکن پیشرفته")
+            if scan_results:
+                st.success("✅ اسکن پیشرفته تکمیل شد")
         
-        # بقیه بخش‌های برنامه...
+        # دریافت و نمایش داده‌ها
+        with st.spinner(T["loading"]):
+            analysis = scanner.run_analysis(symbol, period)
+        
+        if analysis:
+            # نمایش خلاصه بازار
+            ui.display_market_overview(analysis['market_data'], T)
+            
+            st.markdown("---")
+            
+            # نمایش تحلیل تکنیکال
+            if show_analysis:
+                ui.display_technical_analysis(analysis, T)
+                st.markdown("---")
+            
+            # نمایش نمودارها
+            if show_charts:
+                ui.display_charts(analysis, T)
+                st.markdown("---")
+        
+        # نمایش پرتفوی
+        if show_portfolio:
+            ui.display_portfolio(scanner, T)
+        
+        # پاورقی
+        st.markdown("---")
+        st.markdown("**CoinState Scanner Pro** • توسعه داده شده با Streamlit")
         
     except Exception as e:
-        logger.error(f"Application error: {str(e)}", exc_info=True)
+        logger.error(f"Application error: {str(e)}")
         st.error("خطای غیرمنتظره در اجرای برنامه")
 
 if __name__ == "__main__":
