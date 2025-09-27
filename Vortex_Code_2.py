@@ -1507,7 +1507,7 @@ class StreamlitUI:
     def display_portfolio(scanner, T: Dict):
         """Display portfolio tracker"""
         st.header("💼 ردیابی پرتفوی")
-        
+    
         # Add asset form
         with st.form("add_asset"):
             col1, col2, col3 = st.columns(3)
@@ -1517,9 +1517,9 @@ class StreamlitUI:
                 quantity = st.number_input("مقدار", min_value=0.0, step=0.1, value=1.0)
             with col3:
                 buy_price = st.number_input("قیمت خرید (USD)", min_value=0.0, step=0.01, value=1000.0)
-            
+        
             notes = st.text_input("یادداشت (اختیاری)", placeholder="مانند: خرید در کف قیمت")
-            
+        
             if st.form_submit_button("➕ افزودن به پرتفوی"):
                 if quantity > 0 and buy_price > 0:
                     if scanner.portfolio_manager.add_to_portfolio(symbol, quantity, buy_price, notes):
@@ -1529,18 +1529,19 @@ class StreamlitUI:
                         st.error("❌ خطا در افزودن دارایی")
                 else:
                     st.warning("⚠️ مقدار و قیمت باید بزرگتر از صفر باشند")
+    
+         # ✅ Portfolio summary با بررسی ایمن
+        api_client = scanner.api_client if (scanner and hasattr(scanner, 'api_client')) else None
+        portfolio_value = scanner.portfolio_manager.get_portfolio_value(api_client)
         
-        # Portfolio summary - ✅ استفاده از api_client جدید
-        portfolio_value = scanner.portfolio_manager.get_portfolio_value(scanner.api_client)
-        
-        if portfolio_value['assets']:
-            col1, col2, col3, col4 = st.columns(4)
+           if portfolio_value['assets']:
+                col1, col2, col3, col4 = st.columns(4)
             
-            with col1:
+           with col1:
                 st.metric("💰 سرمایه‌گذاری شده", f"${portfolio_value['total_invested']:,.2f}")
-            with col2:
-                st.metric("💵 ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
-            with col3:
+           with col2:
+               st.metric("💵 ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
+           with col3:
                 pnl = portfolio_value['total_pnl']
                 pnl_percent = portfolio_value['total_pnl_percent']
                 pnl_color = "normal" if pnl >= 0 else "inverse"
@@ -1699,45 +1700,37 @@ def main():
         # Setup UI with persistent sidebar
         st.title("📊 اسکنر بازار CoinState Pro")
         
-        # Add automatic API status check on startup - با بررسی ایمن
-        if hasattr(scanner, 'api_client') and scanner.api_client:
-            if hasattr(scanner.api_client, 'last_check'):
-                if not scanner.api_client.last_check:
+        # ✅ بررسی ایمن سلامت سرور میانی
+        if (scanner and hasattr(scanner, 'api_client') and 
+            scanner.api_client is not None and 
+            hasattr(scanner.api_client, 'is_healthy')):
+            
+            if not scanner.api_client.is_healthy:
+                if hasattr(scanner.api_client, '_check_health'):
                     scanner.api_client._check_health()
-            else:
-                # اگر last_check وجود ندارد، باز هم سلامت را بررسی کن
-                scanner.api_client._check_health()
         
         # Sidebar controls with persistence
         (symbol, period, show_charts, 
          show_analysis, show_portfolio, scan_all, T) = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
         
-        # نمایش وضعیت API در صفحه اصلی با بررسی ایمن
-        if hasattr(scanner, 'api_client') and scanner.api_client:
+        # ✅ نمایش وضعیت API با بررسی ایمن
+        api_healthy = False
+        if scanner and hasattr(scanner, 'api_client') and scanner.api_client is not None:
             if hasattr(scanner.api_client, 'is_healthy'):
-                if scanner.api_client.is_healthy:
-                    st.success("✅ اتصال به API برقرار است - داده‌های زنده استفاده می‌شوند")
-                    
-                    # نمایش اطلاعات اضافی درباره API
-                    with st.expander("📊 اطلاعات API"):
-                        if hasattr(scanner.api_client, 'last_check'):
-                            st.write(f"آخرین بررسی: {scanner.api_client.last_check.strftime('%Y-%m-%d %H:%M:%S')}")
-                        st.write(f"کلید API: {scanner.api_client.api_key[:10]}...")
-                        st.write(f"آدرس سرور: {scanner.api_client.base_url}")
-                else:
-                    st.warning("⚠️ اتصال به API قطع است - از داده‌های نمونه استفاده می‌شود")
-                    
-                    if hasattr(scanner.api_client, 'last_error') and scanner.api_client.last_error:
-                        st.info(f"علت قطعی: {scanner.api_client.last_error}")
-                    
-                    # پیشنهادات برای رفع مشکل
-                    with st.expander("🛠️ راه‌حل‌های پیشنهادی"):
-                        st.markdown("""
-                        1. بررسی اتصال اینترنت - از بخش عیب‌یابی سایدبار استفاده کنید
-                        2. تست API Key - مطمئن شوید کلید معتبر است
-                        3. استفاده از VPN - ممکن است IP شما محدود شده باشد
-                        4. بروزرسانی کلید - از پنل کاربری کلید جدید دریافت کنید
-                        """)
+                api_healthy = scanner.api_client.is_healthy
+        
+        if api_healthy:
+            st.success("✅ اتصال به سرور میانی برقرار است - داده‌های زنده استفاده می‌شوند")
+        else:
+            st.warning("⚠️ اتصال به سرور میانی قطع است - از داده‌های نمونه استفاده می‌شود")
+            
+            with st.expander("🛠️ راه‌حل‌های پیشنهادی"):
+                st.markdown("""
+                1. بررسی اتصال اینترنت
+                2. چند دقیقه صبر کنید و صفحه را رفرش کنید
+                3. از بخش 'بررسی سلامت سرور' در سایدبار استفاده کنید
+                4. در صورت مشکل مداوم، از داده‌های نمونه استفاده می‌شود
+                """)
         
         # Get market data با مدیریت خطای پیشرفته
         with st.spinner(T["loading"]):
