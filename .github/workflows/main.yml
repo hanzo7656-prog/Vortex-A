@@ -1,0 +1,49 @@
+name: Build Python APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # امکان اجرای دستی
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git \
+          unzip \
+          openjdk-11-jdk \
+          python3-pip \
+          autoconf \
+          libtool \
+          pkg-config \
+          zlib1g-dev \
+          libncurses5-dev
+          
+    - name: Install Buildozer
+      run: |
+        pip install buildozer
+        pip install Cython==0.29.33
+        
+    - name: Build APK
+      run: |
+        buildozer android debug
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-app-apk
+        path: bin/*.apk
+        retention-days: 30
