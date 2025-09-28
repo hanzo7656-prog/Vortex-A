@@ -35,9 +35,11 @@ class Config:
     """Configuration class for all constants"""
     MIDDLEWARE_BASE_URL = "https://server-test-ovta.onrender.com"
     
+    # لیست ارزهای گسترده‌تر
     SYMBOLS = [
         "bitcoin", "ethereum", "binancecoin", "cardano", "ripple", "solana",
-        "polkadot", "dogecoin", "avalanche", "matic-network", "litecoin", "cosmos"
+        "polkadot", "dogecoin", "avalanche", "matic-network", "litecoin", "cosmos",
+        "chainlink", "stellar", "monero", "ethereum-classic", "bitcoin-cash", "filecoin"
     ]
     
     PERIODS = {
@@ -78,7 +80,11 @@ class TranslationManager:
             "global_market": "داده‌های جهانی بازار",
             "portfolio_tracker": "ردیابی پرتفوی",
             "alerts": "هشدارها",
-            "scan_all": "اسکن تمام بازار"
+            "scan_all": "اسکن تمام بازار",
+            "realtime_data": "داده‌های لحظه‌ای",
+            "historical_data": "داده‌های تاریخی",
+            "market_overview": "نمای کلی بازار",
+            "websocket_status": "وضعیت WebSocket"
         },
         "English": {
             "title": "📊 CoinState Market Scanner Pro",
@@ -108,7 +114,11 @@ class TranslationManager:
             "global_market": "Global Market Data",
             "portfolio_tracker": "Portfolio Tracker",
             "alerts": "Price Alerts",
-            "scan_all": "Scan All Market"
+            "scan_all": "Scan All Market",
+            "realtime_data": "Real-time Data",
+            "historical_data": "Historical Data",
+            "market_overview": "Market Overview",
+            "websocket_status": "WebSocket Status"
         }
     }
     
@@ -197,9 +207,9 @@ class NotificationManager:
             
             return len(recent_notifications) == 0
 
-# ==================== SECTION 4: MIDDLEWARE CLIENT ====================
+# ==================== SECTION 4: ENHANCED MIDDLEWARE CLIENT ====================
 class MiddlewareAPIClient:
-    """API Client برای ارتباط با سرور میانی"""
+    """API Client پیشرفته برای ارتباط با سرور میانی"""
     
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip('/')
@@ -229,10 +239,19 @@ class MiddlewareAPIClient:
             response = self.session.get(health_url, timeout=10)
             
             if response.status_code == 200:
+                data = response.json()
                 self.is_healthy = True
                 self.last_error = None
                 self.last_check = datetime.now()
                 logger.info("✅ سرور میانی سالم است")
+                
+                # بررسی وضعیت WebSocket
+                ws_status = data.get('websocket_status', {})
+                if ws_status.get('connected'):
+                    logger.info(f"✅ WebSocket متصل - {ws_status.get('coins_count', 0)} ارز فعال")
+                else:
+                    logger.warning("⚠️ WebSocket قطع است")
+                    
             else:
                 self.is_healthy = False
                 self.last_error = f"سرور میانی خطا داد: کد {response.status_code}"
@@ -250,7 +269,103 @@ class MiddlewareAPIClient:
             self.is_healthy = False
             self.last_error = f"خطای ناشناخته: {str(e)}"
             logger.error(f"❌ خطای ناشناخته در بررسی سلامت: {str(e)}")
-    
+
+    def get_coins_list(self) -> Optional[Dict]:
+        """دریافت لیست کامل ارزها از endpoint جدید"""
+        try:
+            url = f"{self.base_url}/api/coins/list"
+            response = self.session.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ لیست ارزها دریافت شد: {len(data.get('data', []))} ارز")
+                return data
+            else:
+                logger.error(f"❌ خطا در دریافت لیست ارزها: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت لیست ارزها: {str(e)}")
+            return None
+
+    def get_historical_data(self, coins: str, period: str = "1m") -> Optional[Dict]:
+        """دریافت داده‌های تاریخی از endpoint جدید"""
+        try:
+            url = f"{self.base_url}/api/coins/historical"
+            params = {
+                "coins": coins,
+                "period": period
+            }
+            
+            response = self.session.get(url, params=params, timeout=20)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"✅ داده تاریخی دریافت شد برای {coins} - دوره {period}")
+                return data
+            else:
+                logger.error(f"❌ خطا در دریافت داده تاریخی: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده تاریخی: {str(e)}")
+            return None
+
+    def get_realtime_data(self) -> Optional[Dict]:
+        """دریافت داده‌های لحظه‌ای از endpoint جدید"""
+        try:
+            url = f"{self.base_url}/api/coins/realtime"
+            response = self.session.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                realtime_coins = len(data.get('data', {}))
+                logger.info(f"✅ داده لحظه‌ای دریافت شد: {realtime_coins} ارز")
+                return data
+            else:
+                logger.error(f"❌ خطا در دریافت داده لحظه‌ای: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت داده لحظه‌ای: {str(e)}")
+            return None
+
+    def get_market_overview(self) -> Optional[Dict]:
+        """دریافت نمای کلی بازار از endpoint جدید"""
+        try:
+            url = f"{self.base_url}/api/market/overview"
+            response = self.session.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info("✅ نمای کلی بازار دریافت شد")
+                return data
+            else:
+                logger.error(f"❌ خطا در دریافت نمای بازار: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت نمای بازار: {str(e)}")
+            return None
+
+    def get_websocket_status(self) -> Optional[Dict]:
+        """دریافت وضعیت WebSocket از endpoint جدید"""
+        try:
+            url = f"{self.base_url}/api/websocket/status"
+            response = self.session.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info("✅ وضعیت WebSocket دریافت شد")
+                return data
+            else:
+                logger.error(f"❌ خطا در دریافت وضعیت WebSocket: کد {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ خطا در دریافت وضعیت WebSocket: {str(e)}")
+            return None
+
     def get_scan_data(self, limit: int = 100, filter_type: str = "volume") -> Optional[Dict]:
         """دریافت داده‌های اسکن از سرور میانی"""
         try:
@@ -382,7 +497,9 @@ class DataManager:
             "bitcoin": 45000, "ethereum": 3000, "binancecoin": 600,
             "cardano": 0.5, "ripple": 0.6, "solana": 100,
             "polkadot": 7, "dogecoin": 0.1, "avalanche": 40,
-            "matic-network": 1, "litecoin": 70, "cosmos": 10
+            "matic-network": 1, "litecoin": 70, "cosmos": 10,
+            "chainlink": 15, "stellar": 0.12, "monero": 160,
+            "ethereum-classic": 25, "bitcoin-cash": 250, "filecoin": 5
         }
         
         base_price = base_prices.get(symbol, 100)
@@ -764,9 +881,9 @@ class PortfolioManager:
             logger.error(f"Portfolio remove error: {e}")
             return False
 
-# ==================== SECTION 9: MARKET SCANNER (کامل) ====================
+# ==================== SECTION 9: ENHANCED MARKET SCANNER ====================
 class MarketScanner:
-    """اپلیکیشن اصلی اسکنر بازار"""
+    """اپلیکیشن اصلی اسکنر بازار - آپدیت شده"""
     
     def __init__(self):
         self.config = Config()
@@ -778,7 +895,70 @@ class MarketScanner:
         self.portfolio_manager = PortfolioManager(self.data_manager)
         self.last_scan_time = None
         self.scan_cache = {}
+        self.realtime_data_cache = {}
+        self.historical_data_cache = {}
     
+    def get_coins_list(self) -> Optional[Dict]:
+        """دریافت لیست ارزها از endpoint جدید"""
+        try:
+            coins_data = self.api_client.get_coins_list()
+            if coins_data and coins_data.get('success'):
+                return coins_data
+            return None
+        except Exception as e:
+            logger.error(f"خطا در دریافت لیست ارزها: {e}")
+            return None
+    
+    def get_historical_data(self, coins: str, period: str) -> Optional[Dict]:
+        """دریافت داده‌های تاریخی از endpoint جدید"""
+        try:
+            cache_key = f"{coins}_{period}"
+            if cache_key in self.historical_data_cache:
+                return self.historical_data_cache[cache_key]
+            
+            historical_data = self.api_client.get_historical_data(coins, period)
+            if historical_data and historical_data.get('success'):
+                self.historical_data_cache[cache_key] = historical_data
+                return historical_data
+            return None
+        except Exception as e:
+            logger.error(f"خطا در دریافت داده تاریخی: {e}")
+            return None
+    
+    def get_realtime_data(self) -> Optional[Dict]:
+        """دریافت داده‌های لحظه‌ای از endpoint جدید"""
+        try:
+            realtime_data = self.api_client.get_realtime_data()
+            if realtime_data and realtime_data.get('success'):
+                self.realtime_data_cache = realtime_data.get('data', {})
+                return realtime_data
+            return None
+        except Exception as e:
+            logger.error(f"خطا در دریافت داده لحظه‌ای: {e}")
+            return None
+    
+    def get_market_overview(self) -> Optional[Dict]:
+        """دریافت نمای کلی بازار از endpoint جدید"""
+        try:
+            overview = self.api_client.get_market_overview()
+            if overview and overview.get('success'):
+                return overview
+            return None
+        except Exception as e:
+            logger.error(f"خطا در دریافت نمای بازار: {e}")
+            return None
+    
+    def get_websocket_status(self) -> Optional[Dict]:
+        """دریافت وضعیت WebSocket از endpoint جدید"""
+        try:
+            status = self.api_client.get_websocket_status()
+            if status and status.get('success'):
+                return status
+            return None
+        except Exception as e:
+            logger.error(f"خطا در دریافت وضعیت WebSocket: {e}")
+            return None
+
     def scan_with_filters(self, limit: int = 100, filter_type: str = "volume", custom_filters: Dict = None) -> Dict:
         """اسکن بازار با فیلترهای پیشرفته"""
         try:
@@ -834,30 +1014,65 @@ class MarketScanner:
     def get_market_data(self, symbol: str) -> Dict:
         """دریافت داده‌های بازار"""
         try:
+            # اول سعی کن از داده‌های لحظه‌ای استفاده کن
+            realtime_data = self.get_realtime_data()
+            if realtime_data and realtime_data.get('data'):
+                realtime_coins = realtime_data.get('data', {})
+                # تبدیل نماد به فرمت Upbit (مثلاً bitcoin به KRW-BTC)
+                upbit_symbol = f"KRW-{symbol.upper().replace('-', '')}"
+                if upbit_symbol in realtime_coins:
+                    coin_data = realtime_coins[upbit_symbol]
+                    return {
+                        'id': symbol,
+                        'name': symbol.capitalize().replace('-', ' '),
+                        'symbol': symbol.upper()[:4],
+                        'price': coin_data.get('price', 0),
+                        'priceChange24h': coin_data.get('change_rate', 0) * 100,
+                        'priceChange1h': 0,  # داده‌ی ساعتی در Upbit نیست
+                        'high24h': coin_data.get('high_price', 0),
+                        'low24h': coin_data.get('low_price', 0),
+                        'volume': coin_data.get('volume', 0),
+                        'marketCap': 0,  # داده‌ی مارکت‌کپ در Upbit نیست
+                        'lastUpdated': coin_data.get('last_updated', '')
+                    }
+            
+            # اگر داده لحظه‌ای نبود، از API اصلی استفاده کن
             if self.api_client.is_healthy:
                 coin_data = self.api_client.get_coin_data(symbol)
                 if coin_data:
                     return coin_data
             
+            # در نهایت از داده‌های نمونه استفاده کن
             return self.data_manager.generate_sample_market_data(symbol)
             
         except Exception as e:
             logger.error(f"خطا در دریافت داده بازار: {e}")
             return self.data_manager.generate_sample_market_data(symbol)
     
-    def get_historical_data(self, symbol: str, period: str) -> pd.DataFrame:
-        """دریافت داده‌های تاریخی"""
+    def get_enhanced_historical_data(self, symbol: str, period: str) -> pd.DataFrame:
+        """دریافت داده‌های تاریخی پیشرفته"""
         try:
-            # اول از کش بخوان
+            # اول از endpoint جدید سعی کن
+            historical_response = self.get_historical_data(symbol, period)
+            if historical_response and historical_response.get('data'):
+                # پردازش داده‌های دریافتی از API
+                api_data = historical_response['data']
+                if isinstance(api_data, list) and len(api_data) > 0:
+                    # تبدیل داده‌های API به DataFrame
+                    processed_data = self._process_api_historical_data(api_data, period)
+                    if not processed_data.empty:
+                        processed_data = self.technical_analyzer.calculate_indicators(processed_data)
+                        self.data_manager.save_price_data(symbol, period, processed_data)
+                        return processed_data
+            
+            # اگر endpoint جدید جواب نداد، از کش یا داده نمونه استفاده کن
             cached_data = self.data_manager.load_price_data(symbol, period)
             if cached_data is not None:
                 return cached_data
             
-            # اگر کش نبود، نمونه ایجاد کن
+            # داده نمونه
             df = self.data_manager.generate_sample_historical_data(period)
             df = self.technical_analyzer.calculate_indicators(df)
-            
-            # در کش ذخیره کن
             self.data_manager.save_price_data(symbol, period, df)
             
             return df
@@ -865,15 +1080,41 @@ class MarketScanner:
             logger.error(f"خطا در ایجاد داده تاریخی: {e}")
             return pd.DataFrame()
     
-    def run_analysis(self, symbol: str, period: str) -> Optional[Dict]:
-        """اجرای تحلیل کامل"""
+    def _process_api_historical_data(self, api_data: List, period: str) -> pd.DataFrame:
+        """پردازش داده‌های تاریخی دریافتی از API"""
+        try:
+            data = []
+            for item in api_data:
+                if 'chart' in item and isinstance(item['chart'], list):
+                    for point in item['chart']:
+                        if len(point) >= 4:
+                            data.append({
+                                'time': datetime.fromtimestamp(point[0]),
+                                'open': point[1],
+                                'high': point[1] * 1.01,  # تقریبی
+                                'low': point[1] * 0.99,   # تقریبی
+                                'close': point[1],
+                                'volume': point[3] if len(point) > 3 else 0
+                            })
+            
+            if data:
+                df = pd.DataFrame(data)
+                df = df.sort_values('time').reset_index(drop=True)
+                return df
+            return pd.DataFrame()
+        except Exception as e:
+            logger.error(f"خطا در پردازش داده API: {e}")
+            return pd.DataFrame()
+    
+    def run_enhanced_analysis(self, symbol: str, period: str) -> Optional[Dict]:
+        """اجرای تحلیل پیشرفته با داده‌های جدید"""
         try:
             # دریافت داده‌های بازار
             market_data = self.get_market_data(symbol)
             current_price = market_data.get('price', 0)
             
             # دریافت داده‌های تاریخی
-            historical_data = self.get_historical_data(symbol, period)
+            historical_data = self.get_enhanced_historical_data(symbol, period)
             if historical_data.empty:
                 return None
             
@@ -888,26 +1129,33 @@ class MarketScanner:
                 'current_price': current_price
             })
             
+            # جمع‌آوری اندیکاتورها
+            indicators = {
+                'current_price': current_price,
+                'rsi': historical_data['RSI'].iloc[-1] if 'RSI' in historical_data.columns else 50,
+                'macd': historical_data['MACD'].iloc[-1] if 'MACD' in historical_data.columns else 0,
+                'macd_signal': historical_data['MACD_Signal'].iloc[-1] if 'MACD_Signal' in historical_data.columns else 0,
+                'macd_histogram': historical_data['MACD_Histogram'].iloc[-1] if 'MACD_Histogram' in historical_data.columns else 0,
+                'sma_20': historical_data['SMA_20'].iloc[-1] if 'SMA_20' in historical_data.columns else current_price,
+                'sma_50': historical_data['SMA_50'].iloc[-1] if 'SMA_50' in historical_data.columns else current_price
+            }
+            
             return {
                 'symbol': symbol,
                 'period': period,
                 'market_data': market_data,
                 'historical_data': historical_data,
+                'indicators': indicators,
                 'signals': signals,
-                'recommendations': self.technical_analyzer.generate_recommendations(signals, {
-                    'current_price': current_price,
-                    'rsi': historical_data['RSI'].iloc[-1] if 'RSI' in historical_data.columns else 50,
-                    'macd_histogram': historical_data['MACD_Histogram'].iloc[-1] if 'MACD_Histogram' in historical_data.columns else 0
-                })
+                'recommendations': self.technical_analyzer.generate_recommendations(signals, indicators)
             }
             
         except Exception as e:
             logger.error(f"خطا در تحلیل {symbol}: {e}")
             return None
-
-# ==================== SECTION 10: STREAMLIT UI COMPONENTS (کامل) ====================
+ # ==================== SECTION 10: ENHANCED STREAMLIT UI ====================
 class StreamlitUI:
-    """کامپوننت‌های رابط کاربری Streamlit"""
+    """کامپوننت‌های رابط کاربری Streamlit - آپدیت شده"""
     
     @staticmethod
     def display_notifications(notification_manager: NotificationManager):
@@ -970,8 +1218,8 @@ class StreamlitUI:
                                 st.rerun()
     
     @staticmethod
-    def setup_sidebar(scanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, Dict]:
-        """Setup sidebar controls with enhanced persistence"""
+    def setup_sidebar(scanner, T: Dict) -> Tuple[str, str, bool, bool, bool, bool, bool, Dict]:
+        """Setup sidebar controls with enhanced features"""
     
         if 'sidebar_state' not in st.session_state:
             st.session_state.sidebar_state = {
@@ -980,7 +1228,9 @@ class StreamlitUI:
                 'period': list(Config.PERIODS.keys())[0],
                 'show_charts': True,
                 'show_analysis': True,
-                'show_portfolio': False
+                'show_portfolio': False,
+                'show_realtime': False,
+                'show_market_overview': True
             }
 
         st.sidebar.header(T["settings"])
@@ -1028,6 +1278,18 @@ class StreamlitUI:
             value=st.session_state.sidebar_state['show_portfolio']
         )
         st.session_state.sidebar_state['show_portfolio'] = show_portfolio
+
+        show_realtime = st.sidebar.checkbox(
+            "⚡ داده‌های لحظه‌ای", 
+            value=st.session_state.sidebar_state['show_realtime']
+        )
+        st.session_state.sidebar_state['show_realtime'] = show_realtime
+
+        show_market_overview = st.sidebar.checkbox(
+            "🌐 نمای کلی بازار", 
+            value=st.session_state.sidebar_state['show_market_overview']
+        )
+        st.session_state.sidebar_state['show_market_overview'] = show_market_overview
     
         # API Health Check
         st.sidebar.header("🔧 سلامت سرویس")
@@ -1043,6 +1305,14 @@ class StreamlitUI:
     
         if api_healthy:
             st.sidebar.success("✅ سرور میانی متصل")
+            
+            # نمایش وضعیت WebSocket
+            ws_status = scanner.get_websocket_status()
+            if ws_status and ws_status.get('websocket_status') == 'connected':
+                st.sidebar.success(f"🌐 WebSocket: {ws_status.get('active_coins', 0)} ارز فعال")
+            else:
+                st.sidebar.warning("⚠️ WebSocket قطع")
+                
         else:
             st.sidebar.error("❌ سرور میانی قطع")
             if last_error:
@@ -1056,7 +1326,7 @@ class StreamlitUI:
     
         scan_all = st.sidebar.button(T["scan_all"], use_container_width=True)
     
-        return symbol, period, show_charts, show_analysis, show_portfolio, scan_all, T
+        return symbol, period, show_charts, show_analysis, show_portfolio, show_realtime, show_market_overview, scan_all, T
 
     @staticmethod
     def setup_advanced_scan_controls(scanner, T: Dict) -> Dict:
@@ -1173,6 +1443,35 @@ class StreamlitUI:
             status = "بالاتر از SMA20" if price > sma_20 else "پایین‌تر از SMA20"
             st.metric("موقعیت قیمت", status)
         
+        # سیگنال‌های معاملاتی
+        st.subheader("🎯 سیگنال‌های معاملاتی")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            rsi_signal = signals.get('rsi', 'neutral')
+            if rsi_signal == 'oversold':
+                st.success("🟢 RSI: اشباع فروش")
+            elif rsi_signal == 'overbought':
+                st.error("🔴 RSI: اشباع خرید")
+            else:
+                st.info("⚪ RSI: نرمال")
+        
+        with col2:
+            macd_signal = signals.get('macd', 'neutral')
+            if macd_signal == 'bullish':
+                st.success("🟢 MACD: صعودی")
+            elif macd_signal == 'bearish':
+                st.error("🔴 MACD: نزولی")
+            else:
+                st.info("⚪ MACD: خنثی")
+        
+        with col3:
+            price_sma = signals.get('price_vs_sma20', 'neutral')
+            if price_sma == 'above':
+                st.success("🟢 قیمت بالای SMA20")
+            else:
+                st.error("🔴 قیمت زیر SMA20")
+        
         # توصیه‌ها
         recommendations = analysis.get('recommendations', [])
         if recommendations:
@@ -1206,6 +1505,138 @@ class StreamlitUI:
             st.plotly_chart(fig_macd, use_container_width=True)
 
     @staticmethod
+    def display_realtime_data(scanner, T: Dict):
+        """نمایش داده‌های لحظه‌ای"""
+        st.header("⚡ داده‌های لحظه‌ای بازار")
+        
+        with st.spinner("در حال دریافت داده‌های لحظه‌ای..."):
+            realtime_data = scanner.get_realtime_data()
+        
+        if realtime_data and realtime_data.get('data'):
+            realtime_coins = realtime_data['data']
+            
+            st.success(f"✅ {len(realtime_coins)} ارز در حال ردیابی")
+            
+            # نمایش ارزهای فعال
+            coins_list = list(realtime_coins.keys())
+            if coins_list:
+                st.subheader("🪙 ارزهای فعال")
+                
+                # نمایش به صورت کارت‌های متریک
+                cols = st.columns(4)
+                for i, coin_symbol in enumerate(coins_list[:8]):  # نمایش 8 ارز اول
+                    coin_data = realtime_coins[coin_symbol]
+                    with cols[i % 4]:
+                        price = coin_data.get('price', 0)
+                        change = coin_data.get('change_rate', 0) * 100
+                        
+                        st.metric(
+                            label=coin_symbol,
+                            value=f"${price:,.0f}" if price >= 1 else f"${price:.4f}",
+                            delta=f"{change:+.2f}%"
+                        )
+                
+                # نمایش جزئیات کامل در جدول
+                with st.expander("📋 جزئیات کامل تمام ارزها"):
+                    table_data = []
+                    for symbol, data in realtime_coins.items():
+                        table_data.append({
+                            'نماد': symbol,
+                            'قیمت': f"${data.get('price', 0):,.2f}",
+                            'تغییر': f"{data.get('change_rate', 0)*100:+.2f}%",
+                            'حجم': f"{data.get('volume', 0):,.0f}",
+                            'بالاترین': f"${data.get('high_price', 0):,.2f}",
+                            'پایین‌ترین': f"${data.get('low_price', 0):,.2f}",
+                            'آخرین بروزرسانی': data.get('last_updated', '')[:19]
+                        })
+                    
+                    if table_data:
+                        st.dataframe(pd.DataFrame(table_data), use_container_width=True)
+        else:
+            st.warning("داده‌های لحظه‌ای در دسترس نیست")
+
+    @staticmethod
+    def display_market_overview_panel(scanner, T: Dict):
+        """نمایش پنل نمای کلی بازار"""
+        st.header("🌐 نمای کلی بازار")
+        
+        with st.spinner("در حال دریافت داده‌های بازار..."):
+            overview = scanner.get_market_overview()
+            coins_list = scanner.get_coins_list()
+        
+        if overview and overview.get('data'):
+            data = overview['data']
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    "تعداد کل ارزها",
+                    f"{data.get('total_coins', 0):,}",
+                    help="تعداد کل ارزهای ردیابی شده"
+                )
+            
+            with col2:
+                st.metric(
+                    "ارزهای لحظه‌ای",
+                    f"{data.get('realtime_coins', 0):,}",
+                    help="تعداد ارزهای با داده لحظه‌ای"
+                )
+            
+            with col3:
+                market_health = data.get('market_health', {})
+                up_coins = market_health.get('up_coins', 0)
+                st.metric(
+                    "ارزهای صعودی",
+                    f"{up_coins:,}",
+                    help="ارزهایی که در 24h گذشته رشد داشته‌اند"
+                )
+            
+            with col4:
+                total_volume = market_health.get('total_volume', 0)
+                st.metric(
+                    "حجم کل بازار",
+                    f"${total_volume/1000000:,.1f}M",
+                    help="حجم معاملات کل بازار"
+                )
+            
+            # نمایش 10 ارز برتر
+            st.subheader("🏆 10 ارز برتر بازار")
+            top_coins = data.get('top_coins', [])
+            if top_coins:
+                top_data = []
+                for coin in top_coins:
+                    top_data.append({
+                        'نماد': coin.get('symbol', ''),
+                        'نام': coin.get('name', ''),
+                        'قیمت': f"${coin.get('price', 0):,.2f}",
+                        'تغییر 24h': f"{coin.get('change_24h', 0):+.2f}%"
+                    })
+                
+                st.dataframe(pd.DataFrame(top_data), use_container_width=True)
+        
+        elif coins_list and coins_list.get('data'):
+            # اگر نمای کلی در دسترس نبود، از لیست ارزها استفاده کن
+            st.info("نمای کلی بازار در دسترس نیست - نمایش لیست ارزها")
+            coins_data = coins_list['data']
+            if isinstance(coins_data, list) and len(coins_data) > 0:
+                st.metric("تعداد کل ارزها", f"{len(coins_data):,}")
+                
+                # نمایش نمونه‌ای از ارزها
+                sample_coins = coins_data[:10]
+                sample_data = []
+                for coin in sample_coins:
+                    if isinstance(coin, dict):
+                        sample_data.append({
+                            'نماد': coin.get('symbol', ''),
+                            'نام': coin.get('name', ''),
+                            'قیمت': f"${coin.get('price', 0):,.2f}" if coin.get('price') else 'N/A'
+                        })
+                
+                if sample_data:
+                    st.dataframe(pd.DataFrame(sample_data), use_container_width=True)
+
+    @staticmethod
     def display_portfolio(scanner, T: Dict):
         """Display portfolio tracker"""
         st.header("💼 ردیابی پرتفوی")
@@ -1225,21 +1656,44 @@ class StreamlitUI:
             if st.form_submit_button("➕ افزودن به پرتفوی"):
                 if scanner.portfolio_manager.add_to_portfolio(symbol, quantity, buy_price, notes):
                     st.success("✅ دارایی به پرتفوی اضافه شد")
+                    st.rerun()
         
         # نمایش پرتفوی
         portfolio_value = scanner.portfolio_manager.get_portfolio_value(scanner.api_client)
         if portfolio_value['assets']:
             st.subheader("📋 دارایی‌های شما")
+            
+            # خلاصه پرتفوی
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("سرمایه گذاری شده", f"${portfolio_value['total_invested']:,.2f}")
+            with col2:
+                st.metric("ارزش فعلی", f"${portfolio_value['total_current']:,.2f}")
+            with col3:
+                st.metric("سود/زیان", f"${portfolio_value['total_pnl']:,.2f}")
+            with col4:
+                pnl_color = "normal" if portfolio_value['total_pnl_percent'] >= 0 else "inverse"
+                st.metric("درصد سود/زیان", 
+                         f"{portfolio_value['total_pnl_percent']:+.2f}%",
+                         delta_color=pnl_color)
+            
+            # جدول دارایی‌ها
+            assets_data = []
             for asset in portfolio_value['assets']:
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.write(f"**{asset['symbol']}**")
-                with col2:
-                    st.write(f"مقدار: {asset['quantity']}")
-                with col3:
-                    st.write(f"سود/زیان: {asset['pnl_percent']:+.2f}%")
-                with col4:
-                    st.write(f"ارزش فعلی: ${asset['current_value']:,.2f}")
+                assets_data.append({
+                    'نماد': asset['symbol'],
+                    'مقدار': f"{asset['quantity']:,.4f}",
+                    'قیمت خرید': f"${asset['buy_price']:,.2f}",
+                    'قیمت فعلی': f"${asset['current_price']:,.2f}",
+                    'سرمایه گذاری': f"${asset['invested']:,.2f}",
+                    'ارزش فعلی': f"${asset['current_value']:,.2f}",
+                    'سود/زیان': f"${asset['pnl']:,.2f}",
+                    'درصد': f"{asset['pnl_percent']:+.2f}%"
+                })
+            
+            st.dataframe(pd.DataFrame(assets_data), use_container_width=True)
+        else:
+            st.info("هنوز دارایی به پرتفوی اضافه نکرده‌اید")
 
 # ==================== MAIN APPLICATION ====================
 def main():
@@ -1258,7 +1712,7 @@ def main():
         ui.display_notifications(scanner.notification_manager)
         
         # تنظیمات سایدبار
-        symbol, period, show_charts, show_analysis, show_portfolio, scan_all, T = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
+        symbol, period, show_charts, show_analysis, show_portfolio, show_realtime, show_market_overview, scan_all, T = ui.setup_sidebar(scanner, TranslationManager.get_text("فارسی"))
         
         # کنترل‌های پیشرفته
         scan_controls = ui.setup_advanced_scan_controls(scanner, T)
@@ -1276,9 +1730,19 @@ def main():
             if scan_results:
                 st.success("✅ اسکن پیشرفته تکمیل شد")
         
-        # دریافت و نمایش داده‌ها
+        # نمایش نمای کلی بازار
+        if show_market_overview:
+            ui.display_market_overview_panel(scanner, T)
+            st.markdown("---")
+        
+        # نمایش داده‌های لحظه‌ای
+        if show_realtime:
+            ui.display_realtime_data(scanner, T)
+            st.markdown("---")
+        
+        # دریافت و نمایش داده‌های تحلیل
         with st.spinner(T["loading"]):
-            analysis = scanner.run_analysis(symbol, period)
+            analysis = scanner.run_enhanced_analysis(symbol, period)
         
         if analysis:
             # نمایش خلاصه بازار
@@ -1299,10 +1763,11 @@ def main():
         # نمایش پرتفوی
         if show_portfolio:
             ui.display_portfolio(scanner, T)
+            st.markdown("---")
         
         # پاورقی
         st.markdown("---")
-        st.markdown("**CoinState Scanner Pro** • توسعه داده شده با Streamlit")
+        st.markdown("**CoinState Scanner Pro** • توسعه داده شده با Streamlit • نسخه 2.0")
         
     except Exception as e:
         logger.error(f"Application error: {str(e)}")
