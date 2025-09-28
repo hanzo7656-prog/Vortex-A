@@ -15,11 +15,5 @@ log_level = 2
 [android]
 api = 33
 minapi = 21
-ndk = 25b
-
-# تنظیمات اختیاری برای کاهش حجم
-android.skip_collections = True
-android.skip_build = False
-
-[loggers]
-root = INFO
+# حذف خط ndk یا استفاده از نسخه جدید
+# buildozer به طور خودکار NDK را مدیریت می‌کند
