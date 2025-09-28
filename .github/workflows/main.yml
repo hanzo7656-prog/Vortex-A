@@ -1,61 +1,24 @@
-name: Build Python APK
+name: Build APK Final
 
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 jobs:
-  build-apk:
+  build:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: Install basic dependencies
+    - uses: actions/checkout@v4
+    
+    - name: Build APK
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          git \
-          unzip \
-          openjdk-11-jdk \
-          python3-pip \
-          autoconf \
-          libtool \
-          pkg-config \
-          zlib1g-dev \
-          libncurses5-dev
-          
-    - name: Install Buildozer
-      run: |
-        pip install --upgrade pip
+        # نصب Buildozer
         pip install buildozer
-        pip install Cython==0.29.33
-        pip install kivy
         
-    - name: Accept Android licenses before build
-      run: |
-        # ایجاد فایل license پاسخ خودکار
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
-        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.android/licenses/android-sdk-preview-license
-        echo -e "\n504667f4c0de7af1a06de9f4b1727b84351f2910" > ~/.android/licenses/android-sdk-arm-dbt-license
-        
-    - name: Build APK with auto-accept licenses
-      run: |
-        yes | buildozer android clean
-        YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BINARY=1 buildozer -v android debug
-        
+        # ساخت APK بدون هیچ تنظیمات اضافی
+        buildozer android debug
+          
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: python-app-apk
+        name: final-apk
         path: bin/*.apk
-        retention-days: 30
