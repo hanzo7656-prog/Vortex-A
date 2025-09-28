@@ -3,9 +3,7 @@ name: Build Python APK
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:  # امکان اجرای دستی
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -42,23 +40,18 @@ jobs:
           
     - name: Install Android SDK
       run: |
-        # دانلود و نصب Android Command Line Tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-*.zip -d cmdline-tools
         mkdir -p android-sdk/cmdline-tools/latest
         mv cmdline-tools/cmdline-tools/* android-sdk/cmdline-tools/latest/
         
-        # تنظیم محیط Android SDK
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
         
         echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
         echo "PATH=$PATH" >> $GITHUB_ENV
         
-        # قبول کردن licenses
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
-        
-        # نصب پلتفرم و tools مورد نیاز
         $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
@@ -71,25 +64,18 @@ jobs:
         pip install buildozer
         pip install Cython==0.29.33
         pip install kivy
-        pip install setuptools
-        
-    - name: Initialize Buildozer (if needed)
-      run: |
-        if [ ! -f "buildozer.spec" ]; then
-          buildozer init
-        fi
         
     - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25b
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
         
         buildozer -v android debug
         
-    - name: List generated files
+    - name: Check for APK file
       run: |
-        ls -la bin/
+        echo "Generated files:"
+        ls -la bin/ || echo "bin folder not found"
         
     - name: Upload APK artifact
       if: success()
@@ -98,13 +84,3 @@ jobs:
         name: python-app-apk
         path: bin/*.apk
         retention-days: 30
-        
-    - name: Upload build logs
-      if: failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          .buildozer/
-          bin/
-        retention-days: 7
