@@ -36,7 +36,6 @@ jobs:
           libsqlite3-dev \
           libssl-dev \
           libffi-dev
-          # حذف libtinfo5 - در Ubuntu 24.04 وجود ندارد
           
     - name: Install Android SDK
       run: |
@@ -56,7 +55,7 @@ jobs:
           "platforms;android-33" \
           "build-tools;33.0.0" \
           "platform-tools" \
-          "ndk;25b"
+          "ndk;25.1.8937393"  # استفاده از NDK موجود
           
     - name: Install Buildozer and dependencies
       run: |
@@ -68,7 +67,7 @@ jobs:
     - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25b
+        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393
         
         buildozer -v android debug
         
