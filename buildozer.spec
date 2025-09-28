@@ -15,4 +15,7 @@ log_level = 2
 [android]
 api = 33
 minapi = 21
-# حذف خط ndk - Buildozer خودش مدیریت می‌کند
+android.accept_sdk_license = True
+
+# اضافه کردن این خط برای قبول خودکار license
+android.auto_accept_license = True
