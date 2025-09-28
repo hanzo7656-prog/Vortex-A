@@ -3,6 +3,8 @@ name: Build Python APK
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:  # امکان اجرای دستی
 
 jobs:
@@ -13,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Python
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
@@ -23,6 +25,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           git \
+          wget \
           unzip \
           openjdk-11-jdk \
           python3-pip \
@@ -30,20 +33,78 @@ jobs:
           libtool \
           pkg-config \
           zlib1g-dev \
-          libncurses5-dev
+          libncurses5-dev \
+          libtinfo5 \
+          libgdbm-dev \
+          libsqlite3-dev \
+          libssl-dev \
+          libffi-dev
           
-    - name: Install Buildozer
+    - name: Install Android SDK
       run: |
+        # دانلود و نصب Android Command Line Tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-*.zip -d cmdline-tools
+        mkdir -p android-sdk/cmdline-tools/latest
+        mv cmdline-tools/cmdline-tools/* android-sdk/cmdline-tools/latest/
+        
+        # تنظیم محیط Android SDK
+        export ANDROID_SDK_ROOT=$PWD/android-sdk
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+        
+        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+        echo "PATH=$PATH" >> $GITHUB_ENV
+        
+        # قبول کردن licenses
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+        
+        # نصب پلتفرم و tools مورد نیاز
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          "platforms;android-33" \
+          "build-tools;33.0.0" \
+          "platform-tools" \
+          "ndk;25b"
+          
+    - name: Install Buildozer and dependencies
+      run: |
+        pip install --upgrade pip
         pip install buildozer
         pip install Cython==0.29.33
+        pip install kivy
+        pip install setuptools
+        
+    - name: Initialize Buildozer (if needed)
+      run: |
+        if [ ! -f "buildozer.spec" ]; then
+          buildozer init
+        fi
         
     - name: Build APK
       run: |
-        buildozer android debug
+        export ANDROID_SDK_ROOT=$PWD/android-sdk
+        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25b
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
         
-    - name: Upload APK
+        buildozer -v android debug
+        
+    - name: List generated files
+      run: |
+        ls -la bin/
+        
+    - name: Upload APK artifact
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: python-app-apk
         path: bin/*.apk
         retention-days: 30
+        
+    - name: Upload build logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          .buildozer/
+          bin/
+        retention-days: 7
