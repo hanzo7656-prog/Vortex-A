@@ -1,4 +1,4 @@
-name: Build APK Complete
+name: Build APK Fixed
 
 on: [workflow_dispatch]
 
@@ -14,29 +14,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git \
-          wget \
-          curl \
-          unzip \
+          git wget curl unzip \
           openjdk-11-jdk \
-          python3-pip \
-          python3-dev \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          zlib1g-dev \
-          libncurses5-dev \
-          libgdbm-dev \
-          libnss3-dev \
-          libssl-dev \
-          libreadline-dev \
-          libffi-dev \
-          libsqlite3-dev \
-          liblzma-dev \
-          make \
-          build-essential \
-          cython3
+          python3-pip python3-dev \
+          autoconf automake libtool pkg-config \
+          zlib1g-dev libncurses5-dev libgdbm-dev \
+          libnss3-dev libssl-dev libreadline-dev \
+          libffi-dev libsqlite3-dev liblzma-dev \
+          make build-essential cython3
         
     - name: Install Python dependencies
       run: |
@@ -45,57 +30,51 @@ jobs:
         pip install buildozer
         pip install kivy[base]
         
-    - name: Install Android SDK and NDK manually
+    - name: Install Android SDK and NDK CORRECTLY
       run: |
         # ایجاد پوشه‌ها
         mkdir -p android-sdk
         mkdir -p android-ndk
         
-        # دانلود Android Command Line Tools
+        # دانلود و extract Android Command Line Tools - روش صحیح
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-*.zip -d android-sdk/
+        mv android-sdk/cmdline-tools android-sdk/cmdline-tools-temp
         mkdir -p android-sdk/cmdline-tools/latest
-        mv android-sdk/cmdline-tools/* android-sdk/cmdline-tools/latest/
+        mv android-sdk/cmdline-tools-temp/* android-sdk/cmdline-tools/latest/
+        rm -rf android-sdk/cmdline-tools-temp
         
         # دانلود Android NDK
         wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        unzip -q android-ndk-r25b-linux.zip -d android-ndk/
-        mv android-ndk/android-ndk-r25b android-ndk/r25b
+        unzip -q android-ndk-r25b-linux.zip
+        mv android-ndk-r25b android-ndk/r25b
         
         # تنظیم متغیرهای محیطی
         echo "ANDROID_SDK_ROOT=$PWD/android-sdk" >> $GITHUB_ENV
         echo "ANDROID_NDK_HOME=$PWD/android-ndk/r25b" >> $GITHUB_ENV
         echo "PATH=$PWD/android-sdk/cmdline-tools/latest/bin:$PWD/android-ndk/r25b:$PATH" >> $GITHUB_ENV
         
-    - name: Accept ALL Android licenses automatically
+    - name: Accept ALL Android licenses
       run: |
-        mkdir -p $PWD/android-sdk/licenses
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $PWD/android-sdk/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" > $PWD/android-sdk/licenses/android-sdk-preview-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > $PWD/android-sdk/licenses/android-sdk-arm-dbt-license
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $PWD/android-sdk/licenses/android-googletv-license
+        mkdir -p android-sdk/licenses
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > android-sdk/licenses/android-sdk-license
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" > android-sdk/licenses/android-sdk-preview-license
         
-        # نصب پلتفرم و build-tools
-        yes | $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+        # نصب پلتفرم
+        yes | android-sdk/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
-          "platform-tools" \
-          "tools" \
-          "patcher;v4"
+          "platform-tools"
           
-    - name: Build APK with manual paths
+    - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export ANDROID_NDK_HOME=$PWD/android-ndk/r25b
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_NDK_HOME
         
         buildozer -v android debug
         
-    - name: Upload APK and logs
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: complete-apk
-        path: |
-          bin/*.apk
-          .buildozer/
-        retention-days: 30
+        name: final-apk
+        path: bin/*.apk
