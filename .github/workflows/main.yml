@@ -18,12 +18,11 @@ jobs:
       with:
         python-version: '3.9'
         
-    - name: Install system dependencies
+    - name: Install basic dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           git \
-          wget \
           unzip \
           openjdk-11-jdk \
           python3-pip \
@@ -31,53 +30,20 @@ jobs:
           libtool \
           pkg-config \
           zlib1g-dev \
-          libncurses5-dev \
-          libgdbm-dev \
-          libsqlite3-dev \
-          libssl-dev \
-          libffi-dev
+          libncurses5-dev
           
-    - name: Install Android SDK
-      run: |
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-*.zip -d cmdline-tools
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv cmdline-tools/cmdline-tools/* android-sdk/cmdline-tools/latest/
-        
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
-        
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        echo "PATH=$PATH" >> $GITHUB_ENV
-        
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-          "platforms;android-33" \
-          "build-tools;33.0.0" \
-          "platform-tools" \
-          "ndk;25.1.8937393"  # استفاده از NDK موجود
-          
-    - name: Install Buildozer and dependencies
+    - name: Install Buildozer
       run: |
         pip install --upgrade pip
         pip install buildozer
         pip install Cython==0.29.33
         pip install kivy
         
-    - name: Build APK
+    - name: Build APK (let Buildozer handle everything)
       run: |
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393
-        
         buildozer -v android debug
         
-    - name: Check for APK file
-      run: |
-        echo "Generated files:"
-        ls -la bin/ || echo "bin folder not found"
-        
-    - name: Upload APK artifact
-      if: success()
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: python-app-apk
