@@ -1,10 +1,10 @@
 [app]
-title = My Python App
+title = My App
 package.name = myapp
-package.domain = org.example
+package.domain = org.test
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,txt
+source.include_exts = py,png,jpg,kv
 
 version = 0.1
 requirements = python3,kivy
@@ -15,5 +15,4 @@ log_level = 2
 [android]
 api = 33
 minapi = 21
-# حذف خط ndk یا استفاده از نسخه جدید
-# buildozer به طور خودکار NDK را مدیریت می‌کند
+# حذف خط ndk - Buildozer خودش مدیریت می‌کند
