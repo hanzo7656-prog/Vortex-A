@@ -39,9 +39,19 @@ jobs:
         pip install Cython==0.29.33
         pip install kivy
         
-    - name: Build APK (let Buildozer handle everything)
+    - name: Accept Android licenses before build
       run: |
-        buildozer -v android debug
+        # ایجاد فایل license پاسخ خودکار
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
+        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.android/licenses/android-sdk-preview-license
+        echo -e "\n504667f4c0de7af1a06de9f4b1727b84351f2910" > ~/.android/licenses/android-sdk-arm-dbt-license
+        
+    - name: Build APK with auto-accept licenses
+      run: |
+        yes | buildozer android clean
+        YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BINARY=1 buildozer -v android debug
         
     - name: Upload APK
       uses: actions/upload-artifact@v4
