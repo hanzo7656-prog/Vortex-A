@@ -1,6 +1,6 @@
 [app]
-title = My Complete App
-package.name = mycompleteapp
+title = My App
+package.name = myapp
 package.domain = org.test
 
 source.dir = .
@@ -15,8 +15,7 @@ log_level = 2
 [android]
 api = 33
 minapi = 21
-ndk_path = ./android-ndk/r25b
-sdk_path = ./android-sdk
+android.auto_accept_license = True
 
-# اجتناب از دانلود خودکار
-android.skip_download = True
+[buildozer]
+log_level = 2
