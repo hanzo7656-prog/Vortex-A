@@ -17,5 +17,5 @@ api = 33
 minapi = 21
 android.auto_accept_license = True
 
-# استفاده از SDK دستی
-android.sdk_path = ./android-sdk
+# اضافه کردن این خطوط برای قبول licenses
+android.accept_sdk_license = True
