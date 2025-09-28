@@ -32,11 +32,11 @@ jobs:
           pkg-config \
           zlib1g-dev \
           libncurses5-dev \
-          libtinfo5 \
           libgdbm-dev \
           libsqlite3-dev \
           libssl-dev \
           libffi-dev
+          # حذف libtinfo5 - در Ubuntu 24.04 وجود ندارد
           
     - name: Install Android SDK
       run: |
