@@ -16,6 +16,3 @@ log_level = 2
 api = 33
 minapi = 21
 android.auto_accept_license = True
-
-[buildozer]
-log_level = 2
