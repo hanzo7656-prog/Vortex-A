@@ -16,56 +16,17 @@ jobs:
       with:
         python-version: '3.9'
         
-    - name: Install ALL system dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          git \
-          wget \
-          unzip \
-          openjdk-11-jdk \
-          python3-pip \
-          python3-dev \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          zlib1g-dev \
-          libncurses5-dev \
-          libgdbm-dev \
-          libnss3-dev \
-          libssl-dev \
-          libreadline-dev \
-          libffi-dev \
-          libsqlite3-dev \
-          liblzma-dev \
-          make \
-          build-essential \
-          cython3 \
-          aidl
-        
-    - name: Install Android SDK components manually
-      run: |
-        # دانلود و نصب Android SDK
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-*.zip
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv cmdline-tools/* android-sdk/cmdline-tools/latest/
-        
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-        
-        # قبول licenses
-        mkdir -p $ANDROID_SDK_ROOT/licenses
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
-        
-        # نصب پلتفرم و tools
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
-          "platforms;android-33" \
-          "build-tools;33.0.0" \
-          "platform-tools" \
-          "cmdline-tools;latest"
+          git wget unzip openjdk-11-jdk \
+          python3-pip python3-dev \
+          autoconf automake libtool pkg-config \
+          zlib1g-dev libncurses5-dev libgdbm-dev \
+          libnss3-dev libssl-dev libreadline-dev \
+          libffi-dev libsqlite3-dev liblzma-dev \
+          make build-essential cython3
         
     - name: Install Python packages
       run: |
@@ -74,11 +35,24 @@ jobs:
         pip install cython==0.29.33
         pip install kivy[base]
         
-    - name: Build APK with custom SDK path
+    - name: Build APK with forced SDK
       run: |
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
+        # حذف SDK قدیمی Buildozer
+        rm -rf ~/.buildozer/android/platform/android-sdk
         
+        # ساخت APK با قبول licenses
+        YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BINARY=1 buildozer -v android debug
+        
+    - name: Force accept licenses manually
+      if: failure()
+      run: |
+        # قبول licenses به صورت دستی
+        mkdir -p ~/.android/licenses
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > ~/.android/licenses/android-sdk-license
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" > ~/.android/licenses/android-sdk-preview-license
+        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > ~/.android/licenses/android-sdk-arm-dbt-license
+        
+        # ساخت مجدد
         YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BINARY=1 buildozer -v android debug
         
     - name: Upload APK
