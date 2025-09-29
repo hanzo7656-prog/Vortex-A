@@ -15,7 +15,5 @@ log_level = 2
 [android]
 api = 33
 minapi = 21
-android.auto_accept_license = True
-
-# اضافه کردن این خطوط برای قبول licenses
-android.accept_sdk_license = True
+android.sdk = 33
+android.ndk = 25b
