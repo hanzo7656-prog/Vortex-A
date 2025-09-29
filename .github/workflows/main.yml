@@ -14,9 +14,9 @@ jobs:
         sudo apt-get install -y python3-pip openjdk-11-jdk wget unzip
         pip install buildozer kivy cython
 
-    - name: Install Android SDK with Aidl
+    - name: Install Android SDK and Force Aidl
       run: |
-        # دانلود SDK کامل
+        # دانلود SDK
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
         mkdir -p android-sdk/cmdline-tools/latest
@@ -30,40 +30,41 @@ jobs:
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
         echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
         
-        # نصب platform با نسخه پایدار
+        # نصب platform و build-tools
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.0" "platform-tools"
 
-    - name: Setup Aidl and build environment
+    - name: Force Aidl Installation
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_HOME=$ANDROID_SDK_ROOT
         
-        # پیدا کردن مسیر Aidl
+        # پیدا کردن Aidl
         AIDL_PATH=$(find $ANDROID_SDK_ROOT -name "aidl" -type f | head -1)
-        echo "Aidl found at: $AIDL_PATH"
+        echo "Aidl path: $AIDL_PATH"
         
-        # کپی Aidl به مسیر قابل دسترس
+        # کپی Aidl به مسیر global
         if [ -f "$AIDL_PATH" ]; then
-          sudo cp "$AIDL_PATH" /usr/local/bin/aidl
-          sudo chmod +x /usr/local/bin/aidl
-          echo "Aidl installed to /usr/local/bin/aidl"
-        else
-          echo "Aidl not found, searching..."
-          find $ANDROID_SDK_ROOT -name "*aidl*" -type f
+          sudo cp "$AIDL_PATH" /usr/bin/aidl
+          sudo chmod +x /usr/bin/aidl
+          echo "Aidl copied to /usr/bin/aidl"
         fi
         
-        # اطمینان از وجود Aidl
-        which aidl || echo "Aidl not in PATH"
+        # همچنین کپی به مسیر buildozer
+        mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0
+        if [ -f "$AIDL_PATH" ]; then
+          cp "$AIDL_PATH" ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/
+          chmod +x ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
+          echo "Aidl copied to buildozer directory"
+        fi
 
-    - name: Build APK with verified Aidl
+        # بررسی نهایی
+        echo "=== Aidl Check ==="
+        which aidl || echo "Aidl not in PATH"
+        find ~/.buildozer -name "aidl" -type f | head -5
+
+    - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_HOME=$ANDROID_SDK_ROOT
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
-        
-        # بررسی وجود Aidl
-        echo "=== Checking Aidl ==="
-        which aidl || find $ANDROID_SDK_ROOT -name "aidl" -type f
         
         # ساخت APK
         YES_I_HAVE_THE_RIGHT_TO_USE_THIS_BINARY=1 buildozer -v android debug
