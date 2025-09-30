@@ -1,4 +1,4 @@
-name: Build APK - Final Fix
+name: Build APK - Final Solution
 on: [workflow_dispatch]
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         sudo apt-get install -y python3-pip openjdk-11-jdk wget unzip
         pip install buildozer kivy cython
 
-    - name: Setup Android SDK and NDK Completely
+    - name: Setup Complete Android Environment
       run: |
         # دانلود SDK
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
@@ -25,10 +25,9 @@ jobs:
         # دانلود NDK
         wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip -q android-ndk-r25b-linux.zip
-        mv android-ndk-r25b android-ndk
         
         export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_NDK_HOME=$PWD/android-ndk
+        export ANDROID_NDK_HOME=$PWD/android-ndk-r25b
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
         # قبول licenses
@@ -41,7 +40,7 @@ jobs:
           "build-tools;33.0.0" \
           "platform-tools"
 
-    - name: Create Buildozer Environment
+    - name: Create Symlinks for Buildozer
       run: |
         # ایجاد پوشه buildozer
         mkdir -p ~/.buildozer/android/platform
@@ -50,22 +49,25 @@ jobs:
         cp -r android-sdk ~/.buildozer/android/platform/android-sdk
         
         # کپی NDK
-        cp -r android-ndk ~/.buildozer/android/platform/android-ndk-r25b
+        cp -r android-ndk-r25b ~/.buildozer/android/platform/android-ndk-r25b
+        
+        # ایجاد symlink برای sdkmanager (رفع مشکل مسیر)
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+        ln -sf $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         
         echo "=== Verification ==="
+        ls -la ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
-        ls -la ~/.buildozer/android/platform/android-ndk-r25b/
 
-    - name: Build APK with Pre-installed Everything
+    - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
         export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
         
-        # ساخت APK با غیرفعال کردن دانلود
-        buildozer -v android debug --dir-check
+        # ساخت APK
+        buildozer -v android debug
         
-
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
