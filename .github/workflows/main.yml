@@ -11,26 +11,14 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          python3-pip python3-dev \
-          openjdk-11-jdk \
-          git wget curl unzip \
-          autoconf automake libtool pkg-config \
-          zlib1g-dev libncurses5-dev libgdbm-dev \
-          libnss3-dev libssl-dev libreadline-dev \
-          libffi-dev libsqlite3-dev liblzma-dev \
-          make build-essential
+        sudo apt-get install -y python3-pip python3-dev openjdk-11-jdk git wget curl unzip
 
     - name: Install Python packages
       run: |
-        pip install --upgrade pip
-        pip install buildozer
-        pip install cython==0.29.33
-        pip install kivy
+        pip install buildozer cython kivy
 
-    - name: Download Complete Android SDK
+    - name: Download Android SDK
       run: |
-        # دانلود Android Command Line Tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
         mkdir -p android-sdk/cmdline-tools/latest
@@ -41,48 +29,20 @@ jobs:
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
-        # قبول تمام licenses
+        # قبول licenses
         mkdir -p $ANDROID_SDK_ROOT/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
         
-        # نصب فقط پکیج‌های ضروری - بدون patcher
+        # فقط پکیج‌های ضروری - بدون patcher
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
           "platform-tools" \
           "ndk;25.1.8937393"
 
-    - name: Verify Essential Tools Installed
+    - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
-        
-        echo "=== Checking Essential Tools ==="
-        which aidl && echo "✓ Aidl found" || echo "✗ Aidl missing"
-        find $ANDROID_SDK_ROOT -name "aidl" -type f | head -3
-        
-        echo "=== Build Tools Contents ==="
-        ls -la $ANDROID_SDK_ROOT/build-tools/33.0.0/ | grep -E "(aidl|aapt|zipalign)"
-
-    - name: Replace Buildozer SDK with Manual SDK
-      run: |
-        # حذف SDK قدیمی Buildozer
-        rm -rf ~/.buildozer/android/platform/android-sdk
-        
-        # کپی SDK دستی به جای Buildozer
-        mkdir -p ~/.buildozer/android/platform
-        cp -r android-sdk ~/.buildozer/android/platform/android-sdk
-        
-        echo "✓ Manual SDK copied to Buildozer directory"
-
-    - name: Build APK with Manual Environment
-      run: |
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0:$ANDROID_NDK_HOME
-        
-        # ساخت APK
         buildozer -v android debug
         
     - name: Upload APK
