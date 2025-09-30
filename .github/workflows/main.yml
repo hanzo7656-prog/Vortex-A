@@ -23,7 +23,7 @@ jobs:
         wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
         unzip -q sdk-tools-linux-4333796.zip -d android-sdk-old
 
-        # دانلود SDK جدید (برای Aidl و build-tools)
+        # دانلود SDK جدید (برای AIDL و build-tools)
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
         mkdir -p android-sdk-new/cmdline-tools/latest
@@ -52,7 +52,7 @@ jobs:
       run: |
         mkdir -p ~/.buildozer/android/platform
 
-        # کپی SDK جدید (که Aidl دارد)
+        # کپی SDK جدید (که AIDL دارد)
         cp -r android-sdk-new ~/.buildozer/android/platform/android-sdk
 
         # کپی NDK
@@ -63,9 +63,9 @@ jobs:
         cp -r android-sdk-old/platforms ~/.buildozer/android/platform/android-sdk/
         cp -r android-sdk-old/platform-tools ~/.buildozer/android/platform/android-sdk/
 
-        # symlink برای sdkmanager
+        # ساخت symlink صحیح برای sdkmanager
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -sf $PWD/android-sdk-old/tools/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        ln -sf $PWD/android-sdk-new/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
 
     - name: Verify AIDL and SDKManager
       run: |
