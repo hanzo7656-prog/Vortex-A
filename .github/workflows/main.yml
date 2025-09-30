@@ -1,4 +1,4 @@
-name: Build APK - Complete Solution
+name: Build APK Final
 on: [workflow_dispatch]
 
 jobs:
@@ -7,75 +7,32 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Install dependencies
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          python3-pip openjdk-11-jdk wget unzip \
-          libgl1-mesa-dev libgles2-mesa-dev \
-          zlib1g-dev libsqlite3-dev libffi-dev libssl-dev
-        pip install buildozer==1.5.0 kivy==2.2.1 cython==0.29.36
-
-    - name: Setup Hybrid Android Environment
+          openjdk-11-jdk \
+          git wget unzip zip \
+          python3-pip python3-dev \
+          autoconf automake libtool pkg-config \
+          zlib1g-dev libncurses5-dev
+          
+    - name: Install Buildozer and dependencies
       run: |
-        wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
-        unzip -q sdk-tools-linux-4333796.zip -d android-sdk-old
-
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
-        mkdir -p android-sdk-new/cmdline-tools/latest
-        mv cmdline-tools/* android-sdk-new/cmdline-tools/latest/
-
-        wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        unzip -q android-ndk-r25b-linux.zip
-
-        export ANDROID_SDK_ROOT=$PWD/android-sdk-old
-        export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
-
-        mkdir -p $ANDROID_SDK_ROOT/licenses
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
-
-        yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager \
-          "platforms;android-33" \
-          "build-tools;33.0.0" \
-          "platform-tools" \
-          "ndk;25.1.8937393"
-
-    - name: Create Complete Buildozer Environment
-      run: |
-        mkdir -p ~/.buildozer/android/platform
-
-        cp -r android-sdk-new ~/.buildozer/android/platform/android-sdk
-        cp -r android-ndk-r25b ~/.buildozer/android/platform/android-ndk-r25b
-
-        cp -r android-sdk-old/build-tools ~/.buildozer/android/platform/android-sdk/
-        cp -r android-sdk-old/platforms ~/.buildozer/android/platform/android-sdk/
-        cp -r android-sdk-old/platform-tools ~/.buildozer/android/platform/android-sdk/
-
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        rm -f ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        ln -sf $PWD/android-sdk-new/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-
-    - name: Verify sdkmanager and aidl
-      run: |
-        echo "=== sdkmanager ==="
-        ls -la ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --list || echo "sdkmanager failed to run"
-        echo "=== aidl ==="
-        find ~/.buildozer -name "aidl" -type f
-
+        pip install buildozer cython kivy
+        
     - name: Build APK
       run: |
-        export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
-        export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b
-        export ANDROID_HOME=$ANDROID_SDK_ROOT
-        export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/tools:$PATH
-
-        buildozer -v android debug | tee build_log.txt
-
+        buildozer -v android debug
+        
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: final-apk
+        name: myapp-apk
         path: bin/*.apk
