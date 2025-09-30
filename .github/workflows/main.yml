@@ -1,4 +1,4 @@
-name: Build APK - Final Solution
+name: Build APK - Complete Solution
 on: [workflow_dispatch]
 
 jobs:
@@ -14,58 +14,67 @@ jobs:
         sudo apt-get install -y python3-pip openjdk-11-jdk wget unzip
         pip install buildozer kivy cython
 
-    - name: Setup Complete Android Environment
+    - name: Setup Hybrid Android Environment
       run: |
-        # دانلود SDK
+        # دانلود SDK قدیمی (برای sdkmanager)
+        wget -q https://dl.google.com/android/repository/sdk-tools-linux-4333796.zip
+        unzip -q sdk-tools-linux-4333796.zip -d android-sdk-old
+        
+        # دانلود SDK جدید (برای Aidl و build-tools)
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv cmdline-tools/* android-sdk/cmdline-tools/latest/
+        mkdir -p android-sdk-new/cmdline-tools/latest
+        mv cmdline-tools/* android-sdk-new/cmdline-tools/latest/
         
         # دانلود NDK
         wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip -q android-ndk-r25b-linux.zip
-        
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
-        export ANDROID_NDK_HOME=$PWD/android-ndk-r25b
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+
+        # استفاده از SDK قدیمی برای sdkmanager
+        export ANDROID_SDK_ROOT=$PWD/android-sdk-old
+        export PATH=$PATH:$ANDROID_SDK_ROOT/tools/bin
         
         # قبول licenses
         mkdir -p $ANDROID_SDK_ROOT/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
         
-        # نصب پکیج‌های ضروری
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+        # نصب پکیج‌ها با SDK قدیمی
+        yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
-          "platform-tools"
+          "platform-tools" \
+          "ndk;25.1.8937393"
 
-    - name: Create Symlinks for Buildozer
+    - name: Create Complete Buildozer Environment
       run: |
         # ایجاد پوشه buildozer
         mkdir -p ~/.buildozer/android/platform
         
-        # کپی SDK
-        cp -r android-sdk ~/.buildozer/android/platform/android-sdk
+        # کپی SDK جدید (که Aidl دارد)
+        cp -r android-sdk-new ~/.buildozer/android/platform/android-sdk
         
         # کپی NDK
         cp -r android-ndk-r25b ~/.buildozer/android/platform/android-ndk-r25b
         
-        # ایجاد symlink برای sdkmanager (رفع مشکل مسیر)
+        # کپی build-tools از SDK قدیمی به SDK جدید
+        cp -r android-sdk-old/build-tools ~/.buildozer/android/platform/android-sdk/
+        cp -r android-sdk-old/platforms ~/.buildozer/android/platform/android-sdk/
+        cp -r android-sdk-old/platform-tools ~/.buildozer/android/platform/android-sdk/
+        
+        # ایجاد symlink برای sdkmanager
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        ln -sf $PWD/android-sdk/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        ln -sf $PWD/android-sdk-old/tools/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         
         echo "=== Verification ==="
         ls -la ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
         ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
+        find ~/.buildozer -name "aidl" -type f
 
     - name: Build APK
       run: |
         export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
         export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b
-        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
         
-        # ساخت APK
         buildozer -v android debug
         
     - name: Upload APK
