@@ -1,4 +1,4 @@
-name: Build APK - Complete Manual Setup
+name: Build APK - Force Manual SDK
 on: [workflow_dispatch]
 
 jobs:
@@ -8,24 +8,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Install system dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pip python3-dev openjdk-11-jdk git wget curl unzip
+        sudo apt-get install -y python3-pip openjdk-11-jdk wget unzip
+        pip install buildozer kivy cython
 
-    - name: Install Python packages
+    - name: Download and Setup Android SDK Manually
       run: |
-        pip install buildozer cython kivy
-
-    - name: Download Android SDK
-      run: |
+        # دانلود SDK
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
         unzip -q commandlinetools-linux-9477386_latest.zip
         mkdir -p android-sdk/cmdline-tools/latest
         mv cmdline-tools/* android-sdk/cmdline-tools/latest/
-
-    - name: Install Essential Android Packages Only
-      run: |
+        
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
@@ -33,20 +29,40 @@ jobs:
         mkdir -p $ANDROID_SDK_ROOT/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
         
-        # فقط پکیج‌های ضروری - بدون patcher
+        # نصب پکیج‌های ضروری
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
           "platform-tools" \
           "ndk;25.1.8937393"
 
-    - name: Build APK
+    - name: COMPLETELY Replace Buildozer SDK
       run: |
-        export ANDROID_SDK_ROOT=$PWD/android-sdk
+        # حذف کامل پوشه buildozer
+        rm -rf ~/.buildozer
+        
+        # ایجاد پوشه‌های جدید
+        mkdir -p ~/.buildozer/android/platform
+        
+        # کپی کامل SDK دستی
+        cp -r android-sdk ~/.buildozer/android/platform/android-sdk
+        
+        # بررسی وجود Aidl
+        echo "=== Verifying Aidl ==="
+        find ~/.buildozer -name "aidl" -type f
+        ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/ | grep aidl
+
+    - name: Build APK with Forced SDK
+      run: |
+        export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
+        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
+        
+        # ساخت APK
         buildozer -v android debug
         
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: complete-apk
+        name: final-apk
         path: bin/*.apk
