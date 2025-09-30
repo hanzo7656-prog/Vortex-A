@@ -36,7 +36,7 @@ jobs:
         mkdir -p android-sdk/cmdline-tools/latest
         mv cmdline-tools/* android-sdk/cmdline-tools/latest/
 
-    - name: Install All Android Packages Manually
+    - name: Install Essential Android Packages Only
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
@@ -45,34 +45,25 @@ jobs:
         mkdir -p $ANDROID_SDK_ROOT/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
         echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" > $ANDROID_SDK_ROOT/licenses/android-sdk-arm-dbt-license
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_SDK_ROOT/licenses/android-googletv-license
         
-        # نصب تمام پکیج‌های ضروری
+        # نصب فقط پکیج‌های ضروری - بدون patcher
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
           "platform-tools" \
-          "tools" \
-          "cmdline-tools;latest" \
-          "emulator" \
-          "patcher;v4" \
           "ndk;25.1.8937393"
 
-    - name: Verify All Tools Installed
+    - name: Verify Essential Tools Installed
       run: |
         export ANDROID_SDK_ROOT=$PWD/android-sdk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
         
-        echo "=== Checking Installed Tools ==="
+        echo "=== Checking Essential Tools ==="
         which aidl && echo "✓ Aidl found" || echo "✗ Aidl missing"
-        which aapt && echo "✓ Aapt found" || echo "✗ Aapt missing" 
-        which zipalign && echo "✓ Zipalign found" || echo "✗ Zipalign missing"
-        which apksigner && echo "✓ Apksigner found" || echo "✗ Apksigner missing"
+        find $ANDROID_SDK_ROOT -name "aidl" -type f | head -3
         
-        # لیست فایل‌های build-tools
         echo "=== Build Tools Contents ==="
-        ls -la $ANDROID_SDK_ROOT/build-tools/33.0.0/ | head -10
+        ls -la $ANDROID_SDK_ROOT/build-tools/33.0.0/ | grep -E "(aidl|aapt|zipalign)"
 
     - name: Replace Buildozer SDK with Manual SDK
       run: |
