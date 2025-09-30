@@ -1,4 +1,4 @@
-name: Build APK - Force Manual SDK
+name: Build APK - Final Fix
 on: [workflow_dispatch]
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
         sudo apt-get install -y python3-pip openjdk-11-jdk wget unzip
         pip install buildozer kivy cython
 
-    - name: Download and Setup Android SDK Manually
+    - name: Setup Android SDK and NDK Completely
       run: |
         # دانلود SDK
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
@@ -22,7 +22,13 @@ jobs:
         mkdir -p android-sdk/cmdline-tools/latest
         mv cmdline-tools/* android-sdk/cmdline-tools/latest/
         
+        # دانلود NDK
+        wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+        unzip -q android-ndk-r25b-linux.zip
+        mv android-ndk-r25b android-ndk
+        
         export ANDROID_SDK_ROOT=$PWD/android-sdk
+        export ANDROID_NDK_HOME=$PWD/android-ndk
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
         
         # قبول licenses
@@ -33,34 +39,33 @@ jobs:
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
           "platforms;android-33" \
           "build-tools;33.0.0" \
-          "platform-tools" \
-          "ndk;25.1.8937393"
+          "platform-tools"
 
-    - name: COMPLETELY Replace Buildozer SDK
+    - name: Create Buildozer Environment
       run: |
-        # حذف کامل پوشه buildozer
-        rm -rf ~/.buildozer
-        
-        # ایجاد پوشه‌های جدید
+        # ایجاد پوشه buildozer
         mkdir -p ~/.buildozer/android/platform
         
-        # کپی کامل SDK دستی
+        # کپی SDK
         cp -r android-sdk ~/.buildozer/android/platform/android-sdk
         
-        # بررسی وجود Aidl
-        echo "=== Verifying Aidl ==="
-        find ~/.buildozer -name "aidl" -type f
-        ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/ | grep aidl
+        # کپی NDK
+        cp -r android-ndk ~/.buildozer/android/platform/android-ndk-r25b
+        
+        echo "=== Verification ==="
+        ls -la ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
+        ls -la ~/.buildozer/android/platform/android-ndk-r25b/
 
-    - name: Build APK with Forced SDK
+    - name: Build APK with Pre-installed Everything
       run: |
         export ANDROID_SDK_ROOT=~/.buildozer/android/platform/android-sdk
-        export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.1.8937393
+        export ANDROID_NDK_HOME=~/.buildozer/android/platform/android-ndk-r25b
         export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/build-tools/33.0.0
         
-        # ساخت APK
-        buildozer -v android debug
+        # ساخت APK با غیرفعال کردن دانلود
+        buildozer -v android debug --dir-check
         
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
