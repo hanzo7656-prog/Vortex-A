@@ -7,3 +7,4 @@ urllib3
 ta-lib
 scipy
 kivy
+pillow
