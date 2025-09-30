@@ -1,4 +1,4 @@
-name: Build APK Final
+name: Build APK - Force Aidl
 on: [workflow_dispatch]
 
 jobs:
@@ -8,27 +8,68 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           openjdk-11-jdk \
           git wget unzip zip \
-          python3-pip python3-dev \
-          autoconf automake libtool pkg-config \
-          zlib1g-dev libncurses5-dev
-          
-    - name: Install Buildozer and dependencies
+          python3-pip \
+          android-sdk-platform-tools-common  # این پکیج Aidl رو داره
+
+    - name: Install Android SDK with Aidl
       run: |
-        pip install buildozer cython kivy
+        # دانلود SDK
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
+        mkdir -p android-sdk/cmdline-tools/latest
+        mv cmdline-tools/* android-sdk/cmdline-tools/latest/
         
-    - name: Build APK
+        export ANDROID_SDK_ROOT=$PWD/android-sdk
+        export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin
+        
+        # قبول لایسنس
+        mkdir -p $ANDROID_SDK_ROOT/licenses
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
+        
+        # نصب build-tools که Aidl داره
+        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+          "platforms;android-33" \
+          "build-tools;33.0.0" \
+          "platform-tools"
+
+    - name: Force Aidl Installation
       run: |
+        # پیدا کردن Aidl
+        AIDL_PATH=$(find . -name "aidl" -type f | head -1)
+        echo "Aidl found at: $AIDL_PATH"
+        
+        # کپی Aidl به مسیرهای مختلف
+        if [ -f "$AIDL_PATH" ]; then
+          # کپی به مسیر عمومی
+          sudo cp "$AIDL_PATH" /usr/local/bin/aidl
+          sudo chmod +x /usr/local/bin/aidl
+          
+          # کپی به مسیر buildozer
+          mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0
+          cp "$AIDL_PATH" ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
+          chmod +x ~/.buildozer/android/platform/android-sdk/build-tools/33.0.0/aidl
+          
+          echo "✓ Aidl installed to multiple locations"
+        else
+          echo "✗ Aidl not found! Searching..."
+          find . -name "*aidl*" -type f
+        fi
+
+    - name: Install Buildozer and build
+      run: |
+        pip install buildozer kivy
+        
+        # بررسی وجود Aidl قبل از build
+        echo "=== Checking Aidl ==="
+        which aidl || echo "Aidl not in PATH"
+        find ~/.buildozer -name "aidl" -type f 2>/dev/null || echo "No Aidl in buildozer"
+        
         buildozer -v android debug
         
     - name: Upload APK
