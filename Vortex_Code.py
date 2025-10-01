@@ -62,7 +62,7 @@ class Config:
 class TranslationManager:
     TEXTS = {
         "فارسی": {
-            "title": "📊 CryptoScanner Pro v3.0",
+            "title": "📊 CryptoScanner Pro v0.2.61",
             "select_interval": "انتخاب تایم‌فریم:",
             "loading": "در حال اسکن بازار...",
             "no_data": "داده‌ای دریافت نشد",
@@ -98,7 +98,7 @@ class TranslationManager:
             "advanced_mode": "حالت پیشرفته"
         },
         "English": {
-            "title": "📊 CryptoScanner Pro v3.0", 
+            "title": "📊 CryptoScanner Pro v0.2.61", 
             "select_interval": "Select interval:",
             "loading": "Scanning market...",
             "no_data": "No data received",
