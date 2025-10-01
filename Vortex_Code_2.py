@@ -9,13 +9,6 @@ import logging
 from typing import Dict, List, Optional
 import threading
 from collections import defaultdict
-# import های اصلی Kivy
-import kivy
-from kivy.app import App
-from kivy.uix.button import Button
-from kivy.uix.label import Label
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
 
 # ==================== SECTION 1: CONFIGURATION & SETUP ====================
 st.set_page_config(
