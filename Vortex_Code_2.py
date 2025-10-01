@@ -31,6 +31,8 @@ class Config:
     
     FILTERS = {
         "volume": "📊 حجم معاملات بالا",
+        "momentum_1h": "حرکت 1 ساعته قوی",
+        "momentum_4h": "حرکت 4 ساعته قوی",
         "momentum": "🚀 حرکت قیمت قوی",
         "breakout": "🎯 شکست سطوح",
         "oversold": "📈 اشباع فروش",
@@ -418,6 +420,8 @@ class StreamlitUI:
                 T['coin']: coin.get('name', 'N/A'),
                 T['symbol']: coin.get('symbol', 'N/A'),
                 T['price']: f"${coin.get('price', 0):,.2f}" if coin.get('price') else 'N/A',
+                T['change_1h']: "تغییر 1h",
+                T['change_4h']: "تغییر 4h",
                 T['change_24h']: f"{coin.get('priceChange24h', 0):+.2f}%" if coin.get('priceChange24h') is not None else 'N/A',
                 T['volume']: f"${coin.get('volume', 0)/1000000:.1f}M" if coin.get('volume') else 'N/A',
                 T['signal_power']: f"{coin.get('signal_power', 0):.1f}"
