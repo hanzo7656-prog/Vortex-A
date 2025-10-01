@@ -567,7 +567,7 @@ class StreamlitUI:
 
 # ==================== MAIN APPLICATION ====================
 def main():
-    st.title("📊 CryptoScanner Pro v3.0")
+    st.title("📊 CryptoScanner Pro v0.2.61")
     
     # Initialize scanner and UI
     scanner = CryptoScanner()
@@ -632,7 +632,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("**CryptoScanner Pro v3.0** • توسعه داده شده با Streamlit • قابلیت‌های پیشرفته: تغییرات 1h/4h با ذخیره‌سازی Gist")
+    st.markdown("**CryptoScanner Pro v0.2.61** • توسعه داده شده با Streamlit • قابلیت‌های پیشرفته: تغییرات 1h/4h با ذخیره‌سازی Gist")
 
 if __name__ == "__main__":
     main()
