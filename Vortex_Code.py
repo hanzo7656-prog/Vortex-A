@@ -12,7 +12,7 @@ from collections import defaultdict
 
 # ==================== SECTION 1: CONFIGURATION & SETUP ====================
 st.set_page_config(
-    page_title="CryptoScanner Pro v2.5",
+    page_title="CryptoScanner Pro v0.2.61",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -29,12 +29,21 @@ class Config:
     
     SCAN_LIMITS = [100, 200, 300]
     
+    # فیلترهای پیشرفته با قابلیت 1h/4h
     FILTERS = {
         "volume": "📊 حجم معاملات بالا",
-        "momentum_1h": "حرکت 1 ساعته قوی",
-        "momentum_4h": "حرکت 4 ساعته قوی",
-        "momentum": "🚀 حرکت قیمت قوی",
+        "momentum_1h": "🚀 حرکت 1 ساعته قوی", 
+        "momentum_4h": "🚀 حرکت 4 ساعته قوی",
         "breakout": "🎯 شکست سطوح",
+        "oversold": "📈 اشباع فروش",
+        "overbought": "📉 اشباع خرید"
+    }
+    
+    # فیلترهای قدیمی برای سازگاری
+    LEGACY_FILTERS = {
+        "volume": "📊 حجم معاملات بالا",
+        "momentum": "🚀 حرکت قیمت قوی",
+        "breakout": "🎯 شکست سطوح", 
         "oversold": "📈 اشباع فروش",
         "overbought": "📉 اشباع خرید"
     }
@@ -43,20 +52,27 @@ class Config:
         "24h": "24 ساعت", "1w": "1 هفته", "1m": "1 ماه", 
         "3m": "3 ماه", "6m": "6 ماه", "1y": "1 سال"
     }
+    
+    SCAN_MODES = {
+        "basic": "/scan-all",
+        "advanced": "/scan-advanced"
+    }
 
 # ==================== SECTION 2: MULTILINGUAL SUPPORT ====================
 class TranslationManager:
     TEXTS = {
         "فارسی": {
-            "title": "📊 CryptoScanner Pro v2.5",
+            "title": "📊 CryptoScanner Pro v3.0",
             "select_interval": "انتخاب تایم‌فریم:",
             "loading": "در حال اسکن بازار...",
             "no_data": "داده‌ای دریافت نشد",
             "settings": "تنظیمات",
             "language": "🌐 زبان",
             "scan_all": "اسکن بازار",
+            "scan_advanced": "اسکن پیشرفته",
+            "scan_mode": "حالت اسکن",
             "total_coins": "تعداد ارزها",
-            "bullish_coins": "ارزهای صعودی",
+            "bullish_coins": "ارزهای صعودی", 
             "bearish_coins": "ارزهای نزولی",
             "avg_change": "میانگین تغییرات",
             "strongest_signal": "قوی‌ترین سیگنال",
@@ -64,6 +80,8 @@ class TranslationManager:
             "symbol": "نماد",
             "price": "قیمت",
             "change_24h": "تغییر 24h",
+            "change_1h": "تغییر 1h",
+            "change_4h": "تغییر 4h",
             "volume": "حجم",
             "signal_power": "قدرت سیگنال",
             "filter": "فیلتر",
@@ -71,25 +89,35 @@ class TranslationManager:
             "connection_error": "خطا در اتصال به سرور",
             "try_again": "تلاش مجدد",
             "scan_results": "نتایج اسکن",
-            "last_update": "آخرین بروزرسانی"
+            "last_update": "آخرین بروزرسانی",
+            "historical_data": "داده تاریخی",
+            "has_historical": "دارای داده تاریخی",
+            "no_historical": "بدون داده تاریخی",
+            "advanced_features": "ویژگی‌های پیشرفته",
+            "basic_mode": "حالت پایه",
+            "advanced_mode": "حالت پیشرفته"
         },
         "English": {
-            "title": "📊 CryptoScanner Pro v2.5",
+            "title": "📊 CryptoScanner Pro v3.0", 
             "select_interval": "Select interval:",
             "loading": "Scanning market...",
             "no_data": "No data received",
             "settings": "Settings",
             "language": "🌐 Language",
             "scan_all": "Scan Market",
+            "scan_advanced": "Advanced Scan",
+            "scan_mode": "Scan Mode",
             "total_coins": "Total Coins",
             "bullish_coins": "Bullish Coins",
             "bearish_coins": "Bearish Coins",
-            "avg_change": "Average Change",
+            "avg_change": "Average Change", 
             "strongest_signal": "Strongest Signal",
             "coin": "Coin",
             "symbol": "Symbol",
             "price": "Price",
             "change_24h": "24h Change",
+            "change_1h": "1h Change",
+            "change_4h": "4h Change",
             "volume": "Volume",
             "signal_power": "Signal Power",
             "filter": "Filter",
@@ -97,7 +125,13 @@ class TranslationManager:
             "connection_error": "Connection error",
             "try_again": "Try again",
             "scan_results": "Scan Results",
-            "last_update": "Last update"
+            "last_update": "Last update",
+            "historical_data": "Historical Data",
+            "has_historical": "Has Historical Data",
+            "no_historical": "No Historical Data",
+            "advanced_features": "Advanced Features",
+            "basic_mode": "Basic Mode",
+            "advanced_mode": "Advanced Mode"
         }
     }
     
@@ -143,9 +177,10 @@ class MiddlewareAPIClient:
             self.last_error = str(e)
             logger.error(f"Health check failed: {e}")
     
-    def get_scan_data(self, limit: int = 100, filter_type: str = "volume") -> Optional[Dict]:
+    def get_scan_data(self, limit: int = 100, filter_type: str = "volume", advanced: bool = False) -> Optional[Dict]:
         try:
-            url = f"{self.base_url}/scan-all"
+            endpoint = "/scan-advanced" if advanced else "/scan-all"
+            url = f"{self.base_url}{endpoint}"
             params = {"limit": limit, "filter": filter_type}
             logger.info(f"Fetching data from: {url} with params: {params}")
             
@@ -167,30 +202,42 @@ class MiddlewareAPIClient:
 class SignalEngine:
     @staticmethod
     def calculate_signal_power(coin_data: Dict) -> float:
-        """محاسبه قدرت سیگنال برای هر ارز"""
+        """محاسبه قدرت سیگنال برای هر ارز - نسخه پیشرفته"""
         try:
             power = 0.0
             
-            # تغییرات قیمت (وزن بالا)
+            # تغییرات قیمت 24h (وزن بالا)
             change_24h = abs(coin_data.get('priceChange24h', 0))
             power += min(change_24h * 2, 40)
+            
+            # تغییرات 1h (وزن متوسط)
+            change_1h = abs(coin_data.get('priceChange1h', 0))
+            power += min(change_1h * 3, 25)
+            
+            # تغییرات 4h (وزن متوسط)  
+            change_4h = abs(coin_data.get('priceChange4h', 0))
+            power += min(change_4h * 2, 20)
             
             # حجم معاملات (وزن متوسط)
             volume = coin_data.get('volume', 0)
             if volume > 100000000:
-                power += 25
-            elif volume > 50000000:
                 power += 15
+            elif volume > 50000000:
+                power += 10
             elif volume > 10000000:
                 power += 5
             
             # رتبه بازار (وزن پایین)
             rank = coin_data.get('rank', 999)
             if rank <= 10:
-                power += 20
-            elif rank <= 50:
                 power += 10
+            elif rank <= 50:
+                power += 5
             elif rank <= 100:
+                power += 2
+            
+            # پاداش داده تاریخی
+            if coin_data.get('hasHistoricalData'):
                 power += 5
             
             return min(power, 100)
@@ -224,7 +271,7 @@ class SignalEngine:
 class MarketAnalyzer:
     @staticmethod
     def calculate_market_stats(coins: List[Dict]) -> Dict:
-        """محاسبه آمار کلی بازار"""
+        """محاسبه آمار کلی بازار - نسخه پیشرفته"""
         if not coins:
             return {
                 'total_coins': 0,
@@ -232,16 +279,25 @@ class MarketAnalyzer:
                 'bearish_coins': 0,
                 'avg_change': 0,
                 'strongest_signal': 'None',
-                'strongest_power': 0
+                'strongest_power': 0,
+                'historical_coins': 0,
+                'avg_change_1h': 0,
+                'avg_change_4h': 0
             }
         
         try:
             total_coins = len(coins)
             bullish_coins = sum(1 for coin in coins if coin.get('priceChange24h', 0) > 0)
             bearish_coins = total_coins - bullish_coins
+            historical_coins = sum(1 for coin in coins if coin.get('hasHistoricalData', False))
             
-            changes = [coin.get('priceChange24h', 0) for coin in coins if coin.get('priceChange24h') is not None]
-            avg_change = np.mean(changes) if changes else 0
+            changes_24h = [coin.get('priceChange24h', 0) for coin in coins if coin.get('priceChange24h') is not None]
+            changes_1h = [coin.get('priceChange1h', 0) for coin in coins if coin.get('priceChange1h') is not None]
+            changes_4h = [coin.get('priceChange4h', 0) for coin in coins if coin.get('priceChange4h') is not None]
+            
+            avg_change = np.mean(changes_24h) if changes_24h else 0
+            avg_change_1h = np.mean(changes_1h) if changes_1h else 0
+            avg_change_4h = np.mean(changes_4h) if changes_4h else 0
             
             strongest_coin = max(coins, key=lambda x: x.get('signal_power', 0), default={})
             strongest_signal = strongest_coin.get('name', 'None')
@@ -250,7 +306,10 @@ class MarketAnalyzer:
                 'total_coins': total_coins,
                 'bullish_coins': bullish_coins,
                 'bearish_coins': bearish_coins,
+                'historical_coins': historical_coins,
                 'avg_change': avg_change,
+                'avg_change_1h': avg_change_1h,
+                'avg_change_4h': avg_change_4h,
                 'strongest_signal': strongest_signal,
                 'strongest_power': strongest_coin.get('signal_power', 0)
             }
@@ -268,14 +327,18 @@ class CryptoScanner:
         self.market_analyzer = MarketAnalyzer()
         self.last_scan_data = None
         self.last_scan_time = None
+        self.scan_mode = "advanced"  # حالت پیشفرض
 
-    def scan_market(self, limit: int = 100, filter_type: str = "volume") -> Optional[Dict]:
-        """اسکن کامل بازار"""
+    def scan_market(self, limit: int = 100, filter_type: str = "volume", advanced: bool = None) -> Optional[Dict]:
+        """اسکن کامل بازار - نسخه پیشرفته"""
         try:
-            logger.info(f"Scanning market with limit {limit}, filter {filter_type}")
+            if advanced is None:
+                advanced = self.scan_mode == "advanced"
+                
+            logger.info(f"Scanning market with limit {limit}, filter {filter_type}, advanced: {advanced}")
             
             # دریافت داده از سرور میانی
-            scan_data = self.api_client.get_scan_data(limit, filter_type)
+            scan_data = self.api_client.get_scan_data(limit, filter_type, advanced)
             if not scan_data:
                 self.notification_manager.add_notification("خطا در دریافت داده از سرور", "error")
                 return None
@@ -303,13 +366,17 @@ class CryptoScanner:
                 'scan_time': datetime.now(),
                 'total_scanned': len(coins),
                 'total_signals': len(ranked_coins),
-                'success': True
+                'advanced_mode': advanced,
+                'filter_type': filter_type,
+                'success': True,
+                'features': scan_data.get('features', {})
             }
             
             self.last_scan_data = result
             self.last_scan_time = datetime.now()
             
-            success_msg = f"اسکن موفق: {len(ranked_coins)} ارز سیگنال‌دهنده از {len(coins)} ارز"
+            mode_text = "پیشرفته" if advanced else "پایه"
+            success_msg = f"اسکن {mode_text} موفق: {len(ranked_coins)} ارز سیگنال‌دهنده از {len(coins)} ارز"
             self.notification_manager.add_notification(success_msg, "success")
             
             return result
@@ -346,6 +413,14 @@ class StreamlitUI:
         )
         T = TranslationManager.get_text(language)
         
+        # انتخاب حالت اسکن
+        scan_mode = st.sidebar.selectbox(
+            T["scan_mode"],
+            options=["basic", "advanced"],
+            index=1,  # پیشفرض پیشرفته
+            format_func=lambda x: T["basic_mode"] if x == "basic" else T["advanced_mode"]
+        )
+        
         period = st.sidebar.selectbox(
             T["select_interval"],
             options=list(Config.PERIODS.keys()),
@@ -359,11 +434,17 @@ class StreamlitUI:
             index=0
         )
         
+        # انتخاب فیلتر بر اساس حالت اسکن
+        if scan_mode == "advanced":
+            filter_options = Config.FILTERS
+        else:
+            filter_options = Config.LEGACY_FILTERS
+            
         filter_type = st.sidebar.selectbox(
             T["filter"],
-            options=list(Config.FILTERS.keys()),
+            options=list(filter_options.keys()),
             index=0,
-            format_func=lambda x: Config.FILTERS[x]
+            format_func=lambda x: filter_options[x]
         )
         
         # نمایش وضعیت سرور
@@ -373,20 +454,27 @@ class StreamlitUI:
         # اینجا بعداً وضعیت واقعی رو نشون میدیم
         st.sidebar.info("آماده برای اسکن...")
         
-        scan_clicked = st.sidebar.button(T["scan_all"], use_container_width=True, type="primary")
+        scan_clicked = st.sidebar.button(
+            T["scan_advanced"] if scan_mode == "advanced" else T["scan_all"], 
+            use_container_width=True, 
+            type="primary"
+        )
         
-        return language, period, scan_limit, filter_type, scan_clicked, T
+        return language, period, scan_limit, filter_type, scan_clicked, scan_mode, T
 
     @staticmethod
-    def display_market_stats(market_stats: Dict, T: Dict):
-        """نمایش آمار کلی بازار"""
+    def display_market_stats(market_stats: Dict, T: Dict, advanced_mode: bool = False):
+        """نمایش آمار کلی بازار - نسخه پیشرفته"""
         if not market_stats or market_stats['total_coins'] == 0:
             st.info("هنوز اسکنی انجام نشده است. دکمه اسکن را فشار دهید.")
             return
         
         st.subheader("📈 آمار کلی بازار")
         
-        col1, col2, col3, col4, col5 = st.columns(5)
+        if advanced_mode:
+            col1, col2, col3, col4, col5, col6 = st.columns(6)
+        else:
+            col1, col2, col3, col4, col5 = st.columns(5)
         
         with col1:
             st.metric(T["total_coins"], f"{market_stats['total_coins']:,}")
@@ -402,57 +490,84 @@ class StreamlitUI:
             delta_color = "normal" if avg_change >= 0 else "inverse"
             st.metric(T["avg_change"], f"{avg_change:+.2f}%", delta_color=delta_color)
         
-        with col5:
-            st.metric(T["strongest_signal"], market_stats['strongest_signal'])
+        if advanced_mode:
+            with col5:
+                avg_change_1h = market_stats.get('avg_change_1h', 0)
+                delta_color_1h = "normal" if avg_change_1h >= 0 else "inverse"
+                st.metric(T["change_1h"], f"{avg_change_1h:+.2f}%", delta_color=delta_color_1h)
+            
+            with col6:
+                historical_coins = market_stats.get('historical_coins', 0)
+                st.metric(T["historical_data"], f"{historical_coins:,}")
+        else:
+            with col5:
+                st.metric(T["strongest_signal"], market_stats['strongest_signal'])
 
     @staticmethod
-    def display_coins_table(coins: List[Dict], T: Dict):
-        """نمایش جدول ارزهای سیگنال‌دهنده"""
+    def display_coins_table(coins: List[Dict], T: Dict, advanced_mode: bool = False):
+        """نمایش جدول ارزهای سیگنال‌دهنده - نسخه پیشرفته"""
         if not coins:
             st.warning("هیچ ارز سیگنال‌دهنده‌ای یافت نشد")
             return
         
         # ایجاد دیتافریم برای نمایش
         table_data = []
-        for i, coin in enumerate(coins, 1):  # شروع از 1
-            table_data.append({
+        for i, coin in enumerate(coins, 1):
+            base_data = {
                 'ردیف': i,
                 T['coin']: coin.get('name', 'N/A'),
                 T['symbol']: coin.get('symbol', 'N/A'),
                 T['price']: f"${coin.get('price', 0):,.2f}" if coin.get('price') else 'N/A',
-                T['change_1h']: "تغییر 1h",
-                T['change_4h']: "تغییر 4h",
                 T['change_24h']: f"{coin.get('priceChange24h', 0):+.2f}%" if coin.get('priceChange24h') is not None else 'N/A',
                 T['volume']: f"${coin.get('volume', 0)/1000000:.1f}M" if coin.get('volume') else 'N/A',
                 T['signal_power']: f"{coin.get('signal_power', 0):.1f}"
-            })
+            }
+            
+            if advanced_mode:
+                base_data.update({
+                    T['change_1h']: f"{coin.get('priceChange1h', 0):+.2f}%" if coin.get('priceChange1h') is not None else 'N/A',
+                    T['change_4h']: f"{coin.get('priceChange4h', 0):+.2f}%" if coin.get('priceChange4h') is not None else 'N/A',
+                    T['historical_data']: "✅" if coin.get('hasHistoricalData') else "❌"
+                })
+            
+            table_data.append(base_data)
         
         df = pd.DataFrame(table_data)
+        
+        # تنظیمات ستون‌ها
+        column_config = {
+            'ردیف': st.column_config.NumberColumn(width='small'),
+            T['coin']: st.column_config.TextColumn(width='medium'),
+            T['symbol']: st.column_config.TextColumn(width='small'),
+            T['price']: st.column_config.TextColumn(width='medium'),
+            T['change_24h']: st.column_config.TextColumn(width='medium'),
+            T['volume']: st.column_config.TextColumn(width='medium'),
+            T['signal_power']: st.column_config.ProgressColumn(
+                width='medium',
+                min_value=0,
+                max_value=100,
+                format="%.1f"
+            )
+        }
+        
+        if advanced_mode:
+            column_config.update({
+                T['change_1h']: st.column_config.TextColumn(width='medium'),
+                T['change_4h']: st.column_config.TextColumn(width='medium'),
+                T['historical_data']: st.column_config.TextColumn(width='small')
+            })
         
         # نمایش جدول با استایل بهتر
         st.dataframe(
             df, 
             use_container_width=True, 
             hide_index=True,
-            column_config={
-                'ردیف': st.column_config.NumberColumn(width='small'),
-                T['coin']: st.column_config.TextColumn(width='medium'),
-                T['symbol']: st.column_config.TextColumn(width='small'),
-                T['price']: st.column_config.TextColumn(width='medium'),
-                T['change_24h']: st.column_config.TextColumn(width='medium'),
-                T['volume']: st.column_config.TextColumn(width='medium'),
-                T['signal_power']: st.column_config.ProgressColumn(
-                    width='medium',
-                    min_value=0,
-                    max_value=100,
-                    format="%.1f"
-                )
-            }
+            column_config=column_config
         )
 
 # ==================== MAIN APPLICATION ====================
 def main():
-    st.title("📊 CryptoScanner Pro v2.5.1")
+    st.title("📊 CryptoScanner Pro v3.0")
     
     # Initialize scanner and UI
     scanner = CryptoScanner()
@@ -462,9 +577,12 @@ def main():
     ui.display_notifications(scanner.notification_manager)
     
     # Setup sidebar
-    language, period, scan_limit, filter_type, scan_clicked, T = ui.setup_sidebar(
+    language, period, scan_limit, filter_type, scan_clicked, scan_mode, T = ui.setup_sidebar(
         TranslationManager.get_text("فارسی")
     )
+    
+    # Set scan mode
+    scanner.scan_mode = scan_mode
     
     # Initialize session state for scan results
     if 'scan_result' not in st.session_state:
@@ -473,33 +591,48 @@ def main():
     # Perform scan when button clicked
     if scan_clicked:
         with st.spinner(T["loading"]):
-            scan_result = scanner.scan_market(scan_limit, filter_type)
+            scan_result = scanner.scan_market(scan_limit, filter_type, scan_mode == "advanced")
             st.session_state.scan_result = scan_result
-            st.rerun()  # برای بروزرسانی صفحه
+            st.rerun()
     else:
         scan_result = st.session_state.scan_result
     
     # Display results
     if scan_result and scan_result.get('success'):
         # Display market statistics
-        ui.display_market_stats(scan_result['market_stats'], T)
+        ui.display_market_stats(
+            scan_result['market_stats'], 
+            T, 
+            scan_result.get('advanced_mode', False)
+        )
         
         st.markdown("---")
         
         # Display coins table
-        st.subheader(f"🎯 ارزهای سیگنال‌دهنده ({len(scan_result['coins'])} ارز)")
-        ui.display_coins_table(scan_result['coins'], T)
+        mode_text = T["advanced_mode"] if scan_result.get('advanced_mode') else T["basic_mode"]
+        st.subheader(f"🎯 ارزهای سیگنال‌دهنده ({len(scan_result['coins'])} ارز) - {mode_text}")
+        
+        ui.display_coins_table(
+            scan_result['coins'], 
+            T, 
+            scan_result.get('advanced_mode', False)
+        )
         
         # Display scan info
         st.caption(f"🕒 {T['last_update']}: {scan_result['scan_time'].strftime('%Y-%m-%d %H:%M:%S')}")
         st.caption(f"📊 از {scan_result['total_scanned']} ارز اسکن شده، {scan_result['total_signals']} ارز سیگنال‌دهنده شناسایی شد")
+        
+        # Display advanced features info
+        if scan_result.get('advanced_mode') and scan_result.get('features'):
+            features = scan_result['features']
+            st.caption(f"🚀 ویژگی‌های پیشرفته: {features.get('historical_coins', 0)} ارز با داده تاریخی")
     
     elif scan_clicked and not scan_result:
         st.error("❌ اسکن ناموفق بود. لطفاً دوباره تلاش کنید.")
     
     # Footer
     st.markdown("---")
-    st.markdown("**CryptoScanner Pro v2.5.1** • توسعه داده شده با Streamlit")
+    st.markdown("**CryptoScanner Pro v3.0** • توسعه داده شده با Streamlit • قابلیت‌های پیشرفته: تغییرات 1h/4h با ذخیره‌سازی Gist")
 
 if __name__ == "__main__":
     main()
