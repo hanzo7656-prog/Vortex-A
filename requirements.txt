@@ -8,3 +8,5 @@ ta-lib
 scipy
 kivy
 pillow
+sqlite3
+datetime
