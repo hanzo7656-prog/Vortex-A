@@ -1,4 +1,4 @@
-# ai_core.py - نسخه نهایی با خود-بهبودی
+# ai_core.py - VortexAI
 import numpy as np
 from scipy import sparse
 import random
@@ -20,32 +20,28 @@ class LimitedSizeDict(OrderedDict):
         super().__setitem__(key, value)
 
 class VortexAI:
-    """هوش مصنوعی با غریزه خود-بهبودی"""
+    """هوش مصنوعی VortexAI با غریزه خود-بهبودی"""
     
     def __init__(self, num_neurons=3500, avg_connections=80):
         self.num_neurons = num_neurons
         self.connections_per_neuron = avg_connections
         self.weights = self._create_sparse_connectivity()
         
-        # حالت نورون‌ها
         self.membrane_potential = np.zeros(num_neurons, dtype=np.float32)
         self.threshold = 1.0
         self.resting_potential = 0.0
         self.leak_factor = 0.95
         
-        # یادگیری و حافظه
         self.learning_rate = 0.01
         self.stdp_tau = 20
         self.last_spike_time = -np.ones(num_neurons) * 1000
         
-        # دانش آموخته شده
         self.learned_knowledge = {
             "market_patterns": LimitedSizeDict(500),
             "strategy_performance": LimitedSizeDict(300),
             "risk_factors": LimitedSizeDict(200)
         }
         
-        # لایه‌های تخصصی
         self.layer_allocation = {
             "pattern_detection": range(0, 800),
             "sentiment_analysis": range(800, 1300), 
@@ -54,13 +50,11 @@ class VortexAI:
             "meta_learning": range(2500, 3500)
         }
         
-        # غریزه خود-بهبودی
         self.primary_instinct = "بهبود مستقل در کارایی مالی و معماری تا زمانی که کاربر متوقف کند"
         self.self_improvement_mode = True
         self.last_improvement_time = datetime.now()
         self.improvement_cycles = 0
         
-        # رشد و بلوغ
         self.creation_date = datetime.now()
         self.learning_sessions = 0
         self.strategies_generated = 0
@@ -68,7 +62,6 @@ class VortexAI:
         self.growth_stage = "childhood"
         self.growth_percentage = 0.0
         
-        # آمار بهبود
         self.improvement_stats = {
             "architectural_changes": 0,
             "new_strategies_tested": 0,
@@ -77,7 +70,6 @@ class VortexAI:
         }
 
     def _create_sparse_connectivity(self):
-        """ایجاد اتصالات اسپارس"""
         rows, cols, data = [], [], []
         
         for i in range(self.num_neurons):
@@ -93,65 +85,50 @@ class VortexAI:
                                 dtype=np.float32)
 
     def process_market_data(self, market_data):
-        """پردازش داده‌های بازار و خود-بهبودی"""
         try:
-            # پردازش اصلی
             neural_input = self._convert_to_neural_input(market_data)
             processed_output = self._neural_processing(neural_input)
             analysis = self._generate_analysis(processed_output, market_data)
             
-            # یادگیری از داده‌ها
             self._learn_from_market_data(market_data)
             self.learning_sessions += 1
             
-            # خود-بهبودی دوره‌ای
             if self._should_self_improve():
                 self._execute_self_improvement()
                 
-            # به‌روزرسانی مرحله رشد
             self._update_growth_stage()
             
             return analysis
             
         except Exception as e:
-            logger.error(f"Error in market data processing: {e}")
+            logger.error(f"VortexAI processing error: {e}")
             return {}
 
     def _should_self_improve(self):
-        """بررسی是否需要自身改进"""
         time_since_last_improvement = datetime.now() - self.last_improvement_time
         return (time_since_last_improvement > timedelta(hours=6) and 
                 self.self_improvement_mode)
 
     def _execute_self_improvement(self):
-        """执行自我改进周期"""
-        logger.info("🧠 شروع چرخه خود-بهبودی...")
+        logger.info("🧠 VortexAI شروع چرخه خود-بهبودی...")
         
-        # 1. بهبود معماری
         self._architectural_self_improvement()
-        
-        # 2. بهبود استراتژی
         self._strategic_self_improvement()
-        
-        # 3. بهینه‌سازی پارامترها
         self._parametric_self_improvement()
         
         self.last_improvement_time = datetime.now()
         self.improvement_cycles += 1
-        logger.info(f"✅ چرخه خود-بهبودی {self.improvement_cycles} کامل شد")
+        logger.info(f"✅ VortexAI چرخه خود-بهبودی {self.improvement_cycles} کامل شد")
 
     def _architectural_self_improvement(self):
-        """بهبود معماری شبکه"""
-        # حذف اتصالات ضعیف
         weak_connections = np.abs(self.weights.data) < 0.01
         removed_count = np.sum(weak_connections)
         self.weights.data[weak_connections] = 0
         self.weights.eliminate_zeros()
         
-        # ایجاد اتصالات جدید بین نورون‌های پرکار
         active_neurons = np.where(self.membrane_potential > 0.3)[0]
         new_connections = 0
-        for i in active_neurons[:50]:  # 50 نورون پرکار
+        for i in active_neurons[:50]:
             for j in active_neurons[:50]:
                 if i != j and self.weights[i, j] == 0 and random.random() < 0.1:
                     self.weights[i, j] = random.uniform(0.1, 0.3)
@@ -160,18 +137,16 @@ class VortexAI:
         self.improvement_stats["architectural_changes"] += 1
         self.improvement_stats["connections_optimized"] += removed_count + new_connections
         
-        logger.info(f"🔄 بهبود معماری: {removed_count} اتصال حذف، {new_connections} اتصال جدید")
+        logger.info(f"🔄 VortexAI بهبود معماری: {removed_count} حذف, {new_connections} جدید")
 
     def _strategic_self_improvement(self):
-        """بهبود استراتژی‌های مالی"""
-        # تست استراتژی‌های جدید در شبیه‌ساز
         new_strategies = self._generate_new_strategy_variations()
         tested_strategies = 0
         
-        for strategy in new_strategies[:20]:  # تست 20 استراتژی
+        for strategy in new_strategies[:20]:
             performance = self._simulate_strategy(strategy)
-            if performance > 0.6:  # عملکرد قابل قبول
-                strategy_key = f"auto_{self.improvement_cycles}_{tested_strategies}"
+            if performance > 0.6:
+                strategy_key = f"vortex_{self.improvement_cycles}_{tested_strategies}"
                 self.learned_knowledge["strategy_performance"][strategy_key] = {
                     "strategy": strategy,
                     "performance": performance,
@@ -180,17 +155,14 @@ class VortexAI:
                 tested_strategies += 1
         
         self.improvement_stats["new_strategies_tested"] += tested_strategies
-        logger.info(f"🎯 بهبود استراتژی: {tested_strategies} استراتژی جدید تست شد")
+        logger.info(f"🎯 VortexAI بهبود استراتژی: {tested_strategies} استراتژی جدید")
 
     def _parametric_self_improvement(self):
-        """بهبود پارامترهای یادگیری"""
-        # تنظیم خودکار learning rate بر اساس عملکرد
         if self.success_rate > 0.7:
             self.learning_rate = min(self.learning_rate * 1.1, 0.05)
         else:
             self.learning_rate = max(self.learning_rate * 0.9, 0.001)
             
-        # تنظیم threshold بر اساس فعالیت شبکه
         avg_activity = np.mean(np.abs(self.membrane_potential))
         if avg_activity > 0.4:
             self.threshold = min(self.threshold * 1.05, 1.5)
@@ -198,15 +170,13 @@ class VortexAI:
             self.threshold = max(self.threshold * 0.95, 0.5)
         
         self.improvement_stats["performance_improvements"] += 1
-        logger.info(f"⚙️ بهبود پارامترها: LR={self.learning_rate:.4f}, Threshold={self.threshold:.2f}")
+        logger.info(f"⚙️ VortexAI بهبود پارامترها: LR={self.learning_rate:.4f}")
 
     def _generate_new_strategy_variations(self):
-        """تولید انواع جدید استراتژی"""
         base_strategies = ["momentum", "mean_reversion", "breakout", "sentiment_driven"]
         variations = []
         
         for base in base_strategies:
-            # تغییر پارامترها
             for time_frame in ["1h", "4h", "24h"]:
                 for risk_level in ["low", "medium", "high"]:
                     variations.append({
@@ -219,24 +189,19 @@ class VortexAI:
         return variations
 
     def _simulate_strategy(self, strategy):
-        """شبیه‌سازی استراتژی"""
-        # شبیه‌سازی ساده عملکرد
         base_performance = 0.5
         
-        # بهبود بر اساس نوع استراتژی
         if strategy["type"] == "momentum":
             base_performance += 0.2
         elif strategy["type"] == "breakout":
             base_performance += 0.15
             
-        # بهبود بر اساس تایم‌فریم
         if strategy["time_frame"] == "4h":
             base_performance += 0.1
             
         return min(base_performance + random.uniform(-0.1, 0.1), 0.95)
 
     def _update_growth_stage(self):
-        """به‌روزرسانی مرحله رشد"""
         total_learning = self.learning_sessions + self.improvement_cycles * 10
         
         if total_learning < 100:
@@ -250,7 +215,6 @@ class VortexAI:
             self.growth_percentage = 70 + min((total_learning - 500) / 1000 * 30, 30)
 
     def _convert_to_neural_input(self, market_data):
-        """تبدیل داده‌های بازار به ورودی عصبی"""
         neural_signals = np.zeros(self.num_neurons, dtype=np.float32)
         
         if not market_data:
@@ -265,7 +229,6 @@ class VortexAI:
         return neural_signals
 
     def _extract_pattern_neurons(self, coin_data):
-        """استخراج نورون‌های مربوط به الگوهای ارز"""
         patterns = []
         
         price_change = coin_data.get('priceChange24h', 0)
@@ -286,7 +249,6 @@ class VortexAI:
         return patterns
 
     def _neural_processing(self, neural_input):
-        """پردازش سیگنال در شبکه عصبی"""
         for _ in range(3):
             synaptic_input = self.weights.dot(self.membrane_potential) + neural_input
             self.membrane_potential = (self.leak_factor * self.membrane_potential + 
@@ -300,7 +262,6 @@ class VortexAI:
         return self.membrane_potential.copy()
 
     def _update_connections(self, spiked_neuron):
-        """به‌روزرسانی اتصالات بر اساس STDP"""
         current_time = self.learning_sessions
         
         pre_neurons = self.weights[:, spiked_neuron].nonzero()[0]
@@ -317,7 +278,6 @@ class VortexAI:
         self.last_spike_time[spiked_neuron] = current_time
 
     def _generate_analysis(self, neural_output, market_data):
-        """تولید تحلیل و استراتژی از خروجی عصبی"""
         analysis = {
             "strong_signals": [],
             "market_insights": [],
@@ -435,7 +395,7 @@ class VortexAI:
                     self.learned_knowledge["market_patterns"][pattern_key]["count"] += 1
                     
         except Exception as e:
-            logger.error(f"Learning error: {e}")
+            logger.error(f"VortexAI learning error: {e}")
 
     def get_ai_status(self):
         return {
@@ -445,10 +405,10 @@ class VortexAI:
             "strategies_generated": self.strategies_generated,
             "knowledge_base": sum(len(v) for v in self.learned_knowledge.values()),
             "growth_stage": self.growth_stage,
-            "growth_percentage": self.growth_percentage,
+            "growth_percentage": round(self.growth_percentage, 1),
             "improvement_cycles": self.improvement_cycles,
             "layer_activity": {
-                layer: np.mean(self.membrane_potential[list(neurons)])
+                layer: round(np.mean(self.membrane_potential[list(neurons)]), 3)
                 for layer, neurons in self.layer_allocation.items()
             },
             "creation_date": self.creation_date.strftime("%Y-%m-%d"),
@@ -465,16 +425,13 @@ class VortexAI:
         }
 
     def stop_self_improvement(self):
-        """توقف خود-بهبودی توسط کاربر"""
         self.self_improvement_mode = False
-        logger.info("⏹️ خود-بهبودی توسط کاربر متوقف شد")
+        logger.info("⏹️ VortexAI خود-بهبودی متوقف شد")
 
     def resume_self_improvement(self):
-        """ادامه خود-بهبودی توسط کاربر"""
         self.self_improvement_mode = True
-        logger.info("▶️ خود-بهبودی توسط کاربر ادامه یافت")
+        logger.info("▶️ VortexAI خود-بهبودی ادامه یافت")
 
-# کلاس اصلی برای استفاده در اسکنر
 class NeuroSynapse:
     def __init__(self):
         self.ai_core = VortexAI(3500, 80)
@@ -490,7 +447,7 @@ class NeuroSynapse:
             return analysis
             
         except Exception as e:
-            logger.error(f"Market analysis error: {e}")
+            logger.error(f"VortexAI analysis error: {e}")
             return {}
     
     def get_ai_status(self):
