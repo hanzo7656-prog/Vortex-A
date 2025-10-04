@@ -12,7 +12,7 @@ from collections import defaultdict
 
 # ==================== SECTION 1: CONFIGURATION & SETUP ====================
 st.set_page_config(
-    page_title="CryptoScanner Pro v0.2.61",
+    page_title="CryptoScanner Pro v1.2.61",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -62,7 +62,7 @@ class Config:
 class TranslationManager:
     TEXTS = {
         "فارسی": {
-            "title": "📊 CryptoScanner Pro v0.2.61",
+            "title": "📊 CryptoScanner Pro v1.2.61",
             "select_interval": "انتخاب تایم‌فریم:",
             "loading": "در حال اسکن بازار...",
             "no_data": "داده‌ای دریافت نشد",
@@ -98,7 +98,7 @@ class TranslationManager:
             "advanced_mode": "حالت پیشرفته"
         },
         "English": {
-            "title": "📊 CryptoScanner Pro v0.2.61", 
+            "title": "📊 CryptoScanner Pro v1.2.61", 
             "select_interval": "Select interval:",
             "loading": "Scanning market...",
             "no_data": "No data received",
@@ -564,10 +564,80 @@ class StreamlitUI:
             hide_index=True,
             column_config=column_config
         )
+        
+# ==================== SECTION 9: VORTEXAI CORE ====================
+class NeuroSynapse:
+    """هسته VortexAI با قابلیت یادگیری خودکار"""
+    
+    def __init__(self):
+        self.synapses_count = 1000
+        self.neurons_count = 3500  # 🔥 آپدیت به 3500
+        self.daily_growth = 20
+        self.learning_rate = 0.1
+        self.memory = {}
+        self.patterns_learned = 0
+        self.last_learning_time = datetime.now()
+        
+        # ساختار شبکه عصبی VortexAI
+        self.neural_layers = {
+            "input_layer": 500,
+            "pattern_detection": 800,  # 🔥 آپدیت
+            "strategy_evaluation": 600,
+            "meta_learning": 1000,
+            "risk_assessment": 600
+        }
+        
+        # دانش آموخته شده
+        self.learned_knowledge = {
+            "market_patterns": {},
+            "strategy_success": {},
+            "risk_factors": {},
+            "temporal_patterns": {}
+        }
+    
+    def analyze_market_patterns(self, coins_data: List[Dict]) -> Dict:
+        """تحلیل الگوهای بازار با VortexAI"""
+        try:
+            if not coins_data:
+                return {}
+            
+            analysis = {
+                "strong_signals": [],
+                "hidden_opportunities": [],
+                "risk_warnings": [],
+                "market_insights": [],
+                "ai_confidence": 0.0,
+                "vortexai_version": "1.0"
+            }
+            
+            # تحلیل هر ارز
+            for coin in coins_data:
+                coin_analysis = self._analyze_single_coin(coin)
+                if coin_analysis["signal_strength"] > 70:
+                    analysis["strong_signals"].append(coin_analysis)
+                elif coin_analysis["hidden_opportunity"]:
+                    analysis["hidden_opportunities"].append(coin_analysis)
+                
+                if coin_analysis["risk_level"] > 60:
+                    analysis["risk_warnings"].append(coin_analysis)
+            
+            # تحلیل کلی بازار
+            market_insight = self._analyze_market_context(coins_data)
+            analysis["market_insights"] = market_insight
+            analysis["ai_confidence"] = self._calculate_confidence(coins_data)
+            
+            # یادگیری از داده‌های جدید
+            self._learn_from_data(coins_data)
+            
+            return analysis
+            
+        except Exception as e:
+            logger.error(f"VortexAI analysis error: {e}")
+            return {}
 
 # ==================== MAIN APPLICATION ====================
 def main():
-    st.title("📊 CryptoScanner Pro v0.2.61")
+    st.title("📊 CryptoScanner Pro v1.2.61")
     
     # Initialize scanner and UI
     scanner = CryptoScanner()
@@ -632,7 +702,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("**CryptoScanner Pro v0.2.61** • توسعه داده شده با Streamlit • قابلیت‌های پیشرفته: تغییرات 1h/4h با ذخیره‌سازی Gist")
+    st.markdown("**CryptoScanner Pro v1.2.61** • توسعه داده شده با Streamlit • قابلیت‌های پیشرفته: تغییرات 1h/4h با ذخیره‌سازی Gist")
 
 if __name__ == "__main__":
     main()
