@@ -1,4 +1,4 @@
-# crypto_scanner.py - نسخه کامل با VortexAI
+# crypto_scanner.py - سیستم دو زبانه
 import streamlit as st
 import requests
 import pandas as pd
@@ -6,26 +6,176 @@ import numpy as np
 import sqlite3
 import time
 import logging
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from dataclasses import dataclass
 import json
-import asyncio
-import aiohttp
-from scipy import sparse
-import random
-from collections import OrderedDict
 
-# تنظیمات لاگ
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ==================== SECTION 1: MULTI-LANGUAGE SYSTEM ====================
+class MultiLanguage:
+    def __init__(self):
+        self.dictionaries = {
+            'fa': self._persian_dict(),
+            'en': self._english_dict()
+        }
+        self.current_lang = 'fa'
+    
+    def _persian_dict(self):
+        return {
+            # UI Elements
+            'app_title': "🧠 VortexAI - اسکنر بازار کریپتو",
+            'scan_button': "🔍 اسکن بازار",
+            'ai_scan_button': "🧠 اسکن با VortexAI", 
+            'settings_button': "⚙️ تنظیمات",
+            'search_placeholder': "جستجوی ارز...",
+            
+            # Sidebar
+            'sidebar_title': "کنترل‌ها",
+            'language_label': "زبان",
+            'theme_label': "تم",
+            'dark_mode': "تیره",
+            'light_mode': "روشن",
+            
+            # Results
+            'results_title': "نتایج اسکن",
+            'coin_name': "نام ارز",
+            'price': "قیمت",
+            'change_24h': "تغییر ۲۴h",
+            'change_1h': "تغییر ۱h", 
+            'volume': "حجم",
+            'market_cap': "ارزش بازار",
+            'signal_strength': "قدرت سیگنال",
+            
+            # AI Analysis
+            'ai_analysis': "تحلیل هوش مصنوعی",
+            'strong_signals': "سیگنال‌های قوی",
+            'risk_warnings': "هشدارهای ریسک",
+            'market_insights': "بینش‌های بازار",
+            'ai_confidence': "اعتماد هوش مصنوعی",
+            
+            # Technical Analysis
+            'technical_analysis': "تحلیل تکنیکال",
+            'rsi': "شاخص قدرت نسبی",
+            'macd': "واگرایی همگرایی میانگین متحرک",
+            'bollinger_bands': "باندهای بولینگر",
+            'moving_average': "میانگین متحرک",
+            
+            # Status Messages
+            'scanning': "در حال اسکن بازار...",
+            'analyzing': "VortexAI در حال تحلیل...",
+            'completed': "تکمیل شد",
+            'error': "خطا",
+            'success': "موفق"
+        }
+    
+    def _english_dict(self):
+        return {
+            # UI Elements
+            'app_title': "🧠 VortexAI - Crypto Market Scanner",
+            'scan_button': "🔍 Scan Market", 
+            'ai_scan_button': "🧠 Scan with VortexAI",
+            'settings_button': "⚙️ Settings",
+            'search_placeholder': "Search coins...",
+            
+            # Sidebar
+            'sidebar_title': "Controls",
+            'language_label': "Language", 
+            'theme_label': "Theme",
+            'dark_mode': "Dark",
+            'light_mode': "Light",
+            
+            # Results
+            'results_title': "Scan Results",
+            'coin_name': "Coin Name",
+            'price': "Price",
+            'change_24h': "24h Change",
+            'change_1h': "1h Change",
+            'volume': "Volume",
+            'market_cap': "Market Cap", 
+            'signal_strength': "Signal Strength",
+            
+            # AI Analysis
+            'ai_analysis': "AI Analysis",
+            'strong_signals': "Strong Signals",
+            'risk_warnings': "Risk Warnings", 
+            'market_insights': "Market Insights",
+            'ai_confidence': "AI Confidence",
+            
+            # Technical Analysis
+            'technical_analysis': "Technical Analysis",
+            'rsi': "Relative Strength Index",
+            'macd': "Moving Average Convergence Divergence",
+            'bollinger_bands': "Bollinger Bands",
+            'moving_average': "Moving Average",
+            
+            # Status Messages  
+            'scanning': "Scanning market...",
+            'analyzing': "VortexAI analyzing...",
+            'completed': "Completed",
+            'error': "Error",
+            'success': "Success"
+        }
+    
+    def t(self, key):
+        """Get translation for current language"""
+        return self.dictionaries[self.current_lang].get(key, key)
+    
+    def set_language(self, lang):
+        """Set current language"""
+        if lang in self.dictionaries:
+            self.current_lang = lang
 
-# ==================== SECTION 1: DATABASE MANAGER ====================
+# Initialize multi-language system
+lang = MultiLanguage()
+
+# ==================== SECTION 2: CONFIGURATION ====================
+def setup_page_config():
+    """Setup Streamlit page configuration"""
+    st.set_page_config(
+        page_title=lang.t('app_title'),
+        page_icon="🧠",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+
+def setup_sidebar():
+    """Setup sidebar with language and theme controls"""
+    with st.sidebar:
+        st.header(lang.t('sidebar_title'))
+        
+        # Language selection
+        selected_lang = st.selectbox(
+            lang.t('language_label'),
+            ['fa', 'en'],
+            format_func=lambda x: 'فارسی' if x == 'fa' else 'English',
+            key='language_selector'
+        )
+        lang.set_language(selected_lang)
+        
+        # Theme selection
+        theme = st.selectbox(
+            lang.t('theme_label'),
+            ['dark', 'light'],
+            format_func=lambda x: lang.t('dark_mode') if x == 'dark' else lang.t('light_mode'),
+            key='theme_selector'
+        )
+        
+        st.markdown("---")
+        
+        # Scan buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            normal_scan = st.button(lang.t('scan_button'), use_container_width=True)
+        with col2:
+            ai_scan = st.button(lang.t('ai_scan_button'), use_container_width=True, type="secondary")
+        
+        return normal_scan, ai_scan
+
+# ==================== SECTION 3: DATABASE MANAGER ====================
 class DatabaseManager:
     def __init__(self, db_path="crypto_data.db"):
         self.db_path = db_path
         self._init_database()
-
+    
     def _init_database(self):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute('''
@@ -36,805 +186,351 @@ class DatabaseManager:
                     volume REAL,
                     price_change_24h REAL,
                     price_change_1h REAL,
-                    price_change_4h REAL,
-                    market_cap REAL,
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
-            conn.execute('''
-                CREATE TABLE IF NOT EXISTS ai_analysis (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    analysis_data TEXT,
-                    confidence_score REAL,
-                    strategies_generated INTEGER,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            conn.execute('''
-                CREATE TABLE IF NOT EXISTS price_alerts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    symbol TEXT NOT NULL,
-                    target_price REAL,
-                    condition TEXT,
-                    is_active BOOLEAN DEFAULT TRUE,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-
+    
     def save_market_data(self, data: List[Dict]):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 for coin in data:
                     conn.execute('''
-                        INSERT INTO market_data 
-                        (symbol, price, volume, price_change_24h, price_change_1h, price_change_4h, market_cap)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO market_data (symbol, price, volume, price_change_24h, price_change_1h)
+                        VALUES (?, ?, ?, ?, ?)
                     ''', (
                         coin.get('symbol'),
                         coin.get('price'),
                         coin.get('volume'),
                         coin.get('priceChange24h'),
-                        coin.get('priceChange1h'),
-                        coin.get('priceChange4h'),
-                        coin.get('marketCap')
+                        coin.get('priceChange1h')
                     ))
         except Exception as e:
-            logger.error(f"Error saving market data: {e}")
+            logging.error(f"Error saving market data: {e}")
 
-    def get_historical_data(self, symbol: str, days: int = 30) -> List[Dict]:
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute('''
-                    SELECT * FROM market_data 
-                    WHERE symbol = ? AND timestamp >= datetime('now', ?)
-                    ORDER BY timestamp DESC
-                ''', (symbol, f'-{days} days'))
-                
-                return [dict(row) for row in cursor.fetchall()]
-        except Exception as e:
-            logger.error(f"Error getting historical data: {e}")
-            return []
-
-# ==================== SECTION 2: LIMITED SIZE DICT ====================
-class LimitedSizeDict(OrderedDict):
-    def __init__(self, max_size=1000, *args, **kwargs):
-        self.max_size = max_size
-        super().__init__(*args, **kwargs)
-        
-    def __setitem__(self, key, value):
-        if len(self) >= self.max_size:
-            self.popitem(last=False)
-        super().__setitem__(key, value)
-
-# ==================== SECTION 3: VORTEXAI CORE ====================
+# ==================== SECTION 4: VORTEXAI CORE ====================
 class VortexAI:
-    """هوش مصنوعی VortexAI با غریزه خود-بهبودی"""
-    
-    def __init__(self, num_neurons=3500, avg_connections=80):
-        self.num_neurons = num_neurons
-        self.connections_per_neuron = avg_connections
-        self.weights = self._create_sparse_connectivity()
-        
-        self.membrane_potential = np.zeros(num_neurons, dtype=np.float32)
-        self.threshold = 1.0
-        self.resting_potential = 0.0
-        self.leak_factor = 0.95
-        
-        self.learning_rate = 0.01
-        self.stdp_tau = 20
-        self.last_spike_time = -np.ones(num_neurons) * 1000
-        
-        self.learned_knowledge = {
-            "market_patterns": LimitedSizeDict(500),
-            "strategy_performance": LimitedSizeDict(300),
-            "risk_factors": LimitedSizeDict(200)
-        }
-        
-        self.layer_allocation = {
-            "pattern_detection": range(0, 800),
-            "sentiment_analysis": range(800, 1300), 
-            "risk_assessment": range(1300, 1800),
-            "strategy_generation": range(1800, 2500),
-            "meta_learning": range(2500, 3500)
-        }
-        
-        self.primary_instinct = "بهبود مستقل در کارایی مالی و معماری تا زمانی که کاربر متوقف کند"
-        self.self_improvement_mode = True
-        self.last_improvement_time = datetime.now()
-        self.improvement_cycles = 0
-        
-        self.creation_date = datetime.now()
+    def __init__(self):
         self.learning_sessions = 0
-        self.strategies_generated = 0
-        self.success_rate = 0.0
-        self.growth_stage = "childhood"
-        self.growth_percentage = 0.0
+        self.analysis_history = []
+    
+    def analyze_market_data(self, coins_data: List[Dict]) -> Dict:
+        """Analyze market data and return insights"""
+        self.learning_sessions += 1
         
-        self.improvement_stats = {
-            "architectural_changes": 0,
-            "new_strategies_tested": 0,
-            "performance_improvements": 0,
-            "connections_optimized": 0
-        }
-
-    def _create_sparse_connectivity(self):
-        rows, cols, data = [], [], []
-        
-        for i in range(self.num_neurons):
-            targets = random.sample(range(self.num_neurons), self.connections_per_neuron)
-            for j in targets:
-                if i != j:
-                    rows.append(i)
-                    cols.append(j)
-                    data.append(random.uniform(-0.3, 0.3))
-        
-        return sparse.csr_matrix((data, (rows, cols)), 
-                                shape=(self.num_neurons, self.num_neurons),
-                                dtype=np.float32)
-
-    def process_market_data(self, market_data):
-        try:
-            neural_input = self._convert_to_neural_input(market_data)
-            processed_output = self._neural_processing(neural_input)
-            analysis = self._generate_analysis(processed_output, market_data)
-            
-            self._learn_from_market_data(market_data)
-            self.learning_sessions += 1
-            
-            if self._should_self_improve():
-                self._execute_self_improvement()
-                
-            self._update_growth_stage()
-            
-            return analysis
-            
-        except Exception as e:
-            logger.error(f"VortexAI processing error: {e}")
-            return {}
-
-    def _should_self_improve(self):
-        time_since_last_improvement = datetime.now() - self.last_improvement_time
-        return (time_since_last_improvement > timedelta(hours=6) and 
-                self.self_improvement_mode)
-
-    def _execute_self_improvement(self):
-        logger.info("🧠 VortexAI شروع چرخه خود-بهبودی...")
-        
-        self._architectural_self_improvement()
-        self._strategic_self_improvement()
-        self._parametric_self_improvement()
-        
-        self.last_improvement_time = datetime.now()
-        self.improvement_cycles += 1
-        logger.info(f"✅ VortexAI چرخه خود-بهبودی {self.improvement_cycles} کامل شد")
-
-    def _architectural_self_improvement(self):
-        weak_connections = np.abs(self.weights.data) < 0.01
-        removed_count = np.sum(weak_connections)
-        self.weights.data[weak_connections] = 0
-        self.weights.eliminate_zeros()
-        
-        active_neurons = np.where(self.membrane_potential > 0.3)[0]
-        new_connections = 0
-        for i in active_neurons[:50]:
-            for j in active_neurons[:50]:
-                if i != j and self.weights[i, j] == 0 and random.random() < 0.1:
-                    self.weights[i, j] = random.uniform(0.1, 0.3)
-                    new_connections += 1
-        
-        self.improvement_stats["architectural_changes"] += 1
-        self.improvement_stats["connections_optimized"] += removed_count + new_connections
-        
-        logger.info(f"🔄 VortexAI بهبود معماری: {removed_count} حذف, {new_connections} جدید")
-
-    def _strategic_self_improvement(self):
-        new_strategies = self._generate_new_strategy_variations()
-        tested_strategies = 0
-        
-        for strategy in new_strategies[:20]:
-            performance = self._simulate_strategy(strategy)
-            if performance > 0.6:
-                strategy_key = f"vortex_{self.improvement_cycles}_{tested_strategies}"
-                self.learned_knowledge["strategy_performance"][strategy_key] = {
-                    "strategy": strategy,
-                    "performance": performance,
-                    "created_date": datetime.now()
-                }
-                tested_strategies += 1
-        
-        self.improvement_stats["new_strategies_tested"] += tested_strategies
-        logger.info(f"🎯 VortexAI بهبود استراتژی: {tested_strategies} استراتژی جدید")
-
-    def _parametric_self_improvement(self):
-        if self.success_rate > 0.7:
-            self.learning_rate = min(self.learning_rate * 1.1, 0.05)
-        else:
-            self.learning_rate = max(self.learning_rate * 0.9, 0.001)
-            
-        avg_activity = np.mean(np.abs(self.membrane_potential))
-        if avg_activity > 0.4:
-            self.threshold = min(self.threshold * 1.05, 1.5)
-        else:
-            self.threshold = max(self.threshold * 0.95, 0.5)
-        
-        self.improvement_stats["performance_improvements"] += 1
-        logger.info(f"⚙️ VortexAI بهبود پارامترها: LR={self.learning_rate:.4f}")
-
-    def _generate_new_strategy_variations(self):
-        base_strategies = ["momentum", "mean_reversion", "breakout", "sentiment_driven"]
-        variations = []
-        
-        for base in base_strategies:
-            for time_frame in ["1h", "4h", "24h"]:
-                for risk_level in ["low", "medium", "high"]:
-                    variations.append({
-                        "type": base,
-                        "time_frame": time_frame,
-                        "risk_level": risk_level,
-                        "confidence": random.uniform(0.5, 0.9)
-                    })
-        
-        return variations
-
-    def _simulate_strategy(self, strategy):
-        base_performance = 0.5
-        
-        if strategy["type"] == "momentum":
-            base_performance += 0.2
-        elif strategy["type"] == "breakout":
-            base_performance += 0.15
-            
-        if strategy["time_frame"] == "4h":
-            base_performance += 0.1
-            
-        return min(base_performance + random.uniform(-0.1, 0.1), 0.95)
-
-    def _update_growth_stage(self):
-        total_learning = self.learning_sessions + self.improvement_cycles * 10
-        
-        if total_learning < 100:
-            self.growth_stage = "childhood"
-            self.growth_percentage = total_learning / 100 * 25
-        elif total_learning < 500:
-            self.growth_stage = "adolescence" 
-            self.growth_percentage = 25 + (total_learning - 100) / 400 * 45
-        else:
-            self.growth_stage = "maturity"
-            self.growth_percentage = 70 + min((total_learning - 500) / 1000 * 30, 30)
-
-    def _convert_to_neural_input(self, market_data):
-        neural_signals = np.zeros(self.num_neurons, dtype=np.float32)
-        
-        if not market_data:
-            return neural_signals
-        
-        for i, coin in enumerate(market_data[:100]):
-            pattern_neurons = self._extract_pattern_neurons(coin)
-            for neuron_idx in pattern_neurons:
-                if neuron_idx < len(neural_signals):
-                    neural_signals[neuron_idx] += 0.1
-        
-        return neural_signals
-
-    def _extract_pattern_neurons(self, coin_data):
-        patterns = []
-        
-        price_change = coin_data.get('priceChange24h', 0)
-        if abs(price_change) > 5:
-            patterns.extend(range(0, 50))
-        if abs(price_change) > 10:
-            patterns.extend(range(50, 80))
-            
-        volume = coin_data.get('volume', 0)
-        if volume > 10000000:
-            patterns.extend(range(80, 120))
-            
-        if coin_data.get('sentiment', 0) > 0.7:
-            patterns.extend(range(800, 850))
-        elif coin_data.get('sentiment', 0) < 0.3:
-            patterns.extend(range(850, 900))
-            
-        return patterns
-
-    def _neural_processing(self, neural_input):
-        for _ in range(3):
-            synaptic_input = self.weights.dot(self.membrane_potential) + neural_input
-            self.membrane_potential = (self.leak_factor * self.membrane_potential + 
-                                     synaptic_input)
-            
-            spiked_neurons = np.where(self.membrane_potential > self.threshold)[0]
-            for neuron in spiked_neurons:
-                self.membrane_potential[neuron] = self.resting_potential
-                self._update_connections(neuron)
-        
-        return self.membrane_potential.copy()
-
-    def _update_connections(self, spiked_neuron):
-        current_time = self.learning_sessions
-        
-        pre_neurons = self.weights[:, spiked_neuron].nonzero()[0]
-        for pre in pre_neurons:
-            if self.last_spike_time[pre] > 0:
-                time_diff = current_time - self.last_spike_time[pre]
-                if time_diff < 100:
-                    weight_change = self.learning_rate * np.exp(-time_diff / self.stdp_tau)
-                    self.weights[pre, spiked_neuron] += weight_change
-                    self.weights[pre, spiked_neuron] = np.clip(
-                        self.weights[pre, spiked_neuron], -1.0, 1.0
-                    )
-        
-        self.last_spike_time[spiked_neuron] = current_time
-
-    def _generate_analysis(self, neural_output, market_data):
         analysis = {
             "strong_signals": [],
-            "market_insights": [],
             "risk_warnings": [],
-            "ai_confidence": 0.0,
-            "strategies": [],
-            "self_improvement_status": self.get_improvement_status()
+            "market_insights": [],
+            "ai_confidence": self._calculate_confidence(coins_data)
         }
         
-        analysis["strong_signals"] = self._detect_strong_patterns(neural_output)
-        analysis["market_insights"] = self._generate_market_insights(neural_output, market_data)
-        analysis["strategies"] = self._generate_strategies(neural_output, market_data)[:3]
-        analysis["ai_confidence"] = self._calculate_confidence(neural_output, market_data)
+        for coin in coins_data[:20]:  # Analyze top 20 coins
+            coin_analysis = self._analyze_single_coin(coin)
+            
+            if coin_analysis["signal_strength"] > 70:
+                analysis["strong_signals"].append(coin_analysis)
+            if coin_analysis["risk_level"] > 60:
+                analysis["risk_warnings"].append(coin_analysis)
         
-        self.strategies_generated += len(analysis["strategies"])
+        analysis["market_insights"] = self._generate_market_insights(coins_data)
+        self.analysis_history.append(analysis)
+        
         return analysis
-
-    def _detect_strong_patterns(self, neural_output):
-        patterns = []
+    
+    def _analyze_single_coin(self, coin: Dict) -> Dict:
+        """Analyze a single coin"""
+        signal_strength = 0
+        risk_level = 0
         
-        pattern_neurons = self.layer_allocation["pattern_detection"]
-        pattern_activation = neural_output[list(pattern_neurons)]
+        # Price change analysis
+        price_change_24h = abs(coin.get('priceChange24h', 0))
+        if price_change_24h > 10:
+            signal_strength += 40
+        elif price_change_24h > 5:
+            signal_strength += 20
         
-        strong_activations = np.where(pattern_activation > 0.7)[0]
-        if len(strong_activations) > 10:
-            patterns.append("الگوی قوی قیمت شناسایی شد")
-            
-        sentiment_neurons = self.layer_allocation["sentiment_analysis"]
-        sentiment_activation = neural_output[list(sentiment_neurons)]
+        # Volume analysis
+        volume = coin.get('volume', 0)
+        if volume > 50000000:
+            signal_strength += 30
+        elif volume > 10000000:
+            signal_strength += 15
         
-        if np.mean(sentiment_activation) > 0.6:
-            patterns.append("احساسات بازار مثبت")
-        elif np.mean(sentiment_activation) < 0.3:
-            patterns.append("احساسات بازار منفی")
-            
-        return patterns
-
-    def _generate_market_insights(self, neural_output, market_data):
-        insights = []
+        # Risk assessment
+        if price_change_24h > 15:
+            risk_level = 70
+        elif price_change_24h > 25:
+            risk_level = 85
         
-        layer_activity = {}
-        for layer_name, neuron_range in self.layer_allocation.items():
-            activation = np.mean(neural_output[list(neuron_range)])
-            layer_activity[layer_name] = activation
-            
-        if layer_activity["pattern_detection"] > 0.6:
-            insights.append("الگوهای قوی در بازار فعال هستند")
-            
-        if layer_activity["risk_assessment"] > 0.5:
-            insights.append("سیستم ریسک‌سنجی فعال است")
-            
-        if layer_activity["strategy_generation"] > 0.4:
-            insights.append("ایده‌های استراتژیک جدید تولید شده")
-            
-        return insights
-
-    def _generate_strategies(self, neural_output, market_data):
-        strategies = []
-        
-        if np.mean(neural_output[list(self.layer_allocation["pattern_detection"])]) > 0.5:
-            strategies.append({
-                "name": "الگو-محور",
-                "type": "pattern_based",
-                "confidence": 0.7,
-                "description": "معامله بر اساس الگوهای قیمتی شناسایی شده"
-            })
-            
-        if np.mean(neural_output[list(self.layer_allocation["sentiment_analysis"])]) > 0.6:
-            strategies.append({
-                "name": "احساسات-مثبت", 
-                "type": "sentiment_based",
-                "confidence": 0.65,
-                "description": "سرمایه‌گذاری در ارزهای با احساسات مثبت"
-            })
-            
-        if np.mean(neural_output[list(self.layer_allocation["risk_assessment"])]) > 0.4:
-            strategies.append({
-                "name": "مدیریت-ریسک",
-                "type": "risk_managed", 
-                "confidence": 0.75,
-                "description": "توزیع سرمایه با تمرکز بر مدیریت ریسک"
-            })
-            
-        return strategies
-
-    def _calculate_confidence(self, neural_output, market_data):
-        if not market_data:
+        return {
+            "coin": coin.get('name'),
+            "symbol": coin.get('symbol'),
+            "signal_strength": min(signal_strength, 100),
+            "risk_level": risk_level,
+            "recommendation": self._generate_recommendation(signal_strength, risk_level)
+        }
+    
+    def _calculate_confidence(self, coins_data: List[Dict]) -> float:
+        """Calculate AI confidence level"""
+        if not coins_data:
             return 0.0
-            
+        
         confidence_factors = []
+        confidence_factors.append(min(len(coins_data) / 50, 1.0) * 0.4)
         
-        network_activity = np.mean(np.abs(neural_output))
-        confidence_factors.append(min(network_activity * 2, 1.0) * 0.4)
-        
-        experience_factor = min(self.learning_sessions / 100, 1.0)
-        confidence_factors.append(experience_factor * 0.3)
-        
-        stability = 1.0 - (np.std(neural_output) / 2)
-        confidence_factors.append(stability * 0.3)
+        changes = [abs(c.get('priceChange24h', 0)) for c in coins_data]
+        market_volatility = np.std(changes) if changes else 0
+        stability_factor = max(0, 1 - (market_volatility / 20))
+        confidence_factors.append(stability_factor * 0.6)
         
         return min(sum(confidence_factors), 1.0) * 100
-
-    def _learn_from_market_data(self, market_data):
-        try:
-            for coin in market_data[:50]:
-                pattern_key = f"{coin.get('symbol', '')}_{coin.get('priceChange24h', 0):.1f}"
-                
-                if pattern_key not in self.learned_knowledge["market_patterns"]:
-                    self.learned_knowledge["market_patterns"][pattern_key] = {
-                        "first_seen": datetime.now(),
-                        "count": 1,
-                        "performance": 0.0
-                    }
-                else:
-                    self.learned_knowledge["market_patterns"][pattern_key]["count"] += 1
-                    
-        except Exception as e:
-            logger.error(f"VortexAI learning error: {e}")
-
-    def get_ai_status(self):
-        return {
-            "total_neurons": self.num_neurons,
-            "active_neurons": np.sum(self.membrane_potential > 0.1),
-            "learning_sessions": self.learning_sessions,
-            "strategies_generated": self.strategies_generated,
-            "knowledge_base": sum(len(v) for v in self.learned_knowledge.values()),
-            "growth_stage": self.growth_stage,
-            "growth_percentage": round(self.growth_percentage, 1),
-            "improvement_cycles": self.improvement_cycles,
-            "layer_activity": {
-                layer: round(np.mean(self.membrane_potential[list(neurons)]), 3)
-                for layer, neurons in self.layer_allocation.items()
-            },
-            "creation_date": self.creation_date.strftime("%Y-%m-%d"),
-            "age_days": (datetime.now() - self.creation_date).days
-        }
-
-    def get_improvement_status(self):
-        return {
-            "primary_instinct": self.primary_instinct,
-            "self_improvement_mode": self.self_improvement_mode,
-            "last_improvement": self.last_improvement_time.strftime("%Y-%m-%d %H:%M"),
-            "improvement_stats": self.improvement_stats,
-            "next_scheduled_improvement": (self.last_improvement_time + timedelta(hours=6)).strftime("%Y-%m-%d %H:%M")
-        }
-
-    def stop_self_improvement(self):
-        self.self_improvement_mode = False
-        logger.info("⏹️ VortexAI خود-بهبودی متوقف شد")
-
-    def resume_self_improvement(self):
-        self.self_improvement_mode = True
-        logger.info("▶️ VortexAI خود-بهبودی ادامه یافت")
-
-class NeuroSynapse:
-    def __init__(self):
-        self.ai_core = VortexAI(3500, 80)
-        self.analysis_results = None
+    
+    def _generate_recommendation(self, signal_strength: float, risk_level: float) -> str:
+        """Generate trading recommendation"""
+        if lang.current_lang == 'fa':
+            if signal_strength >= 70 and risk_level < 40:
+                return "🟢 خرید قوی"
+            elif signal_strength >= 50 and risk_level < 60:
+                return "🟡 خرید محتاطانه"
+            elif signal_strength >= 30 or risk_level > 70:
+                return "🔴 نظارت بدون اقدام"
+            else:
+                return "⚪ صبر کنید"
+        else:
+            if signal_strength >= 70 and risk_level < 40:
+                return "🟢 Strong Buy"
+            elif signal_strength >= 50 and risk_level < 60:
+                return "🟡 Cautious Buy"
+            elif signal_strength >= 30 or risk_level > 70:
+                return "🔴 Monitor Only"
+            else:
+                return "⚪ Wait"
+    
+    def _generate_market_insights(self, coins_data: List[Dict]) -> List[str]:
+        """Generate market insights"""
+        insights = []
         
-    def analyze_market_patterns(self, coins_data):
-        try:
-            if not coins_data:
-                return {}
-                
-            analysis = self.ai_core.process_market_data(coins_data)
-            self.analysis_results = analysis
-            return analysis
+        if lang.current_lang == 'fa':
+            changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
+            avg_change_24h = np.mean(changes_24h) if changes_24h else 0
             
-        except Exception as e:
-            logger.error(f"VortexAI analysis error: {e}")
-            return {}
-    
-    def get_ai_status(self):
-        return self.ai_core.get_ai_status()
-    
-    def get_improvement_status(self):
-        return self.ai_core.get_improvement_status()
-    
-    def stop_self_improvement(self):
-        return self.ai_core.stop_self_improvement()
-    
-    def resume_self_improvement(self):
-        return self.ai_core.resume_self_improvement()
+            if avg_change_24h > 5:
+                insights.append("📈 بازار در حالت صعودی قوی")
+            elif avg_change_24h < -3:
+                insights.append("📉 بازار در حالت نزولی")
+            else:
+                insights.append("⚖️ بازار در حالت تعادل")
+            
+            bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
+            bearish_coins = len(coins_data) - bullish_coins
+            
+            if bullish_coins > bearish_coins * 1.5:
+                insights.append("🎯 اکثریت ارزها صعودی هستند")
+            elif bearish_coins > bullish_coins * 1.5:
+                insights.append("⚠️ اکثریت ارزها نزولی هستند")
+        else:
+            changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
+            avg_change_24h = np.mean(changes_24h) if changes_24h else 0
+            
+            if avg_change_24h > 5:
+                insights.append("📈 Market in strong bullish mode")
+            elif avg_change_24h < -3:
+                insights.append("📉 Market in bearish mode")
+            else:
+                insights.append("⚖️ Market in balance")
+            
+            bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
+            bearish_coins = len(coins_data) - bullish_coins
+            
+            if bullish_coins > bearish_coins * 1.5:
+                insights.append("🎯 Majority of coins are bullish")
+            elif bearish_coins > bullish_coins * 1.5:
+                insights.append("⚠️ Majority of coins are bearish")
+        
+        return insights
 
-# ==================== SECTION 4: CRYPTO SCANNER CORE ====================
+# ==================== SECTION 5: CRYPTO SCANNER ====================
 class CryptoScanner:
     def __init__(self):
         self.db_manager = DatabaseManager()
+        self.vortex_ai = VortexAI()
         self.api_base = "https://api.coinstats.app/public/v1"
-        self.session = requests.Session()
-        
-    def scan_market(self, limit: int = 100, filter_type: str = "volume", advanced: bool = False) -> Optional[Dict]:
-        try:
-            logger.info(f"Scanning market with limit {limit}, filter: {filter_type}")
-            
-            # دریافت داده از API
-            coins_data = self._fetch_coins_data(limit, filter_type)
-            if not coins_data:
-                return None
-                
-            # ذخیره در دیتابیس
-            self.db_manager.save_market_data(coins_data)
-            
-            # تحلیل پیشرفته
-            if advanced:
-                coins_data = self._enhance_with_technical_analysis(coins_data)
-            
-            return {
-                'success': True,
-                'coins': coins_data,
-                'count': len(coins_data),
-                'timestamp': datetime.now().isoformat(),
-                'scan_mode': 'advanced' if advanced else 'basic'
-            }
-            
-        except Exception as e:
-            logger.error(f"Market scan error: {e}")
-            return {'success': False, 'error': str(e)}
-
-    def _fetch_coins_data(self, limit: int, filter_type: str) -> List[Dict]:
+    
+    def scan_market(self, limit: int = 100) -> Optional[Dict]:
+        """Scan cryptocurrency market"""
         try:
             url = f"{self.api_base}/coins?limit={limit}"
-            response = self.session.get(url, timeout=10)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
             
             data = response.json()
             coins = data.get('coins', [])
             
-            # فیلتر کردن بر اساس نوع
-            if filter_type == "volume":
-                coins.sort(key=lambda x: x.get('volume', 0), reverse=True)
-            elif filter_type == "change":
-                coins.sort(key=lambda x: abs(x.get('priceChange1h', 0)), reverse=True)
-            elif filter_type == "market_cap":
-                coins.sort(key=lambda x: x.get('marketCap', 0), reverse=True)
-                
-            return coins[:limit]
+            # Save to database
+            self.db_manager.save_market_data(coins)
             
-        except Exception as e:
-            logger.error(f"Error fetching coins data: {e}")
-            return []
-
-    def _enhance_with_technical_analysis(self, coins_data: List[Dict]) -> List[Dict]:
-        for coin in coins_data:
-            # تحلیل تکنیکال ساده
-            price_change_24h = coin.get('priceChange24h', 0)
-            volume = coin.get('volume', 0)
-            
-            # اضافه کردن سیگنال‌های ساده
-            coin['hasHistoricalData'] = True
-            coin['signalStrength'] = self._calculate_signal_strength(price_change_24h, volume)
-            coin['trend'] = "up" if price_change_24h > 0 else "down"
-            coin['volatility'] = abs(price_change_24h)
-            
-        return coins_data
-
-    def _calculate_signal_strength(self, price_change: float, volume: float) -> float:
-        strength = 0.0
-        
-        if abs(price_change) > 10:
-            strength += 40
-        elif abs(price_change) > 5:
-            strength += 20
-            
-        if volume > 50000000:
-            strength += 30
-        elif volume > 10000000:
-            strength += 15
-            
-        return min(strength, 100.0)
-
-# ==================== SECTION 5: AI ENHANCED SCANNER ====================
-class AIEnhancedScanner:
-    def __init__(self, base_scanner: CryptoScanner):
-        self.base_scanner = base_scanner
-        self.ai_core = NeuroSynapse()
-        self.ai_results = None
-        self.last_ai_scan = None
-    
-    def perform_ai_scan(self, limit: int = 100, filter_type: str = "volume") -> Optional[Dict]:
-        try:
-            logger.info("🤖 Starting VortexAI market scan...")
-            
-            # اسکن پایه
-            base_result = self.base_scanner.scan_market(limit, filter_type, advanced=True)
-            if not base_result or not base_result.get('success'):
-                return None
-            
-            # تحلیل VortexAI
-            ai_analysis = self.ai_core.analyze_market_patterns(base_result['coins'])
-            
-            # ترکیب نتایج
-            result = {
-                **base_result,
-                "ai_analysis": ai_analysis,
-                "ai_status": self.ai_core.get_ai_status(),
-                "scan_mode": "vortexai_enhanced",
-                "has_ai_insights": len(ai_analysis.get('strong_signals', [])) > 0
+            return {
+                'success': True,
+                'coins': coins,
+                'count': len(coins),
+                'timestamp': datetime.now().isoformat()
             }
             
-            self.ai_results = result
-            self.last_ai_scan = datetime.now()
+        except Exception as e:
+            logging.error(f"Market scan error: {e}")
+            return {'success': False, 'error': str(e)}
+    
+    def scan_with_ai(self, limit: int = 100) -> Optional[Dict]:
+        """Scan market with AI analysis"""
+        try:
+            # Get market data
+            market_result = self.scan_market(limit)
+            if not market_result or not market_result.get('success'):
+                return None
             
-            logger.info(f"✅ VortexAI scan completed: {len(ai_analysis.get('strong_signals', []))} strong signals found")
+            coins = market_result['coins']
+            
+            # AI analysis
+            ai_analysis = self.vortex_ai.analyze_market_data(coins)
+            
+            # Combine results
+            result = {
+                **market_result,
+                "ai_analysis": ai_analysis,
+                "scan_mode": "ai_enhanced"
+            }
             
             return result
             
         except Exception as e:
-            logger.error(f"VortexAI scan error: {e}")
+            logging.error(f"AI scan error: {e}")
             return None
 
-# ==================== SECTION 6: STREAMLIT UI ====================
-def main():
-    st.set_page_config(
-        page_title="VortexAI Crypto Scanner",
-        page_icon="🧠",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+# ==================== SECTION 6: UI COMPONENTS ====================
+def display_market_results(results: Dict):
+    """Display market scan results"""
+    if not results or not results.get('success'):
+        st.error(lang.t('error'))
+        return
     
-    # هدر اصلی
-    st.title("🧠 VortexAI - Crypto Market Scanner")
-    st.markdown("سیستم هوشمند تحلیل بازار کریپتو با قابلیت خودآموزی")
+    coins_data = results.get('coins', [])
+    
+    st.header(lang.t('results_title'))
+    
+    # Create DataFrame for display
+    df_data = []
+    for coin in coins_data[:50]:  # Show top 50 coins
+        df_data.append({
+            lang.t('coin_name'): coin.get('name', ''),
+            lang.t('price'): f"${coin.get('price', 0):.2f}",
+            lang.t('change_24h'): f"{coin.get('priceChange24h', 0):.2f}%",
+            lang.t('change_1h'): f"{coin.get('priceChange1h', 0):.2f}%",
+            lang.t('volume'): f"${coin.get('volume', 0):,.0f}",
+            lang.t('market_cap'): f"${coin.get('marketCap', 0):,.0f}"
+        })
+    
+    if df_data:
+        df = pd.DataFrame(df_data)
+        st.dataframe(df, use_container_width=True, height=400)
+    
+    # Display metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("تعداد ارزها" if lang.current_lang == 'fa' else "Total Coins", len(coins_data))
+    with col2:
+        avg_change = np.mean([c.get('priceChange24h', 0) for c in coins_data])
+        st.metric("میانگین تغییرات" if lang.current_lang == 'fa' else "Average Change", f"{avg_change:.2f}%")
+    with col3:
+        total_volume = sum(c.get('volume', 0) for c in coins_data)
+        st.metric("حجم کل" if lang.current_lang == 'fa' else "Total Volume", f"${total_volume:,.0f}")
+    with col4:
+        st.metric("وضعیت" if lang.current_lang == 'fa' else "Status", lang.t('completed'))
+
+def display_ai_analysis(ai_analysis: Dict):
+    """Display AI analysis results"""
+    if not ai_analysis:
+        return
+    
+    st.markdown("---")
+    st.header(lang.t('ai_analysis'))
+    
+    # AI Confidence
+    ai_confidence = ai_analysis.get('ai_confidence', 0)
+    st.metric(lang.t('ai_confidence'), f"{ai_confidence:.1f}%")
+    
+    # Strong Signals
+    strong_signals = ai_analysis.get('strong_signals', [])
+    if strong_signals:
+        st.subheader(lang.t('strong_signals'))
+        for signal in strong_signals[:5]:
+            col1, col2, col3 = st.columns([3, 2, 2])
+            with col1:
+                st.write(f"**{signal['coin']}** ({signal['symbol']})")
+            with col2:
+                st.write(f"قدرت سیگنال: {signal['signal_strength']}%" if lang.current_lang == 'fa' else f"Signal: {signal['signal_strength']}%")
+            with col3:
+                st.write(signal['recommendation'])
+    
+    # Risk Warnings
+    risk_warnings = ai_analysis.get('risk_warnings', [])
+    if risk_warnings:
+        st.subheader(lang.t('risk_warnings'))
+        for warning in risk_warnings[:3]:
+            st.error(f"**{warning['coin']}**: سطح ریسک {warning['risk_level']}%" if lang.current_lang == 'fa' else f"**{warning['coin']}**: Risk level {warning['risk_level']}%")
+    
+    # Market Insights
+    market_insights = ai_analysis.get('market_insights', [])
+    if market_insights:
+        st.subheader(lang.t('market_insights'))
+        for insight in market_insights:
+            st.info(insight)
+
+# ==================== SECTION 7: MAIN APPLICATION ====================
+def main():
+    """Main application function"""
+    setup_page_config()
+    
+    # Display title
+    st.title(lang.t('app_title'))
     st.markdown("---")
     
-    # ایجاد اسکنر
+    # Setup sidebar and get scan buttons
+    normal_scan, ai_scan = setup_sidebar()
+    
+    # Initialize scanner
     @st.cache_resource
     def load_scanner():
-        base_scanner = CryptoScanner()
-        return AIEnhancedScanner(base_scanner)
+        return CryptoScanner()
     
     scanner = load_scanner()
     
-    # ==================== SIDEBAR ====================
-    with st.sidebar:
-        st.header("🧠 VortexAI")
-        
-        # دکمه‌های اسکن
-        col1, col2 = st.columns(2)
-        with col1:
-            normal_scan = st.button("🔍 اسکن معمولی", use_container_width=True)
-        with col2:
-            ai_scan = st.button("🧠 اسکن با VortexAI", use_container_width=True, type="secondary")
-        
-        st.markdown("---")
-        
-        # وضعیت VortexAI
-        ai_status = scanner.ai_core.get_ai_status()
-        st.subheader("📊 وضعیت VortexAI")
-        
-        st.metric("نورون‌ها", f"{ai_status['total_neurons']:,}")
-        st.metric("مرحله رشد", ai_status['growth_stage'])
-        st.metric("یادگیری", f"{ai_status['learning_sessions']} جلسه")
-        st.metric("استراتژی‌ها", ai_status['strategies_generated'])
-        
-        # پیشرفت رشد
-        st.progress(ai_status['growth_percentage'] / 100)
-        st.caption(f"پیشرفت رشد: {ai_status['growth_percentage']}%")
-        
-        # تنظیمات پیشرفته
-        with st.expander("⚙️ تنظیمات VortexAI"):
-            improvement_status = scanner.ai_core.get_improvement_status()
-            st.write(f"**غریزه پایه:** {improvement_status['primary_instinct']}")
-            st.write(f"**آخرین بهبود:** {improvement_status['last_improvement']}")
-            st.write(f"**چرخه‌های بهبود:** {improvement_status['improvement_stats']}")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("⏹️ توقف خود-بهبودی", use_container_width=True):
-                    scanner.ai_core.stop_self_improvement()
-                    st.success("خود-بهبودی متوقف شد")
-            with col2:
-                if st.button("▶️ ادامه خود-بهبودی", use_container_width=True):
-                    scanner.ai_core.resume_self_improvement()
-                    st.success("خود-بهبودی ادامه یافت")
-    
-    # ==================== MAIN CONTENT ====================
+    # Handle scan requests
     if normal_scan:
-        with st.spinner("در حال اسکن بازار..."):
-            results = scanner.base_scanner.scan_market(limit=100, advanced=True)
-            
+        with st.spinner(lang.t('scanning')):
+            results = scanner.scan_market(limit=100)
+        
         if results and results.get('success'):
             display_market_results(results)
         else:
-            st.error("خطا در اسکن بازار")
+            st.error(lang.t('error'))
     
     if ai_scan:
-        with st.spinner("VortexAI در حال تحلیل بازار..."):
-            results = scanner.perform_ai_scan(limit=100)
-            
+        with st.spinner(lang.t('analyzing')):
+            results = scanner.scan_with_ai(limit=100)
+        
         if results and results.get('success'):
             display_market_results(results)
-            display_vortexai_analysis(results.get('ai_analysis', {}))
+            display_ai_analysis(results.get('ai_analysis'))
         else:
-            st.error("خطا در تحلیل VortexAI")
+            st.error(lang.t('error'))
+    
+    # Display AI status in sidebar
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("🧠 وضعیت VortexAI" if lang.current_lang == 'fa' else "🧠 VortexAI Status")
+        st.metric("جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", scanner.vortex_ai.learning_sessions)
+        st.metric("تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", len(scanner.vortex_ai.analysis_history))
 
-def display_market_results(results: Dict):
-    st.header("📊 نتایج اسکن بازار")
-    
-    coins_data = results.get('coins', [])
-    if not coins_data:
-        st.warning("داده‌ای برای نمایش وجود ندارد")
-        return
-    
-    # ایجاد DataFrame
-    df = pd.DataFrame(coins_data)
-    
-    # انتخاب ستون‌های مهم
-    display_columns = ['name', 'symbol', 'price', 'priceChange1h', 'priceChange24h', 'volume', 'marketCap', 'signalStrength']
-    available_columns = [col for col in display_columns if col in df.columns]
-    
-    if available_columns:
-        st.dataframe(df[available_columns].head(20), use_container_width=True)
-    
-    # آمار کلی
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("تعداد ارزها", len(coins_data))
-    with col2:
-        avg_change = df['priceChange24h'].mean() if 'priceChange24h' in df.columns else 0
-        st.metric("میانگین تغییرات", f"{avg_change:.2f}%")
-    with col3:
-        total_volume = df['volume'].sum() if 'volume' in df.columns else 0
-        st.metric("حجم کل", f"${total_volume:,.0f}")
-    with col4:
-        st.metric("حالت اسکن", results.get('scan_mode', 'unknown'))
-
-def display_vortexai_analysis(ai_analysis: Dict):
-    if not ai_analysis:
-        return
-        
-    st.markdown("---")
-    st.header("🧠 تحلیل VortexAI")
-    
-    # اطمینان سیستم
-    ai_confidence = ai_analysis.get('ai_confidence', 0)
-    st.metric("اعتماد تحلیل VortexAI", f"{ai_confidence:.1f}%")
-    
-    # سیگنال‌های قوی
-    strong_signals = ai_analysis.get('strong_signals', [])
-    if strong_signals:
-        st.subheader("🎯 سیگنال‌های قوی")
-        for signal in strong_signals[:5]:
-            st.info(f"**{signal}**")
-    
-    # بینش‌های بازار
-    market_insights = ai_analysis.get('market_insights', [])
-    if market_insights:
-        st.subheader("📈 بینش‌های بازار")
-        for insight in market_insights:
-            st.write(f"• {insight}")
-    
-    # استراتژی‌ها
-    strategies = ai_analysis.get('strategies', [])
-    if strategies:
-        st.subheader("💡 استراتژی‌های پیشنهادی")
-        for strategy in strategies:
-            with st.expander(f"🎯 {strategy['name']} (اعتماد: {strategy['confidence']*100}%)"):
-                st.write(strategy['description'])
-                st.caption(f"نوع: {strategy['type']}")
-    
-    # وضعیت خود-بهبودی
-    improvement_status = ai_analysis.get('self_improvement_status', {})
-    if improvement_status:
-        st.subheader("🔄 وضعیت خود-بهبودی")
-        st.json(improvement_status)
-
-# اجرای برنامه
+# Run the application
 if __name__ == "__main__":
     main()
