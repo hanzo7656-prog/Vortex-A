@@ -8,7 +8,6 @@ ta-lib
 scipy
 kivy
 pillow
-sqlite3
 datetime
 markdown-it-py>=4.0.0
 pygments>=2.19.2
