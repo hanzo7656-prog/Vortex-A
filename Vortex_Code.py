@@ -356,21 +356,30 @@ class VortexAI:
 #سکشن 5
 def scan_market(self, limit: int = 100) -> Optional[Dict]:
     try:
-        url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
-        print(f"📡 Calling API: {url}")  # برای دیباگ
+        url = f"https://server-test-ovta.onrender.com/api/scan/vortexai?limit={limit}"
+        print(f"🔍 Calling: {url}")
+        
         response = requests.get(url, timeout=30)
-        print(f"📊 Response status: {response.status_code}")  # برای دیباگ
+        print(f"📡 Status: {response.status_code}")
+        print(f"📦 Headers: {response.headers}")
         
-        response.raise_for_status()
+        # اگر وضعیت 200 نبود، خطا رو ببین
+        if response.status_code != 200:
+            print(f"❌ HTTP Error: {response.status_code}")
+            print(f"❌ Response text: {response.text}")
+            return self._get_fallback_data()
+        
         data = response.json()
-        print(f"📦 Data received: {data}")  # برای دیباگ
+        print(f"✅ Data keys: {data.keys()}")
+        print(f"✅ Success: {data.get('success')}")
+        print(f"✅ Coins count: {len(data.get('coins', []))}")
         
-        # اگر داده خالی بود، از نمونه داده استفاده کن
         coins = data.get('coins', [])
-        if not coins:
-            print("⚠️ No coins from API, using sample data")
-            coins = self._get_sample_data()
         
+        if not coins:
+            print("⚠️ No coins in response, using fallback")
+            return self._get_fallback_data()
+            
         self.db_manager.save_market_data(coins)
         
         return {
@@ -379,40 +388,36 @@ def scan_market(self, limit: int = 100) -> Optional[Dict]:
             'count': len(coins),
             'timestamp': datetime.now().isoformat()
         }
+        
+    except requests.exceptions.RequestException as e:
+        print(f"🌐 Network Error: {e}")
+        return self._get_fallback_data()
+    except json.JSONDecodeError as e:
+        print(f"📄 JSON Parse Error: {e}")
+        print(f"📄 Response text: {response.text}")
+        return self._get_fallback_data()
     except Exception as e:
-        print(f"❌ API Error: {e}")  # برای دیباگ
-        logging.error(f"Market scan error: {e}")
-        # در صورت خطا از نمونه داده استفاده کن
-        coins = self._get_sample_data()
-        return {
-            'success': True,
-            'coins': coins,
-            'count': len(coins),
-            'timestamp': datetime.now().isoformat()
-        }
+        print(f"💥 Unexpected Error: {e}")
+        return self._get_fallback_data()
 
-def _get_sample_data(self):
-    """Sample data for testing"""
-    return [
+def _get_fallback_data(self):
+    """داده نمونه موقت"""
+    sample_coins = [
         {
-            'name': 'Bitcoin',
-            'symbol': 'BTC',
-            'price': 45000.50,
-            'priceChange24h': 2.34,
-            'priceChange1h': 0.56,
-            'volume': 25467890000,
-            'marketCap': 882456123000
+            'name': 'Bitcoin', 'symbol': 'BTC', 'price': 45000.50, 'priceChange24h': 2.34,
+            'priceChange1h': 0.56, 'volume': 25467890000, 'marketCap': 882456123000
         },
         {
-            'name': 'Ethereum', 
-            'symbol': 'ETH',
-            'price': 2345.67,
-            'priceChange24h': 1.23,
-            'priceChange1h': -0.34,
-            'volume': 14567890000,
-            'marketCap': 282456123000
+            'name': 'Ethereum', 'symbol': 'ETH', 'price': 2345.67, 'priceChange24h': 1.23,
+            'priceChange1h': -0.34, 'volume': 14567890000, 'marketCap': 282456123000
         }
     ]
+    return {
+        'success': True,
+        'coins': sample_coins,
+        'count': len(sample_coins),
+        'timestamp': datetime.now().isoformat()
+    }
 
 # --- SECTION 6: UI COMPONENTS ---
 
