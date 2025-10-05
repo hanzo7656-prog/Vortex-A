@@ -1266,39 +1266,44 @@ class CryptoScanner:
             return None
             
 # -- SECTION 6: UI COMPONENTS WITH MONITORING --
-
 # – SECTION 6: UI COMPONENTS WITH MONITORING –
-import psutil
-import os
+import gc
+import sys
 
 def get_real_memory_usage():
-    """دریافت مصرف واقعی حافظه از سیستم"""
+    """دریافت مصرف حافظه بدون psutil"""
     try:
-        process = psutil.Process(os.getpid())
-        return process.memory_info().rss / 1024 / 1024  # MB
+        # روش جایگزین برای تخمین حافظه
+        if 'scanner' in st.session_state and st.session_state.scanner:
+            if hasattr(st.session_state.scanner, 'vortex_ai'):
+                network_stats = st.session_state.scanner.vortex_ai.brain.get_network_stats()
+                return network_stats.get('memory_usage', 0)
+        
+        # روش ساده‌تر برای تخمین
+        return len(gc.get_objects()) * 0.0001  # تخمین بر اساس تعداد آبجکت‌ها
     except:
         return 0.0
 
 def display_real_memory_monitoring():
-    """نمایش مانیتورینگ حافظه واقعی"""
+    """نمایش مانیتورینگ حافظه"""
     
     real_memory = get_real_memory_usage()
-    st.subheader("📊 مانیتورینگ حافظه واقعی")
+    st.subheader("📊 مانیتورینگ حافظه")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.metric("مصرف واقعی RAM", f"{real_memory:.1f} MB")
+        st.metric("مصرف RAM تخمینی", f"{real_memory:.1f} MB")
         
     with col2:
-        if real_memory > 1000:  # 1GB
-            st.error("وضعیت: بحرانی 🔴")
-        elif real_memory > 500:  # 500MB
-            st.warning("وضعیت: هشدار 🟡")
+        if real_memory > 300:
+            st.error("وضعیت: هشدار 🔴")
+        elif real_memory > 200:
+            st.warning("وضعیت: توجه 🟡")
         else:
             st.success("وضعیت: نرمال 🟢")
     
-    # نمایش تفاوت بین محاسبات داخلی و واقعی
+    # نمایش اطلاعات حافظه داخلی
     if 'scanner' in st.session_state and st.session_state.scanner:
         if hasattr(st.session_state.scanner, 'vortex_ai'):
             try:
@@ -1306,10 +1311,11 @@ def display_real_memory_monitoring():
                 calculated_memory = network_stats.get('memory_usage', 0)
                 
                 st.info(f"""
-                **مقایسه مصرف حافظه:**
-                - محاسبه داخلی: {calculated_memory} MB
-                - مصرف واقعی: {real_memory:.1f} MB
-                - اختلاف: {abs(real_memory - calculated_memory):.1f} MB
+                **وضعیت حافظه شبکه عصبی:**
+                - نورون‌ها: {network_stats.get('total_neurons', 0)}
+                - سیناپس‌ها: {network_stats.get('total_synapses', 0)}
+                - مصرف محاسبه‌شده: {calculated_memory} MB
+                - نسل شبکه: {network_stats.get('generation', 0)}
                 """)
             except Exception as e:
                 st.warning(f"خطا در محاسبه حافظه داخلی: {e}")
@@ -1337,11 +1343,15 @@ def force_memory_cleanup():
         # پاک‌سازی تجربیات بازار
         vortex_ai.market_experiences = []
         
+        # پاک‌سازی حافظه پایتون
+        gc.collect()
+        
         return f"""
         ✅ پاک‌سازی کامل انجام شد:
         - {pruned_neurons} نورون حذف شد
         - حافظه تجربیات از {original_memory_size} به {len(vortex_ai.brain.memory)} کاهش یافت
         - تاریخچه تحلیل از {original_analysis_count} به {len(vortex_ai.analysis_history)} کاهش یافت
+        - حافظه سیستم پاک‌سازی شد
         """
         
     except Exception as e:
@@ -1379,7 +1389,7 @@ def display_emergency_controls(emergency_system):
     
     with col3:
         st.subheader("پاک‌سازی")
-        if st.button("پاک‌سازی اضطراری حافظه", use_container_width=True):
+        if st.button("پاک‌سازی اضطراری حافظه", use_container_width=True, type="secondary"):
             # دسترسی مستقیم به scanner از session_state
             if 'scanner' in st.session_state and st.session_state.scanner:
                 try:
@@ -1398,6 +1408,10 @@ def display_emergency_controls(emergency_system):
                     vortex_ai = st.session_state.scanner.vortex_ai
                     original_size = len(vortex_ai.brain.memory)
                     vortex_ai.brain.memory = vortex_ai.brain.memory[-100:]  # فقط 100 رکورد آخر
+                    
+                    # پاک‌سازی حافظه سیستم
+                    gc.collect()
+                    
                     st.success(f"حافظه تجربیات از {original_size} به {len(vortex_ai.brain.memory)} کاهش یافت")
                     st.rerun()
                 except Exception as e:
@@ -1408,7 +1422,7 @@ def display_monitoring_tab(scanner):
     
     st.header("مانیتورینگ هوش مصنوعی VortexAI")
     
-    # نمایش مانیتورینگ حافظه واقعی در بالای صفحه
+    # نمایش مانیتورینگ حافظه در بالای صفحه
     display_real_memory_monitoring()
     st.markdown("---")
     
@@ -1417,17 +1431,16 @@ def display_monitoring_tab(scanner):
         try:
             health_report = scanner.vortex_ai.get_health_report()
             memory_usage = health_report['network_stats'].get('memory_usage', 0)
-            real_memory = get_real_memory_usage()
             
-            if real_memory > 1000 or memory_usage > 300:
-                status = "بحرانی 🔴"
-                st.error(f"🚨 وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
-            elif real_memory > 500 or memory_usage > 200:
-                status = "هشدار 🟡"
-                st.warning(f"⚠ وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
+            if memory_usage > 300:
+                status = "هشدار 🔴"
+                st.error(f"🚨 وضعیت حافظه: {status} - مصرف: {memory_usage}MB")
+            elif memory_usage > 200:
+                status = "توجه 🟡"
+                st.warning(f"⚠ وضعیت حافظه: {status} - مصرف: {memory_usage}MB")
             else:
                 status = "نرمال 🟢"
-                st.success(f"✅ وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
+                st.success(f"✅ وضعیت حافظه: {status} - مصرف: {memory_usage}MB")
                 
         except Exception as e:
             st.warning(f"خطا در بررسی حافظه: {e}")
@@ -1489,52 +1502,53 @@ def display_monitoring_tab(scanner):
         **راه‌حل‌های احتمالی:**
         - صفحه را رفرش کنید
         - اسکن با AI جدید انجام دهید
+        - از دکمه پاک‌سازی حافظه استفاده کنید
         - برنامه را مجدداً راه‌اندازی کنید
         """)
         
 # -- SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED --
-
+# – SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED –
 def main():
     """Main application function"""
+    
     setup_page_config()
 
     # Initialize multi-language system
     lang = Multilanguage()
 
     # Display title
-    st.title(lang.t('app_title'))
+    st.title(lang.t('app_title'))  
     st.markdown("---")
 
-    # Setup sidebar and get scan buttons
+    # Setup sidebar and get scan buttons  
     normal_scan, ai_scan = setup_sidebar()
 
     # Initialize scanner با خطایابی بهتر
-    @st.cache_resource
-    def load_scanner():
-        try:
-            scanner = CryptoScanner()
-            print("✅ Scanner initialized successfully")
+    @st.cache_resource  
+    def load_scanner():  
+        try:  
+            scanner = CryptoScanner()  
+            print("✔ Scanner initialized successfully")  
             
-            # بررسی سلامت vortex_ai
-            if hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
-                print("✅ VortexAI initialized successfully")
-            else:
-                print("⚠️ VortexAI not available yet")
+            # بررسی سلامت VortexAI  
+            if hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:  
+                print("✔ VortexAI initialized successfully")  
+            else:  
+                print("⚠ VortexAI not available yet")  
                 
-            return scanner
+            return scanner  
+            
         except Exception as e:
             print(f"❌ Scanner initialization failed: {e}")
             return None
 
     scanner = load_scanner()
-
     st.session_state.scanner = scanner
 
     # Initialize emergency system
     if 'emergency_system' not in st.session_state:
         st.session_state.emergency_system = EmergencyStopSystem()
 
-    # استفاده از session state برای ذخیره نتایج
     if 'scan_results' not in st.session_state:
         st.session_state.scan_results = None
 
@@ -1545,7 +1559,7 @@ def main():
         st.session_state.current_tab = "اسکن بازار"
 
     # ایجاد تب‌های اصلی
-    tab1, tab2, tab3 = st.tabs(["📊 اسکن بازار", "🧠 مانیتورینگ هوش مصنوعی", "ℹ️ راهنما"])
+    tab1, tab2, tab3 = st.tabs(["🔍 اسکن بازار", "📊 مانیتورینگ هوش مصنوعی", "❓ راهنما"])
 
     with tab1:
         display_market_tab(scanner, lang)
@@ -1559,13 +1573,13 @@ def main():
     # Display AI status in sidebar
     display_sidebar_status(scanner)
 
-# ==================== توابع جدید برای سازماندهی بهتر ====================
-
+# ============================================================================= توابع جدید برای سازماندهی بهتر ======================= #
 def display_market_tab(scanner, lang):
     """نمایش تب اسکن بازار"""
+    
     # Handle scan requests
     normal_scan, ai_scan = st.session_state.get('normal_scan', False), st.session_state.get('ai_scan', False)
-    
+
     if normal_scan:
         handle_normal_scan(scanner, lang)
         
@@ -1592,13 +1606,14 @@ def handle_normal_scan(scanner, lang):
                 if results and results.get('success'):
                     st.session_state.scan_results = results
                     st.session_state.ai_results = None
-                    st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
+                    st.success(f'✅ اسکن موفق: {len(results.get("coins", []))} ارز پیدا شد')
                 else:
                     st.error("❌ خطا در دریافت داده‌ها از سرور")
                     # نمایش داده نمونه در صورت خطا
                     fallback_data = get_fallback_data_safe()
                     st.session_state.scan_results = fallback_data
                     st.session_state.ai_results = None
+                    
             except Exception as e:
                 st.error(f"❌ خطا در اسکن: {e}")
                 fallback_data = get_fallback_data_safe()
@@ -1608,25 +1623,27 @@ def handle_normal_scan(scanner, lang):
             st.error("❌ Scanner initialization failed")
 
 def handle_ai_scan(scanner, lang):
-    """مدیریت اسکن با هوش مصنوعی"""
+    """مدیریت اسکن با هوش مصنوعی"""  
     with st.spinner(lang.t('analyzing')):
-        print("🎯 AI SCAN TRIGGERED")
+        print("🧠 AI SCAN TRIGGERED")
         if scanner:
             try:
                 results = scanner.scan_with_ai(limit=100)
                 if results and results.get('success'):
                     st.session_state.scan_results = results
                     st.session_state.ai_results = results.get('ai_analysis')
-                    st.success(f"🧠 تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
+                    st.success(f"✅ تحلیل AI موفق: {len(results.get('coins', []))} ارز تحلیل شد")  
                     
-                    # فعال‌سازی vortex_ai اگر وجود ندارد
-                    if not hasattr(scanner, 'vortex_ai') or not scanner.vortex_ai:
-                        st.info("🔄 در حال راه‌اندازی VortexAI...")
+                    # فعال‌سازی vortex_ai اگر وجود ندارد  
+                    if not hasattr(scanner, 'vortex_ai') or not scanner.vortex_ai:  
+                        st.info("در حال راه‌اندازی VortexAI...")
+                        
                 else:
                     st.error("❌ خطا در تحلیل AI")
                     fallback_data = get_fallback_data_safe()
                     st.session_state.scan_results = fallback_data
                     st.session_state.ai_results = None
+                    
             except Exception as e:
                 st.error(f"❌ خطا در تحلیل AI: {e}")
                 fallback_data = get_fallback_data_safe()
@@ -1634,248 +1651,6 @@ def handle_ai_scan(scanner, lang):
                 st.session_state.ai_results = None
         else:
             st.error("❌ Scanner initialization failed")
-
-def display_monitoring_tab(scanner):
-    """نمایش تب مانیتورینگ با مدیریت حافظه"""
-    st.header("🧠 مانیتورینگ هوش مصنوعی VortexAI")
-    
-    # هشدار حافظه در بالای صفحه
-    if scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
-        try:
-            health_report = scanner.vortex_ai.get_health_report()
-            memory_usage = health_report['network_stats'].get('memory_usage', 0)
-
-            if memory_usage > 300:
-                status = "بحرانی"
-            if memory_usage > 200:
-                status = "هشدار"
-            else:
-                status = "نرمال"
-
-            st.info(f"وضعیت حافظه : {status} - مصرف {memory_usage}MG از 450MG")
-
-        except Exception as e:
-            st.warning(f"⚠️ خطا در بررسی حافظه: {e}")
-
-    # بررسی وضعیت vortex_ai
-    if not scanner:
-        st.error("❌ اسکنر در دسترس نیست")
-        st.info("💡 لطفاً صبر کنید یا برنامه را مجدداً راه‌اندازی کنید")
-        return
-        
-    if not hasattr(scanner, 'vortex_ai'):
-        st.warning("⚠️ VortexAI هنوز راه‌اندازی نشده است")
-        st.info("""
-        **برای فعال‌سازی مانیتورینگ:**
-        1. یک **اسکن با AI** انجام دهید
-        2. یا دکمه **«تحلیل AI سریع»** در نوار کناری را بزنید
-        """)
-        return
-        
-    if scanner.vortex_ai is None:
-        st.warning("⚠️ VortexAI در حال راه‌اندازی است...")
-        if st.button("🔄 راه‌اندازی مجدد VortexAI"):
-            try:
-                scanner.vortex_ai = VortexAI()
-                st.success("✅ VortexAI راه‌اندازی شد")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ خطا در راه‌اندازی: {e}")
-        return
-
-    # نمایش دشبوردهای مانیتورینگ
-    try:
-        # بررسی سلامت پایه
-        health_report = scanner.vortex_ai.get_health_report()
-        
-        # نمایش دشبورد اصلی
-        display_ai_health_dashboard(scanner.vortex_ai, st.session_state.emergency_system)
-        st.markdown("---")
-        
-        # نمایش بخش‌های دیگر
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            display_growth_monitoring(scanner.vortex_ai)
-            st.markdown("---")
-            display_real_health_metrics(scanner.vortex_ai)
-            
-        with col2:
-            display_performance_metrics(scanner.vortex_ai)
-            st.markdown("---")
-            display_alerts_and_warnings(scanner.vortex_ai)
-        
-        st.markdown("---")
-        display_emergency_controls(st.session_state.emergency_system)
-        
-    except Exception as e:
-        st.error(f"❌ خطا در نمایش مانیتورینگ: {e}")
-        st.info("""
-        **راه‌حل‌های احتمالی:**
-        - صفحه را رفرش کنید
-        - اسکن با AI جدید انجام دهید
-        - برنامه را مجدداً راه‌اندازی کنید
-        """)
-
-def display_help_tab():
-    """نمایش تب راهنما"""
-    st.header("📚 راهنمای استفاده از VortexAI")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🎯 قابلیت‌های اصلی")
-        st.write("""
-        - **اسکن بازار**: دریافت لیست ارزها با اطلاعات پایه
-        - **تحلیل AI**: تحلیل پیشرفته با شبکه عصبی
-        - **مدیریت ریسک**: شناسایی خودکار ریسک‌های بازار
-        - **سیگنال‌های هوشمند**: پیشنهادات معاملاتی مبتنی بر AI
-        """)
-        
-        st.subheader("🧠 سیستم هوش مصنوعی")
-        st.write("""
-        - **شبکه عصبی ۲۸۰۰ نورونی**
-        - **یادگیری مستمر از تجربیات**
-        - **تکامل خودکار معماری**
-        - **کنترل رشد هوشمند**
-        """)
-    
-    with col2:
-        st.subheader("🛡️ سیستم‌های ایمنی")
-        st.write("""
-        - **مانیتورینگ سلامت لحظه‌ای**
-        - **توقف اضطراری خودکار**
-        - **کنترل مصرف منابع**
-        - **پیشگیری از تورم عصبی**
-        """)
-        
-        st.subheader("📊 مانیتورینگ")
-        st.write("""
-        - **سلامت فنی سیستم**
-        - **عملکرد شبکه عصبی**
-        - **روند رشد و توسعه**
-        - **هشدارهای خودکار**
-        """)
-    
-    st.markdown("---")
-    st.subheader("🚀 شروع سریع")
-    
-    quick_col1, quick_col2, quick_col3 = st.columns(3)
-    
-    with quick_col1:
-        if st.button("🔍 اسکن بازار سریع", use_container_width=True):
-            st.session_state.normal_scan = True
-            st.rerun()
-    
-    with quick_col2:
-        if st.button("🧠 تحلیل AI سریع", use_container_width=True):
-            st.session_state.ai_scan = True
-            st.rerun()
-    
-    with quick_col3:
-        if st.button("📊 مشاهده مانیتورینگ", use_container_width=True):
-            st.session_state.current_tab = "مانیتورینگ هوش مصنوعی"
-            st.rerun()
-
-def display_sidebar_status(scanner):
-    """نمایش وضعیت در نوار کناری"""
-    with st.sidebar:
-        st.markdown("---")
-        st.subheader("🤖 وضعیت VortexAI")
-        
-        vortex_ai_available = scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai
-        
-        if vortex_ai_available:
-            try:
-                vortex_ai = scanner.vortex_ai
-                health_report = vortex_ai.get_health_report()
-                
-                st.metric("🎓 جلسات یادگیری", vortex_ai.learning_sessions)
-                st.metric("📈 تحلیل‌های انجام شده", len(vortex_ai.analysis_history))
-                st.metric("🧠 سلامت کلی", f"{health_report['overall_health']:.1f}%")
-                
-                # نمایش وضعیت اضطراری
-                if health_report['emergency_status']['active']:
-                    st.error("🛑 حالت ایمن فعال")
-                else:
-                    st.success("🟢 حالت عادی")
-                    
-            except Exception as e:
-                st.warning("⚠️ خطا در دریافت وضعیت")
-                st.metric("🎓 جلسات یادگیری", 0)
-        else:
-            st.warning("🔴 هوش مصنوعی غیرفعال")
-            st.info("برای فعال‌سازی، اسکن با AI انجام دهید")
-
-        # نمایش وضعیت اتصال
-        st.markdown("---")
-        st.subheader("🌐 وضعیت اتصال")
-        
-        if st.session_state.scan_results:
-            coin_count = len(st.session_state.scan_results.get('coins', []))
-            if coin_count > 5:  # اگر داده واقعی باشد
-                st.success("✅ متصل به سرور میانی")
-            else:
-                st.warning("📋 استفاده از داده نمونه")
-        else:
-            st.info("⏳ در انتظار اتصال")
-
-        # دکمه‌های سریع در sidebar
-        st.markdown("---")
-        st.subheader("⚡ اقدامات سریع")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("🔍 اسکن بازار", use_container_width=True):
-                st.session_state.normal_scan = True
-                st.session_state.scan_results = None
-                st.session_state.ai_results = None
-                st.rerun()
-                
-        with col2:
-            if st.button("🧠 تحلیل AI", use_container_width=True):
-                st.session_state.ai_scan = True
-                st.rerun()
-
-def display_welcome_screen(scanner):
-    """نمایش صفحه خوش‌آمدگویی"""
-    st.info("""
-    **📋 راهنمای شروع:**
-
-    1. **اسکن بازار** برای دریافت لیست ارزها
-    2. **اسکن با VortexAI** برای تحلیل پیشرفته با هوش مصنوعی
-
-    **💡 نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند
-    """)
-
-    # دکمه تست سریع
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("🚀 اسکن سریع با داده نمونه", type="secondary", use_container_width=True):
-            with st.spinner("📥 در حال بارگذاری داده نمونه..."):
-                fallback_data = get_fallback_data_safe()
-                st.session_state.scan_results = fallback_data
-                st.session_state.ai_results = None
-                st.rerun()
-    
-    with col2:
-        if st.button("🎯 تحلیل AI نمونه", use_container_width=True):
-            if scanner:
-                with st.spinner("🔍 در حال تحلیل با AI..."):
-                    try:
-                        results = scanner.scan_with_ai(limit=50)
-                        if results and results.get('success'):
-                            st.session_state.scan_results = results
-                            st.session_state.ai_results = results.get('ai_analysis')
-                            st.rerun()
-                        else:
-                            st.error("خطا در تحلیل AI")
-                    except Exception as e:
-                        st.error(f"خطا: {e}")
-            else:
-                st.error("اسکنر در دسترس نیست")
 
 # تابع کمکی برای داده نمونه ایمن
 def get_fallback_data_safe():
@@ -1892,7 +1667,7 @@ def get_fallback_data_safe():
                 'marketCap': 1287654321098
             },
             {
-                'name': 'Ethereum', 
+                'name': 'Ethereum',
                 'symbol': 'ETH',
                 'price': 3456.78,
                 'priceChange24h': 1.87,
@@ -1917,6 +1692,7 @@ def get_fallback_data_safe():
             'count': len(sample_coins),
             'timestamp': datetime.now().isoformat()
         }
+        
     except Exception as e:
         print(f"❌ Fallback data error: {e}")
         return {
