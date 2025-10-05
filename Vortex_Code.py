@@ -789,7 +789,6 @@ def display_quick_actions():
         if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
             st.session_state.show_settings = True
 # --- SECTION 7: MAIN APPLICATION ---
-
 def main():
     """Main application function"""
     setup_page_config()
@@ -808,30 +807,98 @@ def main():
     
     scanner = load_scanner()
     
+    # استفاده از session state برای ذخیره نتایج
+    if 'scan_results' not in st.session_state:
+        st.session_state.scan_results = None
+    if 'ai_results' not in st.session_state:
+        st.session_state.ai_results = None
+    
     # Handle scan requests
     if normal_scan:
         with st.spinner(lang.t('scanning')):
+            print("🎯 NORMAL SCAN TRIGGERED")
             results = scanner.scan_market(limit=100)
+            print(f"📊 NORMAL SCAN RESULTS: {results}")
+            
             if results and results.get('success'):
-                display_market_results(results)
+                st.session_state.scan_results = results
+                st.session_state.ai_results = None
+                st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
             else:
-                st.error(lang.t('error'))
-                
+                st.error("❌ خطا در دریافت داده‌ها")
+    
     if ai_scan:
         with st.spinner(lang.t('analyzing')):
+            print("🎯 AI SCAN TRIGGERED")
             results = scanner.scan_with_ai(limit=100)
+            print(f"📊 AI SCAN RESULTS: {results}")
+            
             if results and results.get('success'):
-                display_market_results(results)
-                display_ai_analysis(results.get('ai_analysis'))
+                st.session_state.scan_results = results
+                st.session_state.ai_results = results.get('ai_analysis')
+                st.success(f"✅ تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
             else:
-                st.error(lang.t('error'))
+                st.error("❌ خطا در تحلیل AI")
+    
+    # نمایش نتایج از session state
+    if st.session_state.scan_results:
+        print(f"🔄 DISPLAYING RESULTS: {len(st.session_state.scan_results.get('coins', []))} coins")
+        
+        # نمایش نتایج بازار
+        display_market_results(st.session_state.scan_results)
+        
+        # نمایش تحلیل AI اگر موجود باشد
+        if st.session_state.ai_results:
+            display_ai_analysis(st.session_state.ai_results)
+    else:
+        # نمایش صفحه خالی با راهنما
+        st.info("""
+        🚀 **راهنمای شروع:**
+        
+        1. **اسکن بازار** - برای دریافت لیست ارزها
+        2. **اسکن با VortexAI** - برای تحلیل پیشرفته با هوش مصنوعی
+        
+        💡 **نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند.
+        """)
+        
+        # نمایش داده‌های نمونه برای تست
+        st.warning("در حال حاضر داده‌ای برای نمایش وجود ندارد. لطفاً یکی از دکمه‌های اسکن را فشار دهید.")
+        
+        # دکمه تست سریع
+        if st.button("🧪 تست سریع با داده نمونه", type="secondary"):
+            with st.spinner("بارگذاری داده نمونه..."):
+                sample_data = scanner._get_fallback_data()
+                st.session_state.scan_results = sample_data
+                st.session_state.ai_results = None
+                st.rerun()
     
     # Display AI status in sidebar
     with st.sidebar:
         st.markdown("---")
         st.subheader("🤖 وضعیت VortexAI" if lang.current_lang == 'fa' else "🤖 VortexAI Status")
-        st.metric("جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", scanner.vortex_ai.learning_sessions)
-        st.metric("تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", len(scanner.vortex_ai.analysis_history))
+        
+        if scanner and scanner.vortex_ai:
+            st.metric(
+                "جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", 
+                scanner.vortex_ai.learning_sessions
+            )
+            st.metric(
+                "تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", 
+                len(scanner.vortex_ai.analysis_history)
+            )
+        
+        # نمایش وضعیت اتصال
+        st.markdown("---")
+        st.subheader("🌐 وضعیت اتصال")
+        
+        if st.session_state.scan_results:
+            coin_count = len(st.session_state.scan_results.get('coins', []))
+            if coin_count > 5:  # اگر داده واقعی باشد
+                st.success("✅ متصل به سرور میانی")
+            else:
+                st.warning("⚠️ استفاده از داده نمونه")
+        else:
+            st.info("🔌 در انتظار اتصال")
 
 # Run the application
 if __name__ == "__main__":
