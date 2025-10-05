@@ -357,9 +357,12 @@ class VortexAI:
 
 class CryptoScanner:
     def __init__(self):
-        self.db_manager = DatabaseManager()
-        self.vortex_ai = VortexAI()
-        self.api_base = "https://api.coinstats.app/public/v1"
+        self.api_base = "https://server-test-ovta.onrender.com"
+
+    def scan_market(self, limit: int = 100) -> Optional[Dict]:
+        try:
+            url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
+            response = requests.get(url, timeout=30)  # تایم‌اوت بیشتر برای رندر
 
     def scan_market(self, limit: int = 100) -> Optional[Dict]:
         """Scan cryptocurrency market"""
