@@ -357,23 +357,19 @@ class VortexAI:
 
 class CryptoScanner:
     def __init__(self):
+        self.db_manager = DatabaseManager()
+        self.vortex_ai = VortexAI()
         self.api_base = "https://server-test-ovta.onrender.com"
-
-    def scan_market(self, limit: int = 100) -> Optional[Dict]:
-        try:
-            url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
-            response = requests.get(url, timeout=30)  # تایم‌اوت بیشتر برای رندر
 
     def scan_market(self, limit: int = 100) -> Optional[Dict]:
         """Scan cryptocurrency market"""
         try:
-            url = f"{self.api_base}/coins?limit={limit}"
-            response = requests.get(url, timeout=10)
+            url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
+            response = requests.get(url, timeout=30)
             response.raise_for_status()
             data = response.json()
-            coins = data.get('coins', [])
             
-            # Save to database
+            coins = data.get('coins', [])
             self.db_manager.save_market_data(coins)
             
             return {
