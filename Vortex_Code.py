@@ -1506,8 +1506,213 @@ def display_monitoring_tab(scanner):
         """)
         
 # -- SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED --
+# – SECTION 7: MAIN APPLICATION - نسخه اصلاح شده –
 
-# – SECTION 7: MAIN APPLICATION - تکمیل توابع از دست رفته –
+def display_ai_health_dashboard(vortex_ai, emergency_system):
+    """نمایش دشبورد سلامت هوش مصنوعی"""
+    st.header("📊 دشبورد سلامت VortexAI")
+
+    if not vortex_ai:
+        st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
+        return
+
+    try:
+        # دریافت گزارش سلامت
+        health_report = vortex_ai.get_health_report()
+        network_stats = health_report['network_stats']
+
+        # کارت‌های وضعیت فوری
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            overall_health = health_report['overall_health']
+            status_color = "🟢" if overall_health > 70 else "🟡" if overall_health > 40 else "🔴"
+            st.metric("سلامت کل", f"{overall_health:.1f}%")
+            st.write(f"{status_color} {'عالی' if overall_health > 70 else 'متوسط' if overall_health > 40 else 'نیازمند توجه'}")
+
+        with col2:
+            emergency_status = health_report['emergency_status']['active']
+            st.metric("وضعیت اضطراری", "فعال" if emergency_status else "غیرفعال")
+            st.write("🔴" if emergency_status else "🟢")
+
+        with col3:
+            st.metric("نسل شبکه", network_stats['generation'])
+            st.write(f"🔢 {network_stats['total_activations']} فعال‌سازی")
+
+        with col4:
+            # استفاده از دو متریک جداگانه
+            col4_1, col4_2 = st.columns(2)
+            with col4_1:
+                st.metric("🎯 دقت", f"{network_stats.get('current_accuracy', 0.5)*100:.1f}%")
+            with col4_2:
+                st.metric("📶 کیفیت", f"{network_stats.get('signal_quality', 0.5)*100:.1f}%")
+                
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش دشبورد سلامت: {e}")
+
+def display_growth_monitoring(vortex_ai):
+    """نمایش مانیتورینگ رشد شبکه"""
+    st.header("📈 مانیتورینگ رشد و توسعه")
+
+    if not vortex_ai:
+        return
+
+    try:
+        health_report = vortex_ai.get_health_report()
+        network_stats = health_report['network_stats']
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.subheader("🏗️ معماری شبکه")
+            st.write(f"**نورون‌ها:** {network_stats['total_neurons']}")
+            st.write(f"**سیناپس‌ها:** {network_stats['total_synapses']}")
+            st.write(f"**وزن‌ها:** {network_stats.get('total_weights', 'N/A')}")
+
+            # نمایش پیشرفت
+            neuron_progress = min(max(network_stats['total_neurons'] / 4000, 0.0), 1.0)
+            st.progress(neuron_progress)
+            st.caption(f"ظرفیت نورون‌ها ({neuron_progress:.1%})")
+
+        with col2:
+            st.subheader("📚 عملکرد یادگیری")
+            st.write(f"**جلسات یادگیری:** {vortex_ai.learning_sessions}")
+            st.write(f"**تحلیل‌های انجام شده:** {len(vortex_ai.analysis_history)}")
+            st.write(f"**حجم حافظه یادگیری:** {len(vortex_ai.market_experiences)} تجربه")
+
+            # نرخ یادگیری
+            learning_rate = network_stats.get('learning_rate', 0.01)
+            st.metric("نرخ یادگیری", f"{learning_rate:.4f}")
+
+        with col3:
+            st.subheader("💾 مصرف منابع")
+            st.write(f"**مصرف RAM:** {network_stats.get('memory_usage', 0)}MB / 450MB")
+            st.write(f"**مصرف CPU:** {network_stats.get('cpu_usage', 0):.1f}%")
+            st.write(f"**بلوغ شبکه:** {network_stats.get('network_maturity', 0):.1%}")
+
+            # پیشرفت حافظه
+            memory_usage = network_stats.get('memory_usage', 0)
+            memory_progress = min(max(memory_usage / 450, 0.0), 1.0)
+            st.progress(memory_progress)
+            st.caption(f"مصرف حافظه ({memory_progress:.1%})")
+            
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش مانیتورینگ رشد: {e}")
+
+def display_real_health_metrics(vortex_ai):
+    """نمایش شاخص‌های سلامت واقعی"""
+    st.header("❤️ شاخص‌های حیاتی")
+
+    if not vortex_ai:
+        return
+
+    try:
+        health_report = vortex_ai.get_health_report()
+        health_checks = health_report.get('health_checks', {})
+
+        # نمایش وضعیت سلامت
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("🔧 بررسی‌های فنی")
+            if health_checks:
+                for check_name, check_status in health_checks.items():
+                    status_icon = "✅" if check_status else "⚠️"
+                    status_text = "خوب" if check_status else "نیازمند توجه"
+                    st.write(f"{status_icon} {check_name}: {status_text}")
+            else:
+                st.info("بررسی‌های فنی در دسترس نیست")
+
+        with col2:
+            st.subheader("📊 معیارهای عملکرد")
+            metrics = health_report.get('performance_metrics', {})
+            accuracy_trend = metrics.get('accuracy_trend', 0)
+            new_patterns = metrics.get('new_patterns_detected', False)
+            user_satisfaction = metrics.get('user_satisfaction', 0.7)
+            
+            st.write(f"**روند دقت:** {'📈 بهبود' if accuracy_trend > 0 else '📉 کاهش'}")
+            st.write(f"**الگوهای جدید:** {'✅ کشف شده' if new_patterns else '❌ ندارد'}")
+            st.write(f"**رضایت کاربر:** {user_satisfaction*100:.1f}%")
+            
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش شاخص‌های سلامت: {e}")
+
+def display_performance_metrics(vortex_ai):
+    """نمایش معیارهای عملکرد دقیق"""
+    st.subheader("📈 تحلیل عملکرد دقیق")
+
+    if not vortex_ai or not vortex_ai.analysis_history:
+        st.info("📊 داده‌های عملکردی هنوز جمع‌آوری نشده‌اند")
+        return
+
+    try:
+        # محاسبه آمار پیشرفت
+        recent_analyses = vortex_ai.analysis_history[-10:]  # 10 تحلیل اخیر
+        
+        if recent_analyses:
+            confidences = [analysis.get('ai_confidence', 0) for analysis in recent_analyses]
+            avg_confidence = sum(confidences) / len(confidences)
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric("میانگین اعتماد اخیر", f"{avg_confidence:.1f}%")
+
+            with col2:
+                trend = "📈 بهبود" if len(confidences) > 1 and confidences[-1] > confidences[0] else "📉 کاهش"
+                st.metric("روند اعتماد", trend)
+
+            # نمودار ساده اعتماد
+            st.line_chart(confidences)
+            
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش معیارهای عملکرد: {e}")
+
+def display_alerts_and_warnings(vortex_ai):
+    """نمایش هشدارها و اعلان‌ها"""
+    st.subheader("🚨 هشدارها و اعلان‌ها")
+
+    if not vortex_ai:
+        return
+
+    try:
+        health_report = vortex_ai.get_health_report()
+        alerts = []
+
+        # بررسی شرایط هشدار
+        network_stats = health_report.get('network_stats', {})
+        
+        memory_usage = network_stats.get('memory_usage', 0)
+        current_accuracy = network_stats.get('current_accuracy', 0.5)
+        total_neurons = network_stats.get('total_neurons', 0)
+        emergency_active = health_report.get('emergency_status', {}).get('active', False)
+        
+        if memory_usage > 300:
+            alerts.append("🔴 مصرف حافظه به حد هشدار نزدیک است")
+            
+        if current_accuracy < 0.6:
+            alerts.append("🟡 دقت تحلیل کمتر از 60% است")
+            
+        if emergency_active:
+            alerts.append("🔴 سیستم در حالت توقف اضطراری است")
+            
+        if total_neurons > 3500:
+            alerts.append("🟡 تعداد نورون‌ها به حد مجاز نزدیک است")
+
+        # نمایش هشدارها
+        if alerts:
+            for alert in alerts:
+                if "🔴" in alert:
+                    st.error(alert)
+                elif "🟡" in alert:
+                    st.warning(alert)
+                else:
+                    st.info(alert)
+        else:
+            st.success("✅ همه سیستم‌ها در وضعیت نرمال هستند")
+            
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش هشدارها: {e}")
 
 def display_welcome_screen(scanner):
     """نمایش صفحه خوشآمدگویی"""
@@ -1566,10 +1771,10 @@ def display_sidebar_status(scanner):
 
                 st.metric("جلسات یادگیری", vortex_ai.learning_sessions)
                 st.metric("تحلیل‌های انجام شده", len(vortex_ai.analysis_history))
-                st.metric("سلامت کل", f"{health_report['overall_health']:.1f}%")
+                st.metric("سلامت کل", f"{health_report.get('overall_health', 0):.1f}%")
 
                 # نمایش وضعیت اضطراری
-                if health_report['emergency_status']['active']:
+                if health_report.get('emergency_status', {}).get('active', False):
                     st.error("🛑 حالت ایمن فعال")
                 else:
                     st.success("✅ حالت عادی")
@@ -1672,175 +1877,133 @@ def display_help_tab():
             st.session_state.current_tab = "مانیتورینگ هوش مصنوعی"
             st.rerun()
 
-# توابع نمایش قبلی که ممکن است نیاز به تعریف داشته باشند
-def display_ai_health_dashboard(vortex_ai, emergency_system):
-    """نمایش دشبورد سلامت هوش مصنوعی"""
-    st.header("📊 دشبورد سلامت VortexAI")
-
-    if not vortex_ai:
-        st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
-        return
-
-    # دریافت گزارش سلامت
-    health_report = vortex_ai.get_health_report()
-
-    # کارت‌های وضعیت فوری
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        overall_health = health_report['overall_health']
-        status_color = "🟢" if overall_health > 70 else "🟡" if overall_health > 40 else "🔴"
-        st.metric("سلامت کل", f"{overall_health:.1f}%")
-        st.write(f"{status_color} {'عالی' if overall_health > 70 else 'متوسط' if overall_health > 40 else 'نیازمند توجه'}")
-
-    with col2:
-        emergency_status = health_report['emergency_status']['active']
-        st.metric("وضعیت اضطراری", "فعال" if emergency_status else "غیرفعال")
-        st.write("🔴" if emergency_status else "🟢")
-
-    with col3:
-        network_stats = health_report['network_stats']
-        st.metric("نسل شبکه", network_stats['generation'])
-        st.write(f"🔢 {network_stats['total_activations']} فعال‌سازی")
-
-    with col4:
-        st.metric("🎯 دقت فعلی", f"{network_stats['current_accuracy']*100:.1f}%")
-        st.metric("📶 کیفیت سیگنال", f"{network_stats['signal_quality']*100:.1f}%")
-
-def display_growth_monitoring(vortex_ai):
-    """نمایش مانیتورینگ رشد شبکه"""
-    st.header("📈 مانیتورینگ رشد و توسعه")
-
-    if not vortex_ai:
-        return
-
-    health_report = vortex_ai.get_health_report()
-    network_stats = health_report['network_stats']
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.subheader("🏗️ معماری شبکه")
-        st.write(f"**نورون‌ها:** {network_stats['total_neurons']}")
-        st.write(f"**سیناپس‌ها:** {network_stats['total_synapses']}")
-        st.write(f"**وزن‌ها:** {network_stats['total_weights']}")
-
-        # نمایش پیشرفت
-        neuron_progress = min(max(network_stats['total_neurons'] / 4000, 0.0), 1.0)
-        st.progress(neuron_progress)
-        st.caption(f"ظرفیت نورون‌ها ({neuron_progress:.1%})")
-
-    with col2:
-        st.subheader("📚 عملکرد یادگیری")
-        st.write(f"**جلسات یادگیری:** {vortex_ai.learning_sessions}")
-        st.write(f"**تحلیل‌های انجام شده:** {len(vortex_ai.analysis_history)}")
-        st.write(f"**حجم حافظه یادگیری:** {len(vortex_ai.market_experiences)} تجربه")
-
-        # نرخ یادگیری
-        learning_rate = network_stats['learning_rate']
-        st.metric("نرخ یادگیری", f"{learning_rate:.4f}")
-
-    with col3:
-        st.subheader("💾 مصرف منابع")
-        st.write(f"**مصرف RAM:** {network_stats['memory_usage']}MB / 450MB")
-        st.write(f"**مصرف CPU:** {network_stats['cpu_usage']:.1f}%")
-        st.write(f"**بلوغ شبکه:** {network_stats['network_maturity']:.1%}")
-
-        # پیشرفت حافظه
-        memory_progress = min(max(network_stats['memory_usage'] / 450, 0.0), 1.0)
-        st.progress(memory_progress)
-        st.caption(f"مصرف حافظه ({memory_progress:.1%})")
-
-def display_real_health_metrics(vortex_ai):
-    """نمایش شاخص‌های سلامت واقعی"""
-    st.header("❤️ شاخص‌های حیاتی")
-
-    if not vortex_ai:
-        return
-
-    health_report = vortex_ai.get_health_report()
-    health_checks = health_report['health_checks']
-
-    # نمایش وضعیت سلامت
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("🔧 بررسی‌های فنی")
-        for check_name, check_status in health_checks.items():
-            status_icon = "✅" if check_status else "⚠️"
-            status_text = "خوب" if check_status else "نیازمند توجه"
-            st.write(f"{status_icon} {check_name}: {status_text}")
-
-    with col2:
-        st.subheader("📊 معیارهای عملکرد")
-        metrics = health_report['performance_metrics']
-        st.write(f"**روند دقت:** {'📈 بهبود' if metrics.get('accuracy_trend', 0) > 0 else '📉 کاهش'}")
-        st.write(f"**الگوهای جدید:** {'✅ کشف شده' if metrics.get('new_patterns_detected', False) else '❌ ندارد'}")
-        st.write(f"**رضایت کاربر:** {metrics.get('user_satisfaction', 0)*100:.1f}%")
-
-def display_performance_metrics(vortex_ai):
-    """نمایش معیارهای عملکرد دقیق"""
-    st.subheader("📈 تحلیل عملکرد دقیق")
-
-    if not vortex_ai or not vortex_ai.analysis_history:
-        st.info("📊 داده‌های عملکردی هنوز جمع‌آوری نشده‌اند")
-        return
-
-    # محاسبه آمار پیشرفت
-    recent_analyses = vortex_ai.analysis_history[-10:]  # 10 تحلیل اخیر
+def display_market_tab(scanner, lang):
+    """نمایش تب اسکن بازار"""
     
-    if recent_analyses:
-        confidences = [analysis.get('ai_confidence', 0) for analysis in recent_analyses]
-        avg_confidence = sum(confidences) / len(confidences)
+    # Handle scan requests
+    normal_scan = st.session_state.get('normal_scan', False)
+    ai_scan = st.session_state.get('ai_scan', False)
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.metric("میانگین اعتماد اخیر", f"{avg_confidence:.1f}%")
-
-        with col2:
-            trend = "📈 بهبود" if len(confidences) > 1 and confidences[-1] > confidences[0] else "📉 کاهش"
-            st.metric("روند اعتماد", trend)
-
-        # نمودار ساده اعتماد
-        st.line_chart(confidences)
-
-def display_alerts_and_warnings(vortex_ai):
-    """نمایش هشدارها و اعلان‌ها"""
-    st.subheader("🚨 هشدارها و اعلان‌ها")
-
-    if not vortex_ai:
-        return
-
-    health_report = vortex_ai.get_health_report()
-    alerts = []
-
-    # بررسی شرایط هشدار
-    network_stats = health_report['network_stats']
-    
-    if network_stats['memory_usage'] > 300:
-        alerts.append("🔴 مصرف حافظه به حد هشدار نزدیک است")
+    if normal_scan:
+        handle_normal_scan(scanner, lang)
         
-    if network_stats['current_accuracy'] < 0.6:
-        alerts.append("🟡 دقت تحلیل کمتر از 60% است")
-        
-    if health_report['emergency_status']['active']:
-        alerts.append("🔴 سیستم در حالت توقف اضطراری است")
-        
-    if network_stats['total_neurons'] > 3500:
-        alerts.append("🟡 تعداد نورون‌ها به حد مجاز نزدیک است")
+    if ai_scan:
+        handle_ai_scan(scanner, lang)
 
-    # نمایش هشدارها
-    if alerts:
-        for alert in alerts:
-            if "🔴" in alert:
-                st.error(alert)
-            elif "🟡" in alert:
-                st.warning(alert)
-            else:
-                st.info(alert)
+    # نمایش نتایج بازار
+    if st.session_state.scan_results:
+        display_market_results(st.session_state.scan_results)
+
+        # نمایش تحلیل AI اگر موجود باشد
+        if st.session_state.ai_results:
+            display_ai_analysis(st.session_state.ai_results)
     else:
-        st.success("✅ همه سیستم‌ها در وضعیت نرمال هستند")
+        display_welcome_screen(scanner)
+
+def handle_normal_scan(scanner, lang):
+    """مدیریت اسکن معمولی"""
+    with st.spinner(lang.t('scanning')):
+        print("🔍 NORMAL SCAN TRIGGERED")
+        if scanner:
+            try:
+                results = scanner.scan_market(limit=100)
+                if results and results.get('success'):
+                    st.session_state.scan_results = results
+                    st.session_state.ai_results = None
+                    st.success(f'✅ اسکن موفق: {len(results.get("coins", []))} ارز پیدا شد')
+                else:
+                    st.error("❌ خطا در دریافت داده‌ها از سرور")
+                    # نمایش داده نمونه در صورت خطا
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
+                    
+            except Exception as e:
+                st.error(f"❌ خطا در اسکن: {e}")
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
+                st.session_state.ai_results = None
+        else:
+            st.error("❌ Scanner initialization failed")
+
+def handle_ai_scan(scanner, lang):
+    """مدیریت اسکن با هوش مصنوعی"""  
+    with st.spinner(lang.t('analyzing')):
+        print("🧠 AI SCAN TRIGGERED")
+        if scanner:
+            try:
+                results = scanner.scan_with_ai(limit=100)
+                if results and results.get('success'):
+                    st.session_state.scan_results = results
+                    st.session_state.ai_results = results.get('ai_analysis')
+                    st.success(f"✅ تحلیل AI موفق: {len(results.get('coins', []))} ارز تحلیل شد")  
+                    
+                    # فعال‌سازی vortex_ai اگر وجود ندارد  
+                    if not hasattr(scanner, 'vortex_ai') or not scanner.vortex_ai:  
+                        st.info("در حال راه‌اندازی VortexAI...")
+                        
+                else:
+                    st.error("❌ خطا در تحلیل AI")
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
+                    
+            except Exception as e:
+                st.error(f"❌ خطا در تحلیل AI: {e}")
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
+                st.session_state.ai_results = None
+        else:
+            st.error("❌ Scanner initialization failed")
+
+def get_fallback_data_safe():
+    """ایمن‌سازی داده نمونه"""
+    try:
+        sample_coins = [
+            {
+                'name': 'Bitcoin',
+                'symbol': 'BTC',
+                'price': 65432.10,
+                'priceChange24h': 2.15,
+                'priceChange1h': 0.32,
+                'volume': 39245678901,
+                'marketCap': 1287654321098
+            },
+            {
+                'name': 'Ethereum',
+                'symbol': 'ETH',
+                'price': 3456.78,
+                'priceChange24h': 1.87,
+                'priceChange1h': -0.15,
+                'volume': 18765432987,
+                'marketCap': 415678901234
+            },
+            {
+                'name': 'BNB',
+                'symbol': 'BNB', 
+                'price': 567.89,
+                'priceChange24h': 3.21,
+                'priceChange1h': 0.45,
+                'volume': 2987654321,
+                'marketCap': 87654321098
+            }
+        ]
+
+        return {
+            'success': True,
+            'coins': sample_coins,
+            'count': len(sample_coins),
+            'timestamp': datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        print(f"❌ Fallback data error: {e}")
+        return {
+            'success': True,
+            'coins': [],
+            'count': 0,
+            'timestamp': datetime.now().isoformat()
+        }
 
 def main():
     """Main application function"""
