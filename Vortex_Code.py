@@ -789,6 +789,7 @@ def display_quick_actions():
         if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
             st.session_state.show_settings = True
 # --- SECTION 7: MAIN APPLICATION ---
+
 def main():
     """Main application function"""
     setup_page_config()
@@ -800,10 +801,16 @@ def main():
     # Setup sidebar and get scan buttons
     normal_scan, ai_scan = setup_sidebar()
     
-    # Initialize scanner
+    # Initialize scanner با خطایابی بهتر
     @st.cache_resource
     def load_scanner():
-        return CryptoScanner()
+        try:
+            scanner = CryptoScanner()
+            print("✅ Scanner initialized successfully")
+            return scanner
+        except Exception as e:
+            print(f"❌ Scanner initialization failed: {e}")
+            return None
     
     scanner = load_scanner()
     
@@ -817,8 +824,13 @@ def main():
     if normal_scan:
         with st.spinner(lang.t('scanning')):
             print("🎯 NORMAL SCAN TRIGGERED")
-            results = scanner.scan_market(limit=100)
-            print(f"📊 NORMAL SCAN RESULTS: {results}")
+            if scanner:
+                results = scanner.scan_market(limit=100)
+            else:
+                results = None
+                st.error("❌ Scanner initialization failed")
+            
+            print(f"📊 NORMAL SCAN RESULTS: {results is not None}")
             
             if results and results.get('success'):
                 st.session_state.scan_results = results
@@ -826,12 +838,22 @@ def main():
                 st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
             else:
                 st.error("❌ خطا در دریافت داده‌ها")
+                # حتی در صورت خطا هم داده نمونه نمایش بده
+                if scanner:
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
     
     if ai_scan:
         with st.spinner(lang.t('analyzing')):
             print("🎯 AI SCAN TRIGGERED")
-            results = scanner.scan_with_ai(limit=100)
-            print(f"📊 AI SCAN RESULTS: {results}")
+            if scanner:
+                results = scanner.scan_with_ai(limit=100)
+            else:
+                results = None
+                st.error("❌ Scanner initialization failed")
+            
+            print(f"📊 AI SCAN RESULTS: {results is not None}")
             
             if results and results.get('success'):
                 st.session_state.scan_results = results
@@ -839,6 +861,10 @@ def main():
                 st.success(f"✅ تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
             else:
                 st.error("❌ خطا در تحلیل AI")
+                if scanner:
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
     
     # نمایش نتایج از session state
     if st.session_state.scan_results:
@@ -861,14 +887,14 @@ def main():
         💡 **نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند.
         """)
         
-        # نمایش داده‌های نمونه برای تست
+        # نمایش داده‌های نمونه برای تست - نسخه ایمن
         st.warning("در حال حاضر داده‌ای برای نمایش وجود ندارد. لطفاً یکی از دکمه‌های اسکن را فشار دهید.")
         
-        # دکمه تست سریع
+        # دکمه تست سریع - نسخه ایمن
         if st.button("🧪 تست سریع با داده نمونه", type="secondary"):
             with st.spinner("بارگذاری داده نمونه..."):
-                sample_data = scanner._get_fallback_data()
-                st.session_state.scan_results = sample_data
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
                 st.session_state.ai_results = None
                 st.rerun()
     
@@ -877,7 +903,7 @@ def main():
         st.markdown("---")
         st.subheader("🤖 وضعیت VortexAI" if lang.current_lang == 'fa' else "🤖 VortexAI Status")
         
-        if scanner and scanner.vortex_ai:
+        if scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
             st.metric(
                 "جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", 
                 scanner.vortex_ai.learning_sessions
@@ -886,6 +912,8 @@ def main():
                 "تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", 
                 len(scanner.vortex_ai.analysis_history)
             )
+        else:
+            st.warning("AI در دسترس نیست")
         
         # نمایش وضعیت اتصال
         st.markdown("---")
@@ -899,6 +927,55 @@ def main():
                 st.warning("⚠️ استفاده از داده نمونه")
         else:
             st.info("🔌 در انتظار اتصال")
+
+# تابع کمکی برای داده نمونه ایمن
+def get_fallback_data_safe():
+    """ایمن‌سازی داده نمونه"""
+    try:
+        sample_coins = [
+            {
+                'name': 'Bitcoin',
+                'symbol': 'BTC',
+                'price': 124619.36,
+                'priceChange24h': 1.92,
+                'priceChange1h': -0.08,
+                'volume': 39306468043,
+                'marketCap': 2483440001648
+            },
+            {
+                'name': 'Ethereum',
+                'symbol': 'ETH',
+                'price': 4586.82,
+                'priceChange24h': 2.15,
+                'priceChange1h': -0.32,
+                'volume': 40423228887,
+                'marketCap': 553641132921
+            },
+            {
+                'name': 'BNB',
+                'symbol': 'BNB', 
+                'price': 1171.38,
+                'priceChange24h': 1.38,
+                'priceChange1h': -0.58,
+                'volume': 14106039249,
+                'marketCap': 163038687343
+            }
+        ]
+        
+        return {
+            'success': True,
+            'coins': sample_coins,
+            'count': len(sample_coins),
+            'timestamp': datetime.now().isoformat()
+        }
+    except Exception as e:
+        print(f"❌ Fallback data error: {e}")
+        return {
+            'success': True,
+            'coins': [],
+            'count': 0,
+            'timestamp': datetime.now().isoformat()
+        }
 
 # Run the application
 if __name__ == "__main__":
