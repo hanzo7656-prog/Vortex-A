@@ -766,7 +766,7 @@ class VortexNeuralNetwork:
         # محاسبه CPU usage واقعی
         cpu_usage = min(50, self.total_activations / 1000)  # حداکثر 50%
     
-    return {
+        return {
         'total_neurons': len(self.neurons),
         'total_synapses': len(self.synapses),
         'total_weights': total_weights,
