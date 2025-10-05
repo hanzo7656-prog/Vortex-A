@@ -702,30 +702,30 @@ class VortexNeuralNetwork:
             self.synapses.append(synapse)
     
     def optimize_memory(self):
-    """بهینه‌سازی حافظه و حذف نورون‌های بی‌فایده - نسخه قوی"""
-    neurons_to_prune = []
+        """بهینه‌سازی حافظه و حذف نورون‌های بی‌فایده - نسخه قوی"""
+        neurons_to_prune = []
     
-    for neuron_id, neuron in self.neurons.items():
+        for neuron_id, neuron in self.neurons.items():
         # معیارهای سخت‌گیرانه‌تر برای حذف
-        if (neuron.activation_count < 3 and 
-            not neuron.should_protect() and
-            neuron_id not in self.input_layer and 
-            neuron_id not in self.output_layer and
-            max(neuron.weights.values()) < 0.05):  # وزن‌های بسیار کوچک
+            if (neuron.activation_count < 3 and 
+                not neuron.should_protect() and
+                neuron_id not in self.input_layer and 
+                neuron_id not in self.output_layer and
+                max(neuron.weights.values()) < 0.05):  # وزن‌های بسیار کوچک
             
-            neurons_to_prune.append(neuron_id)
+                neurons_to_prune.append(neuron_id)
     
-    # حذف تا 20% نورون‌ها در صورت نیاز
-    prune_count = min(len(neurons_to_prune), len(self.neurons) // 5)
+        # حذف تا 20% نورون‌ها در صورت نیاز
+        prune_count = min(len(neurons_to_prune), len(self.neurons) // 5)
     
-    for neuron_id in neurons_to_prune[:prune_count]:
-        self._remove_neuron(neuron_id)
+        for neuron_id in neurons_to_prune[:prune_count]:
+            self._remove_neuron(neuron_id)
     
-    # بهینه‌سازی سیناپس‌ها
-    self._optimize_synapses()
+        # بهینه‌سازی سیناپس‌ها
+        self._optimize_synapses()
     
-    print(f"🧹 بهینه‌سازی حافظه: {prune_count} نورون و {len(self.synapses)} سیناپس")
-    return prune_count
+        print(f"🧹 بهینه‌سازی حافظه: {prune_count} نورون و {len(self.synapses)} سیناپس")
+        return prune_count
     
     def _remove_neuron(self, neuron_id: int):
         """حذف ایمن یک نورون"""
