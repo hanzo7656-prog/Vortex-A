@@ -1896,7 +1896,7 @@ def display_monitoring_tab(scanner):
                 status = "بحرانی"
             if memory_usage > 200:
                 status = "هشدار"
-            else
+            else:
                 status = "نرمال"
 
             st.info(f"وضعیت حافظه : {status} - مصرف {memory_usage}MG از 450MG")
