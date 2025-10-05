@@ -1257,7 +1257,6 @@ class CryptoScanner:
             print(f"🤖 AI Scan Error: {e}")
             logging.error(f"AI scan error: {e}")
             return None
-# --- SECTION 6: UI COMPONENTS ---
 # -- SECTION 6: UI COMPONENTS WITH MONITORING --
 
 def display_market_results(results: Dict):
@@ -1706,8 +1705,8 @@ def display_quick_actions():
         if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
             st.session_state.show_settings = True
             
-# --- SECTION 7: MAIN APPLICATION ---
 # -- SECTION 7: MAIN APPLICATION WITH MONITORING --
+# -- SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED --
 
 def main():
     """Main application function"""
@@ -1729,6 +1728,13 @@ def main():
         try:
             scanner = CryptoScanner()
             print("✅ Scanner initialized successfully")
+            
+            # بررسی سلامت vortex_ai
+            if hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
+                print("✅ VortexAI initialized successfully")
+            else:
+                print("⚠️ VortexAI not available yet")
+                
             return scanner
         except Exception as e:
             print(f"❌ Scanner initialization failed: {e}")
@@ -1754,165 +1760,246 @@ def main():
     tab1, tab2, tab3 = st.tabs(["📊 اسکن بازار", "🧠 مانیتورینگ هوش مصنوعی", "ℹ️ راهنما"])
 
     with tab1:
-        # Handle scan requests
-        if normal_scan:
-            with st.spinner(lang.t('scanning')):
-                print("🔍 NORMAL SCAN TRIGGERED")
-                if scanner:
-                    results = scanner.scan_market(limit=100)
-                else:
-                    results = None
-                    st.error("❌ Scanner initialization failed")
+        display_market_tab(scanner, lang)
 
-                print(f"📊 NORMAL SCAN RESULTS: {results is not None}")
+    with tab2:
+        display_monitoring_tab(scanner)
 
+    with tab3:
+        display_help_tab()
+
+    # Display AI status in sidebar
+    display_sidebar_status(scanner)
+
+# ==================== توابع جدید برای سازماندهی بهتر ====================
+
+def display_market_tab(scanner, lang):
+    """نمایش تب اسکن بازار"""
+    # Handle scan requests
+    normal_scan, ai_scan = st.session_state.get('normal_scan', False), st.session_state.get('ai_scan', False)
+    
+    if normal_scan:
+        handle_normal_scan(scanner, lang)
+        
+    if ai_scan:
+        handle_ai_scan(scanner, lang)
+
+    # نمایش نتایج بازار
+    if st.session_state.scan_results:
+        display_market_results(st.session_state.scan_results)
+
+        # نمایش تحلیل AI اگر موجود باشد
+        if st.session_state.ai_results:
+            display_ai_analysis(st.session_state.ai_results)
+    else:
+        display_welcome_screen(scanner)
+
+def handle_normal_scan(scanner, lang):
+    """مدیریت اسکن معمولی"""
+    with st.spinner(lang.t('scanning')):
+        print("🔍 NORMAL SCAN TRIGGERED")
+        if scanner:
+            try:
+                results = scanner.scan_market(limit=100)
                 if results and results.get('success'):
                     st.session_state.scan_results = results
                     st.session_state.ai_results = None
                     st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
                 else:
-                    st.error("❌ خطا در دریافت داده‌ها")
+                    st.error("❌ خطا در دریافت داده‌ها از سرور")
                     # نمایش داده نمونه در صورت خطا
-                    if scanner:
-                        fallback_data = get_fallback_data_safe()
-                        st.session_state.scan_results = fallback_data
-                        st.session_state.ai_results = None
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
+            except Exception as e:
+                st.error(f"❌ خطا در اسکن: {e}")
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
+                st.session_state.ai_results = None
+        else:
+            st.error("❌ Scanner initialization failed")
 
-        if ai_scan:
-            with st.spinner(lang.t('analyzing')):
-                print("🎯 AI SCAN TRIGGERED")
-                if scanner:
-                    results = scanner.scan_with_ai(limit=100)
-                else:
-                    results = None
-                    st.error("❌ Scanner initialization failed")
-
-                print(f"📈 AI SCAN RESULTS: {results is not None}")
-
+def handle_ai_scan(scanner, lang):
+    """مدیریت اسکن با هوش مصنوعی"""
+    with st.spinner(lang.t('analyzing')):
+        print("🎯 AI SCAN TRIGGERED")
+        if scanner:
+            try:
+                results = scanner.scan_with_ai(limit=100)
                 if results and results.get('success'):
                     st.session_state.scan_results = results
                     st.session_state.ai_results = results.get('ai_analysis')
                     st.success(f"🧠 تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
+                    
+                    # فعال‌سازی vortex_ai اگر وجود ندارد
+                    if not hasattr(scanner, 'vortex_ai') or not scanner.vortex_ai:
+                        st.info("🔄 در حال راه‌اندازی VortexAI...")
                 else:
                     st.error("❌ خطا در تحلیل AI")
-                    if scanner:
-                        fallback_data = get_fallback_data_safe()
-                        st.session_state.scan_results = fallback_data
-                        st.session_state.ai_results = None
-
-        # نمایش نتایج بازار
-        if st.session_state.scan_results:
-            print(f"📋 DISPLAYING RESULTS: {len(st.session_state.scan_results.get('coins', []))} coins")
-            
-            # نمایش نتایج بازار
-            display_market_results(st.session_state.scan_results)
-
-            # نمایش تحلیل AI اگر موجود باشد
-            if st.session_state.ai_results:
-                display_ai_analysis(st.session_state.ai_results)
-        else:
-            # نمایش صفحه خالی با راهنما
-            st.info("""
-            **📋 راهنمای شروع:**
-
-            1. **اسکن بازار** برای دریافت لیست ارزها
-            2. **اسکن با VortexAI** برای تحلیل پیشرفته با هوش مصنوعی
-
-            **💡 نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند
-            """)
-
-            # دکمه تست سریع
-            if st.button("🚀 اسکن سریع با داده نمونه", type="secondary"):
-                with st.spinner("📥 در حال بارگذاری داده نمونه..."):
                     fallback_data = get_fallback_data_safe()
                     st.session_state.scan_results = fallback_data
                     st.session_state.ai_results = None
-                    st.rerun()
-
-    with tab2:
-        # نمایش دشبورد مانیتورینگ
-        if scanner and hasattr(scanner, 'vortex_ai'):
-            display_ai_health_dashboard(scanner.vortex_ai, st.session_state.emergency_system)
-            display_growth_monitoring(scanner.vortex_ai)
-            display_real_health_metrics(scanner.vortex_ai)
-            display_performance_metrics(scanner.vortex_ai)
-            display_alerts_and_warnings(scanner.vortex_ai)
-            display_emergency_controls(st.session_state.emergency_system)
+            except Exception as e:
+                st.error(f"❌ خطا در تحلیل AI: {e}")
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
+                st.session_state.ai_results = None
         else:
-            st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
-            st.info("💡 برای فعال‌سازی مانیتورینگ، ابتدا یک اسکن با AI انجام دهید")
+            st.error("❌ Scanner initialization failed")
 
-    with tab3:
-        # صفحه راهنما
-        st.header("📚 راهنمای استفاده از VortexAI")
+def display_monitoring_tab(scanner):
+    """نمایش تب مانیتورینگ"""
+    st.header("🧠 مانیتورینگ هوش مصنوعی VortexAI")
+    
+    # بررسی وضعیت vortex_ai
+    if not scanner:
+        st.error("❌ اسکنر در دسترس نیست")
+        st.info("💡 لطفاً صبر کنید یا برنامه را مجدداً راه‌اندازی کنید")
+        return
         
+    if not hasattr(scanner, 'vortex_ai'):
+        st.warning("⚠️ VortexAI هنوز راه‌اندازی نشده است")
+        st.info("""
+        **برای فعال‌سازی مانیتورینگ:**
+        1. یک **اسکن با AI** انجام دهید
+        2. یا دکمه **«تحلیل AI سریع»** در نوار کناری را بزنید
+        """)
+        return
+        
+    if scanner.vortex_ai is None:
+        st.warning("⚠️ VortexAI در حال راه‌اندازی است...")
+        if st.button("🔄 راه‌اندازی مجدد VortexAI"):
+            try:
+                scanner.vortex_ai = VortexAI()
+                st.success("✅ VortexAI راه‌اندازی شد")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ خطا در راه‌اندازی: {e}")
+        return
+
+    # نمایش دشبوردهای مانیتورینگ
+    try:
+        # بررسی سلامت پایه
+        health_report = scanner.vortex_ai.get_health_report()
+        
+        # نمایش دشبورد اصلی
+        display_ai_health_dashboard(scanner.vortex_ai, st.session_state.emergency_system)
+        st.markdown("---")
+        
+        # نمایش بخش‌های دیگر
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🎯 قابلیت‌های اصلی")
-            st.write("""
-            - **اسکن بازار**: دریافت لیست ارزها با اطلاعات پایه
-            - **تحلیل AI**: تحلیل پیشرفته با شبکه عصبی
-            - **مدیریت ریسک**: شناسایی خودکار ریسک‌های بازار
-            - **سیگنال‌های هوشمند**: پیشنهادات معاملاتی مبتنی بر AI
-            """)
+            display_growth_monitoring(scanner.vortex_ai)
+            st.markdown("---")
+            display_real_health_metrics(scanner.vortex_ai)
             
-            st.subheader("🧠 سیستم هوش مصنوعی")
-            st.write("""
-            - **شبکه عصبی ۲۸۰۰ نورونی**
-            - **یادگیری مستمر از تجربیات**
-            - **تکامل خودکار معماری**
-            - **کنترل رشد هوشمند**
-            """)
-        
         with col2:
-            st.subheader("🛡️ سیستم‌های ایمنی")
-            st.write("""
-            - **مانیتورینگ سلامت لحظه‌ای**
-            - **توقف اضطراری خودکار**
-            - **کنترل مصرف منابع**
-            - **پیشگیری از تورم عصبی**
-            """)
-            
-            st.subheader("📊 مانیتورینگ")
-            st.write("""
-            - **سلامت فنی سیستم**
-            - **عملکرد شبکه عصبی**
-            - **روند رشد و توسعه**
-            - **هشدارهای خودکار**
-            """)
+            display_performance_metrics(scanner.vortex_ai)
+            st.markdown("---")
+            display_alerts_and_warnings(scanner.vortex_ai)
+        
+        st.markdown("---")
+        display_emergency_controls(st.session_state.emergency_system)
+        
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش مانیتورینگ: {e}")
+        st.info("""
+        **راه‌حل‌های احتمالی:**
+        - صفحه را رفرش کنید
+        - اسکن با AI جدید انجام دهید
+        - برنامه را مجدداً راه‌اندازی کنید
+        """)
 
-    # Display AI status in sidebar
+def display_help_tab():
+    """نمایش تب راهنما"""
+    st.header("📚 راهنمای استفاده از VortexAI")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🎯 قابلیت‌های اصلی")
+        st.write("""
+        - **اسکن بازار**: دریافت لیست ارزها با اطلاعات پایه
+        - **تحلیل AI**: تحلیل پیشرفته با شبکه عصبی
+        - **مدیریت ریسک**: شناسایی خودکار ریسک‌های بازار
+        - **سیگنال‌های هوشمند**: پیشنهادات معاملاتی مبتنی بر AI
+        """)
+        
+        st.subheader("🧠 سیستم هوش مصنوعی")
+        st.write("""
+        - **شبکه عصبی ۲۸۰۰ نورونی**
+        - **یادگیری مستمر از تجربیات**
+        - **تکامل خودکار معماری**
+        - **کنترل رشد هوشمند**
+        """)
+    
+    with col2:
+        st.subheader("🛡️ سیستم‌های ایمنی")
+        st.write("""
+        - **مانیتورینگ سلامت لحظه‌ای**
+        - **توقف اضطراری خودکار**
+        - **کنترل مصرف منابع**
+        - **پیشگیری از تورم عصبی**
+        """)
+        
+        st.subheader("📊 مانیتورینگ")
+        st.write("""
+        - **سلامت فنی سیستم**
+        - **عملکرد شبکه عصبی**
+        - **روند رشد و توسعه**
+        - **هشدارهای خودکار**
+        """)
+    
+    st.markdown("---")
+    st.subheader("🚀 شروع سریع")
+    
+    quick_col1, quick_col2, quick_col3 = st.columns(3)
+    
+    with quick_col1:
+        if st.button("🔍 اسکن بازار سریع", use_container_width=True):
+            st.session_state.normal_scan = True
+            st.rerun()
+    
+    with quick_col2:
+        if st.button("🧠 تحلیل AI سریع", use_container_width=True):
+            st.session_state.ai_scan = True
+            st.rerun()
+    
+    with quick_col3:
+        if st.button("📊 مشاهده مانیتورینگ", use_container_width=True):
+            st.session_state.current_tab = "مانیتورینگ هوش مصنوعی"
+            st.rerun()
+
+def display_sidebar_status(scanner):
+    """نمایش وضعیت در نوار کناری"""
     with st.sidebar:
         st.markdown("---")
         st.subheader("🤖 وضعیت VortexAI")
         
-        if scanner and hasattr(scanner, 'vortex_ai'):
-            vortex_ai = scanner.vortex_ai
-            health_report = vortex_ai.get_health_report()
-            
-            st.metric(
-                "🎓 جلسات یادگیری",
-                vortex_ai.learning_sessions
-            )
-            
-            st.metric(
-                "📈 تحلیل‌های انجام شده",
-                len(vortex_ai.analysis_history)
-            )
-            
-            st.metric(
-                "🧠 سلامت کلی",
-                f"{health_report['overall_health']:.1f}%"
-            )
-            
-            # نمایش وضعیت اضطراری
-            if health_report['emergency_status']['active']:
-                st.error("🛑 حالت ایمن فعال")
-            else:
-                st.success("🟢 حالت عادی")
+        vortex_ai_available = scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai
+        
+        if vortex_ai_available:
+            try:
+                vortex_ai = scanner.vortex_ai
+                health_report = vortex_ai.get_health_report()
+                
+                st.metric("🎓 جلسات یادگیری", vortex_ai.learning_sessions)
+                st.metric("📈 تحلیل‌های انجام شده", len(vortex_ai.analysis_history))
+                st.metric("🧠 سلامت کلی", f"{health_report['overall_health']:.1f}%")
+                
+                # نمایش وضعیت اضطراری
+                if health_report['emergency_status']['active']:
+                    st.error("🛑 حالت ایمن فعال")
+                else:
+                    st.success("🟢 حالت عادی")
+                    
+            except Exception as e:
+                st.warning("⚠️ خطا در دریافت وضعیت")
+                st.metric("🎓 جلسات یادگیری", "N/A")
         else:
             st.warning("🔴 هوش مصنوعی غیرفعال")
+            st.info("برای فعال‌سازی، اسکن با AI انجام دهید")
 
         # نمایش وضعیت اتصال
         st.markdown("---")
@@ -1931,19 +2018,58 @@ def main():
         st.markdown("---")
         st.subheader("⚡ اقدامات سریع")
         
-        if st.button("🔄 اسکن فوری بازار", use_container_width=True):
-            st.session_state.scan_results = None
-            st.session_state.ai_results = None
-            st.rerun()
-            
-        if st.button("🧠 تحلیل AI سریع", use_container_width=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🔍 اسکن بازار", use_container_width=True):
+                st.session_state.normal_scan = True
+                st.session_state.scan_results = None
+                st.session_state.ai_results = None
+                st.rerun()
+                
+        with col2:
+            if st.button("🧠 تحلیل AI", use_container_width=True):
+                st.session_state.ai_scan = True
+                st.rerun()
+
+def display_welcome_screen(scanner):
+    """نمایش صفحه خوش‌آمدگویی"""
+    st.info("""
+    **📋 راهنمای شروع:**
+
+    1. **اسکن بازار** برای دریافت لیست ارزها
+    2. **اسکن با VortexAI** برای تحلیل پیشرفته با هوش مصنوعی
+
+    **💡 نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند
+    """)
+
+    # دکمه تست سریع
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🚀 اسکن سریع با داده نمونه", type="secondary", use_container_width=True):
+            with st.spinner("📥 در حال بارگذاری داده نمونه..."):
+                fallback_data = get_fallback_data_safe()
+                st.session_state.scan_results = fallback_data
+                st.session_state.ai_results = None
+                st.rerun()
+    
+    with col2:
+        if st.button("🎯 تحلیل AI نمونه", use_container_width=True):
             if scanner:
                 with st.spinner("🔍 در حال تحلیل با AI..."):
-                    results = scanner.scan_with_ai(limit=50)
-                    if results and results.get('success'):
-                        st.session_state.scan_results = results
-                        st.session_state.ai_results = results.get('ai_analysis')
-                        st.rerun()
+                    try:
+                        results = scanner.scan_with_ai(limit=50)
+                        if results and results.get('success'):
+                            st.session_state.scan_results = results
+                            st.session_state.ai_results = results.get('ai_analysis')
+                            st.rerun()
+                        else:
+                            st.error("خطا در تحلیل AI")
+                    except Exception as e:
+                        st.error(f"خطا: {e}")
+            else:
+                st.error("اسکنر در دسترس نیست")
 
 # تابع کمکی برای داده نمونه ایمن
 def get_fallback_data_safe():
@@ -1960,7 +2086,7 @@ def get_fallback_data_safe():
                 'marketCap': 1287654321098
             },
             {
-                'name': 'Ethereum',
+                'name': 'Ethereum', 
                 'symbol': 'ETH',
                 'price': 3456.78,
                 'priceChange24h': 1.87,
@@ -1970,7 +2096,7 @@ def get_fallback_data_safe():
             },
             {
                 'name': 'BNB',
-                'symbol': 'BNB',
+                'symbol': 'BNB', 
                 'price': 567.89,
                 'priceChange24h': 3.21,
                 'priceChange1h': 0.45,
