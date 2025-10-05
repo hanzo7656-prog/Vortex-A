@@ -752,19 +752,19 @@ class VortexNeuralNetwork:
         print(f"✂️ {len(weak_synapses)} سیناپس ضعیف حذف شد")
     
     def get_network_stats(self) -> Dict:
-    """آمار شبکه عصبی با محاسبه حافظه واقعی"""
-    total_weights = sum(len(neuron.weights) for neuron in self.neurons.values())
-    avg_activation = sum(neuron.activation_count for neuron in self.neurons.values()) / len(self.neurons)
+        """آمار شبکه عصبی با محاسبه حافظه واقعی"""
+        total_weights = sum(len(neuron.weights) for neuron in self.neurons.values())
+        avg_activation = sum(neuron.activation_count for neuron in self.neurons.values()) / len(self.neurons)
     
-    # محاسبه REAL حافظه مصرفی
-    neuron_memory = len(self.neurons) * 200  # bytes per neuron (کاهش از 1000)
-    synapse_memory = len(self.synapses) * 16  # bytes per synapse (کاهش از 20)
-    weights_memory = total_weights * 4       # 4 bytes per weight
-    memory_usage_bytes = neuron_memory + synapse_memory + weights_memory
-    memory_usage_mb = memory_usage_bytes / (1024 * 1024)  # به مگابایت
+        # محاسبه REAL حافظه مصرفی
+        neuron_memory = len(self.neurons) * 200  # bytes per neuron (کاهش از 1000)
+        synapse_memory = len(self.synapses) * 16  # bytes per synapse (کاهش از 20)
+        weights_memory = total_weights * 4       # 4 bytes per weight
+        memory_usage_bytes = neuron_memory + synapse_memory + weights_memory
+        memory_usage_mb = memory_usage_bytes / (1024 * 1024)  # به مگابایت
     
-    # محاسبه CPU usage واقعی
-    cpu_usage = min(50, self.total_activations / 1000)  # حداکثر 50%
+        # محاسبه CPU usage واقعی
+        cpu_usage = min(50, self.total_activations / 1000)  # حداکثر 50%
     
     return {
         'total_neurons': len(self.neurons),
