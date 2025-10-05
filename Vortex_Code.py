@@ -837,7 +837,7 @@ class VortexNeuralNetwork:
                 print("حافظه تجربیات پاک‌سازی شد")
 
     def _calculate_current_accuracy(self) -> float:
-    """محاسبه دقت فعلی بر اساس حافظه"""
+        """محاسبه دقت فعلی بر اساس حافظه"""
         try:
             if len(self.memory) < 5:
                 return 0.5  # مقدار پیش‌فرض
@@ -855,7 +855,7 @@ class VortexNeuralNetwork:
             return 0.5
 
     def _calculate_signal_quality(self) -> float:
-    """محاسبه کیفیت سیگنال"""
+        """محاسبه کیفیت سیگنال"""
         try:
             if len(self.memory) < 3:
                 return 0.5  # مقدار پیش‌فرض
