@@ -1,4 +1,5 @@
-# crypto_scanner.py - سیستم دو زبانه
+# crypto_scanner.py - سیستم دو زبان
+
 import streamlit as st
 import requests
 import pandas as pd
@@ -10,23 +11,24 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import json
 
-# ==================== SECTION 1: MULTI-LANGUAGE SYSTEM ====================
-class MultiLanguage:
+# --- SECTION 1: MULTI-LANGUAGE SYSTEM ---
+
+class MultiLanguage:  # تصحیح نام کلاس
     def __init__(self):
         self.dictionaries = {
             'fa': self._persian_dict(),
             'en': self._english_dict()
         }
         self.current_lang = 'fa'
-    
+
     def _persian_dict(self):
         return {
             # UI Elements
-            'app_title': "🧠 VortexAI - اسکنر بازار کریپتو",
-            'scan_button': "🔍 اسکن بازار",
-            'ai_scan_button': "🧠 اسکن با VortexAI", 
+            'app_title': "🔄 VortexAI - اسکنر بازار کریپتو",
+            'scan_button': "📊 اسکن بازار",
+            'ai_scan_button': "🤖 اسکن با VortexAI",
             'settings_button': "⚙️ تنظیمات",
-            'search_placeholder': "جستجوی ارز...",
+            'search_placeholder': "...جستجوی ارز",
             
             # Sidebar
             'sidebar_title': "کنترل‌ها",
@@ -39,8 +41,8 @@ class MultiLanguage:
             'results_title': "نتایج اسکن",
             'coin_name': "نام ارز",
             'price': "قیمت",
-            'change_24h': "تغییر ۲۴h",
-            'change_1h': "تغییر ۱h", 
+            'change_24h': "تغییر 24h",
+            'change_1h': "تغییر 1h",
             'volume': "حجم",
             'market_cap': "ارزش بازار",
             'signal_strength': "قدرت سیگنال",
@@ -60,25 +62,25 @@ class MultiLanguage:
             'moving_average': "میانگین متحرک",
             
             # Status Messages
-            'scanning': "در حال اسکن بازار...",
-            'analyzing': "VortexAI در حال تحلیل...",
+            'scanning': "...در حال اسکن بازار",
+            'analyzing': "...VortexAI در حال تحلیل",
             'completed': "تکمیل شد",
             'error': "خطا",
             'success': "موفق"
         }
-    
+
     def _english_dict(self):
         return {
             # UI Elements
-            'app_title': "🧠 VortexAI - Crypto Market Scanner",
-            'scan_button': "🔍 Scan Market", 
-            'ai_scan_button': "🧠 Scan with VortexAI",
+            'app_title': "VortexAI - Crypto Market Scanner",
+            'scan_button': "📊 Scan Market",
+            'ai_scan_button': "🤖 Scan with VortexAI",
             'settings_button': "⚙️ Settings",
             'search_placeholder': "Search coins...",
             
             # Sidebar
             'sidebar_title': "Controls",
-            'language_label': "Language", 
+            'language_label': "Language",
             'theme_label': "Theme",
             'dark_mode': "Dark",
             'light_mode': "Light",
@@ -90,13 +92,13 @@ class MultiLanguage:
             'change_24h': "24h Change",
             'change_1h': "1h Change",
             'volume': "Volume",
-            'market_cap': "Market Cap", 
+            'market_cap': "Market Cap",
             'signal_strength': "Signal Strength",
             
             # AI Analysis
             'ai_analysis': "AI Analysis",
             'strong_signals': "Strong Signals",
-            'risk_warnings': "Risk Warnings", 
+            'risk_warnings': "Risk Warnings",
             'market_insights': "Market Insights",
             'ai_confidence': "AI Confidence",
             
@@ -107,18 +109,18 @@ class MultiLanguage:
             'bollinger_bands': "Bollinger Bands",
             'moving_average': "Moving Average",
             
-            # Status Messages  
+            # Status Messages
             'scanning': "Scanning market...",
             'analyzing': "VortexAI analyzing...",
             'completed': "Completed",
             'error': "Error",
             'success': "Success"
         }
-    
+
     def t(self, key):
         """Get translation for current language"""
         return self.dictionaries[self.current_lang].get(key, key)
-    
+
     def set_language(self, lang):
         """Set current language"""
         if lang in self.dictionaries:
@@ -127,12 +129,13 @@ class MultiLanguage:
 # Initialize multi-language system
 lang = MultiLanguage()
 
-# ==================== SECTION 2: CONFIGURATION ====================
+# --- SECTION 2: CONFIGURATION ---
+
 def setup_page_config():
     """Setup Streamlit page configuration"""
     st.set_page_config(
         page_title=lang.t('app_title'),
-        page_icon="🧠",
+        page_icon="🔄",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -167,15 +170,16 @@ def setup_sidebar():
             normal_scan = st.button(lang.t('scan_button'), use_container_width=True)
         with col2:
             ai_scan = st.button(lang.t('ai_scan_button'), use_container_width=True, type="secondary")
-        
+            
         return normal_scan, ai_scan
 
-# ==================== SECTION 3: DATABASE MANAGER ====================
+# --- SECTION 3: DATABASE MANAGER ---
+
 class DatabaseManager:
     def __init__(self, db_path="crypto_data.db"):
         self.db_path = db_path
         self._init_database()
-    
+
     def _init_database(self):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute('''
@@ -189,7 +193,7 @@ class DatabaseManager:
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-    
+
     def save_market_data(self, data: List[Dict]):
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -207,12 +211,13 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Error saving market data: {e}")
 
-# ==================== SECTION 4: VORTEXAI CORE ====================
+# --- SECTION 4: VORTEXAI CORE ---
+
 class VortexAI:
     def __init__(self):
         self.learning_sessions = 0
         self.analysis_history = []
-    
+
     def analyze_market_data(self, coins_data: List[Dict]) -> Dict:
         """Analyze market data and return insights"""
         self.learning_sessions += 1
@@ -223,20 +228,19 @@ class VortexAI:
             "market_insights": [],
             "ai_confidence": self._calculate_confidence(coins_data)
         }
-        
+
         for coin in coins_data[:20]:  # Analyze top 20 coins
             coin_analysis = self._analyze_single_coin(coin)
-            
             if coin_analysis["signal_strength"] > 70:
                 analysis["strong_signals"].append(coin_analysis)
             if coin_analysis["risk_level"] > 60:
                 analysis["risk_warnings"].append(coin_analysis)
-        
+
         analysis["market_insights"] = self._generate_market_insights(coins_data)
         self.analysis_history.append(analysis)
         
         return analysis
-    
+
     def _analyze_single_coin(self, coin: Dict) -> Dict:
         """Analyze a single coin"""
         signal_strength = 0
@@ -248,33 +252,33 @@ class VortexAI:
             signal_strength += 40
         elif price_change_24h > 5:
             signal_strength += 20
-        
+            
         # Volume analysis
         volume = coin.get('volume', 0)
         if volume > 50000000:
             signal_strength += 30
         elif volume > 10000000:
             signal_strength += 15
-        
+            
         # Risk assessment
         if price_change_24h > 15:
             risk_level = 70
         elif price_change_24h > 25:
             risk_level = 85
-        
+            
         return {
-            "coin": coin.get('name'),
-            "symbol": coin.get('symbol'),
+            "coin": coin.get('name', ''),
+            "symbol": coin.get('symbol', ''),
             "signal_strength": min(signal_strength, 100),
             "risk_level": risk_level,
             "recommendation": self._generate_recommendation(signal_strength, risk_level)
         }
-    
+
     def _calculate_confidence(self, coins_data: List[Dict]) -> float:
         """Calculate AI confidence level"""
         if not coins_data:
             return 0.0
-        
+            
         confidence_factors = []
         confidence_factors.append(min(len(coins_data) / 50, 1.0) * 0.4)
         
@@ -284,28 +288,28 @@ class VortexAI:
         confidence_factors.append(stability_factor * 0.6)
         
         return min(sum(confidence_factors), 1.0) * 100
-    
+
     def _generate_recommendation(self, signal_strength: float, risk_level: float) -> str:
         """Generate trading recommendation"""
         if lang.current_lang == 'fa':
             if signal_strength >= 70 and risk_level < 40:
-                return "🟢 خرید قوی"
+                return "خرید قوی"
             elif signal_strength >= 50 and risk_level < 60:
-                return "🟡 خرید محتاطانه"
+                return "خرید محتاطانه"
             elif signal_strength >= 30 or risk_level > 70:
-                return "🔴 نظارت بدون اقدام"
+                return "نظارت بدون اقدام"
             else:
-                return "⚪ صبر کنید"
+                return "صبر کنید"
         else:
             if signal_strength >= 70 and risk_level < 40:
-                return "🟢 Strong Buy"
+                return "🔍 Strong Buy"
             elif signal_strength >= 50 and risk_level < 60:
-                return "🟡 Cautious Buy"
+                return "🔍 Cautious Buy"
             elif signal_strength >= 30 or risk_level > 70:
-                return "🔴 Monitor Only"
+                return "🔍 Monitor Only"
             else:
-                return "⚪ Wait"
-    
+                return "🔍 Wait"
+
     def _generate_market_insights(self, coins_data: List[Dict]) -> List[str]:
         """Generate market insights"""
         insights = []
@@ -315,17 +319,17 @@ class VortexAI:
             avg_change_24h = np.mean(changes_24h) if changes_24h else 0
             
             if avg_change_24h > 5:
-                insights.append("📈 بازار در حالت صعودی قوی")
+                insights.append("✅ بازار در حالت صعودی قوی")
             elif avg_change_24h < -3:
-                insights.append("📉 بازار در حالت نزولی")
+                insights.append("⚠️ بازار در حالت نزولی")
             else:
                 insights.append("⚖️ بازار در حالت تعادل")
-            
+                
             bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
             bearish_coins = len(coins_data) - bullish_coins
             
             if bullish_coins > bearish_coins * 1.5:
-                insights.append("🎯 اکثریت ارزها صعودی هستند")
+                insights.append("😊 اکثریت ارزها صعودی هستند")
             elif bearish_coins > bullish_coins * 1.5:
                 insights.append("⚠️ اکثریت ارزها نزولی هستند")
         else:
@@ -333,36 +337,36 @@ class VortexAI:
             avg_change_24h = np.mean(changes_24h) if changes_24h else 0
             
             if avg_change_24h > 5:
-                insights.append("📈 Market in strong bullish mode")
+                insights.append("✅ Market in strong bullish mode")
             elif avg_change_24h < -3:
-                insights.append("📉 Market in bearish mode")
+                insights.append("⚠️ Market in bearish mode")
             else:
                 insights.append("⚖️ Market in balance")
-            
+                
             bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
             bearish_coins = len(coins_data) - bullish_coins
             
             if bullish_coins > bearish_coins * 1.5:
-                insights.append("🎯 Majority of coins are bullish")
+                insights.append("😊 Majority of coins are bullish")
             elif bearish_coins > bullish_coins * 1.5:
                 insights.append("⚠️ Majority of coins are bearish")
-        
+                
         return insights
 
-# ==================== SECTION 5: CRYPTO SCANNER ====================
+# --- SECTION 5: CRYPTO SCANNER ---
+
 class CryptoScanner:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.vortex_ai = VortexAI()
         self.api_base = "https://api.coinstats.app/public/v1"
-    
+
     def scan_market(self, limit: int = 100) -> Optional[Dict]:
         """Scan cryptocurrency market"""
         try:
             url = f"{self.api_base}/coins?limit={limit}"
             response = requests.get(url, timeout=10)
             response.raise_for_status()
-            
             data = response.json()
             coins = data.get('coins', [])
             
@@ -375,11 +379,10 @@ class CryptoScanner:
                 'count': len(coins),
                 'timestamp': datetime.now().isoformat()
             }
-            
         except Exception as e:
             logging.error(f"Market scan error: {e}")
             return {'success': False, 'error': str(e)}
-    
+
     def scan_with_ai(self, limit: int = 100) -> Optional[Dict]:
         """Scan market with AI analysis"""
         try:
@@ -387,7 +390,7 @@ class CryptoScanner:
             market_result = self.scan_market(limit)
             if not market_result or not market_result.get('success'):
                 return None
-            
+                
             coins = market_result['coins']
             
             # AI analysis
@@ -401,36 +404,44 @@ class CryptoScanner:
             }
             
             return result
-            
         except Exception as e:
             logging.error(f"AI scan error: {e}")
             return None
 
-# ==================== SECTION 6: UI COMPONENTS ====================
+# --- SECTION 6: UI COMPONENTS ---
+
 def display_market_results(results: Dict):
     """Display market scan results"""
     if not results or not results.get('success'):
         st.error(lang.t('error'))
         return
-    
+        
     coins_data = results.get('coins', [])
-    
     st.header(lang.t('results_title'))
     
     # Create DataFrame for display
     df_data = []
     for coin in coins_data[:50]:  # Show top 50 coins
-        df_data.append({
-            lang.t('coin_name'): coin.get('name', ''),
-            lang.t('price'): f"${coin.get('price', 0):.2f}",
-            lang.t('change_24h'): f"{coin.get('priceChange24h', 0):.2f}%",
-            lang.t('change_1h'): f"{coin.get('priceChange1h', 0):.2f}%",
-            lang.t('volume'): f"${coin.get('volume', 0):,.0f}",
-            lang.t('market_cap'): f"${coin.get('marketCap', 0):,.0f}"
-        })
+        df_data.append((
+            coin.get('name', ''),
+            coin.get('symbol', ''),
+            f"${coin.get('price', 0):.2f}",
+            f"{coin.get('priceChange24h', 0):.2f}%",
+            f"{coin.get('priceChange1h', 0):.2f}%",
+            f"{coin.get('volume', 0):.0f}",
+            f"{coin.get('marketCap', 0):.0f}"
+        ))
     
     if df_data:
-        df = pd.DataFrame(df_data)
+        df = pd.DataFrame(df_data, columns=[
+            lang.t('coin_name'),
+            'Symbol',
+            lang.t('price'),
+            lang.t('change_24h'),
+            lang.t('change_1h'),
+            lang.t('volume'),
+            lang.t('market_cap')
+        ])
         st.dataframe(df, use_container_width=True, height=400)
     
     # Display metrics
@@ -439,10 +450,10 @@ def display_market_results(results: Dict):
         st.metric("تعداد ارزها" if lang.current_lang == 'fa' else "Total Coins", len(coins_data))
     with col2:
         avg_change = np.mean([c.get('priceChange24h', 0) for c in coins_data])
-        st.metric("میانگین تغییرات" if lang.current_lang == 'fa' else "Average Change", f"{avg_change:.2f}%")
+        st.metric("میانگین تغییر" if lang.current_lang == 'fa' else "Average Change", f"{avg_change:.2f}%")
     with col3:
         total_volume = sum(c.get('volume', 0) for c in coins_data)
-        st.metric("حجم کل" if lang.current_lang == 'fa' else "Total Volume", f"${total_volume:,.0f}")
+        st.metric("حجم کل" if lang.current_lang == 'fa' else "Total Volume", f"{total_volume:.0f}")
     with col4:
         st.metric("وضعیت" if lang.current_lang == 'fa' else "Status", lang.t('completed'))
 
@@ -450,13 +461,13 @@ def display_ai_analysis(ai_analysis: Dict):
     """Display AI analysis results"""
     if not ai_analysis:
         return
-    
+        
     st.markdown("---")
     st.header(lang.t('ai_analysis'))
     
     # AI Confidence
     ai_confidence = ai_analysis.get('ai_confidence', 0)
-    st.metric(lang.t('ai_confidence'), f"{ai_confidence:.1f}%")
+    st.metric(lang.t('ai_confidence'), f'{ai_confidence:.1f}%')
     
     # Strong Signals
     strong_signals = ai_analysis.get('strong_signals', [])
@@ -485,7 +496,8 @@ def display_ai_analysis(ai_analysis: Dict):
         for insight in market_insights:
             st.info(insight)
 
-# ==================== SECTION 7: MAIN APPLICATION ====================
+# --- SECTION 7: MAIN APPLICATION ---
+
 def main():
     """Main application function"""
     setup_page_config()
@@ -508,26 +520,24 @@ def main():
     if normal_scan:
         with st.spinner(lang.t('scanning')):
             results = scanner.scan_market(limit=100)
-        
-        if results and results.get('success'):
-            display_market_results(results)
-        else:
-            st.error(lang.t('error'))
-    
+            if results and results.get('success'):
+                display_market_results(results)
+            else:
+                st.error(lang.t('error'))
+                
     if ai_scan:
         with st.spinner(lang.t('analyzing')):
             results = scanner.scan_with_ai(limit=100)
-        
-        if results and results.get('success'):
-            display_market_results(results)
-            display_ai_analysis(results.get('ai_analysis'))
-        else:
-            st.error(lang.t('error'))
+            if results and results.get('success'):
+                display_market_results(results)
+                display_ai_analysis(results.get('ai_analysis'))
+            else:
+                st.error(lang.t('error'))
     
     # Display AI status in sidebar
     with st.sidebar:
         st.markdown("---")
-        st.subheader("🧠 وضعیت VortexAI" if lang.current_lang == 'fa' else "🧠 VortexAI Status")
+        st.subheader("🤖 وضعیت VortexAI" if lang.current_lang == 'fa' else "🤖 VortexAI Status")
         st.metric("جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", scanner.vortex_ai.learning_sessions)
         st.metric("تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", len(scanner.vortex_ai.analysis_history))
 
