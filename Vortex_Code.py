@@ -211,147 +211,433 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Error saving market data: {e}")
 
-# --- SECTION 4: VORTEXAI CORE ---
+# --- SECTION 4: VORTEXAI NEURAL NETWORK ---
+
+import random
+import math
+from dataclasses import dataclass
+from typing import List, Dict, Tuple
+import json
+
+@dataclass
+class Neuron:
+    id: int
+    weights: Dict[str, float]
+    bias: float
+    activation_count: int = 0
+    learning_rate: float = 0.01
+    
+    def activate(self, inputs: Dict[str, float]) -> float:
+        """فعالسازی نورون"""
+        total = self.bias
+        for key, value in inputs.items():
+            if key in self.weights:
+                total += value * self.weights[key]
+        
+        self.activation_count += 1
+        return self._sigmoid(total)
+    
+    def _sigmoid(self, x: float) -> float:
+        """تابع فعالسازی سیگموید"""
+        return 1 / (1 + math.exp(-x))
+    
+    def adjust_weights(self, inputs: Dict[str, float], error: float, learning_rate: float):
+        """تنظیم وزن‌ها بر اساس خطا"""
+        activation = self.activate(inputs)
+        delta = error * activation * (1 - activation)
+        
+        for key in self.weights:
+            if key in inputs:
+                self.weights[key] += learning_rate * delta * inputs[key]
+        self.bias += learning_rate * delta
+    
+    def mutate(self, mutation_rate: float = 0.1):
+        """جهش برای تنوع ژنتیکی"""
+        for key in self.weights:
+            if random.random() < mutation_rate:
+                self.weights[key] += random.uniform(-0.2, 0.2)
+        
+        if random.random() < mutation_rate:
+            self.bias += random.uniform(-0.1, 0.1)
+
+@dataclass
+class Synapse:
+    source_neuron_id: int
+    target_neuron_id: int
+    weight: float
+    strength: float = 1.0
+    last_activated: float = 0
+
+class VortexNeuralNetwork:
+    def __init__(self):
+        self.neurons = {}
+        self.synapses = []
+        self.input_layer = []
+        self.hidden_layers = []
+        self.output_layer = []
+        self.learning_rate = 0.01
+        self.generation = 0
+        self.total_activations = 0
+        self.memory = []
+        
+        # ایجاد شبکه عصبی با 3500 نورون
+        self._build_network()
+    
+    def _build_network(self):
+        """ساخت شبکه عصبی با 3500 نورون"""
+        print("🧠 Building neural network with 3500 neurons...")
+        
+        # لایه ورودی (500 نورون)
+        input_features = [
+            'price', 'price_change_24h', 'price_change_1h', 'volume', 'market_cap',
+            'rsi', 'macd', 'bollinger_upper', 'bollinger_lower', 'volume_ratio',
+            'price_momentum', 'volatility', 'market_sentiment', 'trend_strength'
+        ]
+        
+        self.input_layer = []
+        for i in range(500):
+            weights = {feature: random.uniform(-1, 1) for feature in input_features}
+            neuron = Neuron(id=i, weights=weights, bias=random.uniform(-0.5, 0.5))
+            self.neurons[i] = neuron
+            self.input_layer.append(i)
+        
+        # لایه‌های پنهان (2500 نورون)
+        self.hidden_layers = []
+        layer_sizes = [800, 700, 600, 400]  # 4 لایه پنهان
+        
+        current_id = 500
+        for layer_size in layer_sizes:
+            layer = []
+            for i in range(layer_size):
+                weights = {'prev_layer': random.uniform(-1, 1)}
+                neuron = Neuron(id=current_id, weights=weights, bias=random.uniform(-0.5, 0.5))
+                self.neurons[current_id] = neuron
+                layer.append(current_id)
+                current_id += 1
+            self.hidden_layers.append(layer)
+        
+        # لایه خروجی (500 نورون)
+        self.output_layer = []
+        output_features = [
+            'buy_signal', 'sell_signal', 'hold_signal', 'risk_score', 'confidence',
+            'price_prediction_1h', 'price_prediction_24h', 'volatility_prediction'
+        ]
+        
+        for i in range(500):
+            weights = {feature: random.uniform(-1, 1) for feature in output_features}
+            neuron = Neuron(id=current_id, weights=weights, bias=random.uniform(-0.5, 0.5))
+            self.neurons[current_id] = neuron
+            self.output_layer.append(current_id)
+            current_id += 1
+        
+        # ایجاد سیناپس‌ها (ارتباطات)
+        self._create_synapses()
+        print(f"✅ Neural network built: {len(self.neurons)} neurons, {len(self.synapses)} synapses")
+    
+    def _create_synapses(self):
+        """ایجاد ارتباطات بین نورون‌ها"""
+        # ارتباط لایه ورودی به اولین لایه پنهان
+        for input_id in self.input_layer:
+            for hidden_id in self.hidden_layers[0]:
+                synapse = Synapse(input_id, hidden_id, random.uniform(-1, 1))
+                self.synapses.append(synapse)
+        
+        # ارتباط بین لایه‌های پنهان
+        for i in range(len(self.hidden_layers) - 1):
+            for source_id in self.hidden_layers[i]:
+                for target_id in self.hidden_layers[i + 1]:
+                    synapse = Synapse(source_id, target_id, random.uniform(-1, 1))
+                    self.synapses.append(synapse)
+        
+        # ارتباط آخرین لایه پنهان به لایه خروجی
+        for hidden_id in self.hidden_layers[-1]:
+            for output_id in self.output_layer:
+                synapse = Synapse(hidden_id, output_id, random.uniform(-1, 1))
+                self.synapses.append(synapse)
+    
+    def feed_forward(self, inputs: Dict[str, float]) -> Dict[str, float]:
+        """پیش‌بینی شبکه عصبی"""
+        # فعالسازی لایه ورودی
+        input_activations = {}
+        for neuron_id in self.input_layer:
+            neuron = self.neurons[neuron_id]
+            activation = neuron.activate(inputs)
+            input_activations[neuron_id] = activation
+        
+        # انتشار در لایه‌های پنهان
+        current_activations = input_activations
+        for layer in self.hidden_layers:
+            layer_activations = {}
+            for neuron_id in layer:
+                neuron = self.neurons[neuron_id]
+                # جمع‌آوری ورودی‌ها از سیناپس‌ها
+                neuron_inputs = {}
+                for synapse in self.synapses:
+                    if synapse.target_neuron_id == neuron_id:
+                        if synapse.source_neuron_id in current_activations:
+                            neuron_inputs[f"synapse_{synapse.source_neuron_id}"] = \
+                                current_activations[synapse.source_neuron_id] * synapse.weight
+                
+                activation = neuron.activate(neuron_inputs)
+                layer_activations[neuron_id] = activation
+                synapse.last_activated = activation
+            
+            current_activations = layer_activations
+        
+        # لایه خروجی
+        outputs = {}
+        for neuron_id in self.output_layer:
+            neuron = self.neurons[neuron_id]
+            neuron_inputs = {}
+            for synapse in self.synapses:
+                if synapse.target_neuron_id == neuron_id:
+                    if synapse.source_neuron_id in current_activations:
+                        neuron_inputs[f"synapse_{synapse.source_neuron_id}"] = \
+                            current_activations[synapse.source_neuron_id] * synapse.weight
+            
+            outputs[f"neuron_{neuron_id}"] = neuron.activate(neuron_inputs)
+        
+        self.total_activations += 1
+        return self._interpret_outputs(outputs)
+    
+    def _interpret_outputs(self, raw_outputs: Dict[str, float]) -> Dict[str, float]:
+        """تبدیل خروجی‌های خام به معنی‌دار"""
+        # گروه‌بندی خروجی‌ها
+        buy_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and int(k.split('_')[1]) < 3500 + 100]
+        sell_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and 3500 + 100 <= int(k.split('_')[1]) < 3500 + 200]
+        confidence_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and int(k.split('_')[1]) >= 3500 + 200]
+        
+        return {
+            'buy_confidence': sum(buy_signals) / len(buy_signals) if buy_signals else 0.5,
+            'sell_confidence': sum(sell_signals) / len(sell_signals) if sell_signals else 0.5,
+            'overall_confidence': sum(confidence_signals) / len(confidence_signals) if confidence_signals else 0.5,
+            'risk_score': 1 - (sum(confidence_signals) / len(confidence_signals)) if confidence_signals else 0.5,
+            'neural_activity': self.total_activations,
+            'network_maturity': min(1.0, self.total_activations / 1000)
+        }
+    
+    def learn_from_experience(self, inputs: Dict[str, float], expected_output: Dict[str, float], actual_profit: float = 0):
+        """یادگیری از تجربیات"""
+        # پیش‌بینی فعلی
+        current_output = self.feed_forward(inputs)
+        
+        # محاسبه خطا
+        error = self._calculate_error(current_output, expected_output, actual_profit)
+        
+        # انتشار خطا به عقب (Backpropagation ساده شده)
+        self._backward_propagate(error, inputs)
+        
+        # ذخیره در حافظه
+        experience = {
+            'inputs': inputs,
+            'expected': expected_output,
+            'actual': current_output,
+            'profit': actual_profit,
+            'error': error,
+            'timestamp': datetime.now().isoformat()
+        }
+        self.memory.append(experience)
+        
+        # پاک‌سازی حافظه قدیمی
+        if len(self.memory) > 1000:
+            self.memory = self.memory[-1000:]
+    
+    def _calculate_error(self, current: Dict, expected: Dict, profit: float) -> float:
+        """محاسبه خطا"""
+        error = 0
+        for key in current:
+            if key in expected:
+                error += abs(current[key] - expected[key])
+        
+        # اضافه کردن خطای سود/زیان
+        if profit != 0:
+            error += (1 - min(abs(profit), 1))  # خطای معکوس با سود
+        
+        return error / len(current) if current else 1.0
+    
+    def _backward_propagate(self, error: float, inputs: Dict[str, float]):
+        """انتشار خطا به عقب"""
+        learning_rate = self.learning_rate * (1 - min(1.0, self.total_activations / 10000))
+        
+        # به روز رسانی وزن‌ها در همه نورون‌ها
+        for neuron in self.neurons.values():
+            neuron.adjust_weights(inputs, error, learning_rate)
+            
+            # جهش تصادفی برای کشف راه‌حل‌های جدید
+            if random.random() < 0.01:  # 1% chance of mutation
+                neuron.mutate()
+    
+    def get_network_stats(self) -> Dict:
+        """آمار شبکه عصبی"""
+        total_weights = sum(len(neuron.weights) for neuron in self.neurons.values())
+        avg_activation = sum(neuron.activation_count for neuron in self.neurons.values()) / len(self.neurons)
+        
+        return {
+            'total_neurons': len(self.neurons),
+            'total_synapses': len(self.synapses),
+            'total_weights': total_weights,
+            'generation': self.generation,
+            'total_activations': self.total_activations,
+            'average_activation': avg_activation,
+            'learning_rate': self.learning_rate,
+            'memory_size': len(self.memory),
+            'network_maturity': min(1.0, self.total_activations / 1000)
+        }
+    
+    def evolve(self):
+        """تکامل شبکه - نسل جدید"""
+        self.generation += 1
+        print(f"🔄 Evolving neural network to generation {self.generation}")
+        
+        # جهش قوی‌تر برای نسل جدید
+        for neuron in self.neurons.values():
+            neuron.mutate(mutation_rate=0.2)
+        
+        # تنظیم مجدد سیناپس‌ها
+        for synapse in self.synapses:
+            synapse.weight += random.uniform(-0.3, 0.3)
+            synapse.strength = min(1.0, synapse.strength + random.uniform(-0.1, 0.1))
 
 class VortexAI:
     def __init__(self):
+        self.brain = VortexNeuralNetwork()
         self.learning_sessions = 0
         self.analysis_history = []
-
+        self.market_experiences = []
+    
     def analyze_market_data(self, coins_data: List[Dict]) -> Dict:
-        """Analyze market data and return insights"""
+        """تحلیل بازار با شبکه عصبی"""
         self.learning_sessions += 1
         
         analysis = {
+            "neural_analysis": [],
             "strong_signals": [],
             "risk_warnings": [],
             "market_insights": [],
-            "ai_confidence": self._calculate_confidence(coins_data)
+            "ai_confidence": 0,
+            "network_stats": self.brain.get_network_stats()
         }
-
-        for coin in coins_data[:20]:  # Analyze top 20 coins
-            coin_analysis = self._analyze_single_coin(coin)
+        
+        for coin in coins_data[:20]:
+            # آماده‌سازی ورودی برای شبکه عصبی
+            inputs = self._prepare_neural_inputs(coin)
+            
+            # دریافت پیش‌بینی از شبکه عصبی
+            neural_output = self.brain.feed_forward(inputs)
+            
+            coin_analysis = {
+                "coin": coin.get('name', ''),
+                "symbol": coin.get('symbol', ''),
+                "neural_buy_confidence": neural_output['buy_confidence'],
+                "neural_sell_confidence": neural_output['sell_confidence'],
+                "risk_score": neural_output['risk_score'] * 100,
+                "signal_strength": max(neural_output['buy_confidence'], neural_output['sell_confidence']) * 100,
+                "network_confidence": neural_output['overall_confidence'] * 100,
+                "recommendation": self._generate_neural_recommendation(neural_output)
+            }
+            
+            analysis["neural_analysis"].append(coin_analysis)
+            
             if coin_analysis["signal_strength"] > 70:
                 analysis["strong_signals"].append(coin_analysis)
-            if coin_analysis["risk_level"] > 60:
+            
+            if coin_analysis["risk_score"] > 60:
                 analysis["risk_warnings"].append(coin_analysis)
-
-        analysis["market_insights"] = self._generate_market_insights(coins_data)
+        
+        analysis["ai_confidence"] = self._calculate_confidence(coins_data)
+        analysis["market_insights"] = self._generate_neural_insights(analysis["neural_analysis"])
+        
+        # یادگیری از تحلیل فعلی
+        self._learn_from_analysis(analysis)
+        
         self.analysis_history.append(analysis)
-        
         return analysis
-
-    def _analyze_single_coin(self, coin: Dict) -> Dict:
-        """Analyze a single coin"""
-        signal_strength = 0
-        risk_level = 0
-        
-        # Price change analysis
-        price_change_24h = abs(coin.get('priceChange24h', 0))
-        if price_change_24h > 10:
-            signal_strength += 40
-        elif price_change_24h > 5:
-            signal_strength += 20
-            
-        # Volume analysis
-        volume = coin.get('volume', 0)
-        if volume > 50000000:
-            signal_strength += 30
-        elif volume > 10000000:
-            signal_strength += 15
-            
-        # Risk assessment
-        if price_change_24h > 15:
-            risk_level = 70
-        elif price_change_24h > 25:
-            risk_level = 85
-            
+    
+    def _prepare_neural_inputs(self, coin: Dict) -> Dict[str, float]:
+        """آماده‌سازی ورودی‌های شبکه عصبی"""
         return {
-            "coin": coin.get('name', ''),
-            "symbol": coin.get('symbol', ''),
-            "signal_strength": min(signal_strength, 100),
-            "risk_level": risk_level,
-            "recommendation": self._generate_recommendation(signal_strength, risk_level)
+            'price': min(coin.get('price', 0) / 100000, 1.0),  # نرمال‌سازی
+            'price_change_24h': (coin.get('priceChange24h', 0) + 50) / 100,  # نرمال‌سازی به 0-1
+            'price_change_1h': (coin.get('priceChange1h', 0) + 50) / 100,
+            'volume': min(math.log(coin.get('volume', 1) + 1) / 20, 1.0),
+            'market_cap': min(math.log(coin.get('marketCap', 1) + 1) / 25, 1.0),
+            'rsi': random.uniform(0, 1),  # جایگزین شونده با اندیکاتورهای واقعی
+            'macd': random.uniform(-1, 1),
+            'volatility': min(abs(coin.get('priceChange24h', 0)) / 50, 1.0),
+            'market_sentiment': random.uniform(0, 1)
         }
-
+    
+    def _generate_neural_recommendation(self, neural_output: Dict) -> str:
+        """تولید پیشنهاد مبتنی بر شبکه عصبی"""
+        buy_conf = neural_output['buy_confidence']
+        sell_conf = neural_output['sell_confidence']
+        
+        if buy_conf > 0.7 and buy_conf > sell_conf * 1.5:
+            return "خرید قوی عصبی"
+        elif sell_conf > 0.7 and sell_conf > buy_conf * 1.5:
+            return "فروش قوی عصبی"
+        elif buy_conf > 0.6:
+            return "خرید محتاطانه عصبی"
+        elif sell_conf > 0.6:
+            return "فروش محتاطانه عصبی"
+        else:
+            return "نظارت عصبی"
+    
+    def _generate_neural_insights(self, neural_analysis: List[Dict]) -> List[str]:
+        """تولید بینش‌های مبتنی بر شبکه عصبی"""
+        insights = []
+        
+        avg_buy_confidence = sum(a['neural_buy_confidence'] for a in neural_analysis) / len(neural_analysis)
+        avg_sell_confidence = sum(a['neural_sell_confidence'] for a in neural_analysis) / len(neural_analysis)
+        
+        if avg_buy_confidence > 0.6:
+            insights.append("🧠 شبکه عصبی حالت صعودی قوی تشخیص می‌دهد")
+        elif avg_sell_confidence > 0.6:
+            insights.append("🧠 شبکه عصبی حالت نزولی قوی تشخیص می‌دهد")
+        else:
+            insights.append("🧠 شبکه عصبی بازار را متعادل ارزیابی می‌کند")
+        
+        insights.append(f"🔄 نسل شبکه: {self.brain.generation}")
+        insights.append(f"🎯 بلوغ شبکه: {self.brain.get_network_stats()['network_maturity']:.1%}")
+        
+        return insights
+    
+    def _learn_from_analysis(self, analysis: Dict):
+        """یادگیری از تحلیل انجام شده"""
+        # شبیه‌سازی یادگیری از نتایج
+        for coin_analysis in analysis['neural_analysis']:
+            inputs = self._prepare_neural_inputs({
+                'price': random.uniform(1000, 50000),
+                'priceChange24h': random.uniform(-20, 20),
+                'priceChange1h': random.uniform(-5, 5),
+                'volume': random.uniform(1000000, 1000000000),
+                'marketCap': random.uniform(100000000, 100000000000)
+            })
+            
+            # شبیه‌سازی خروجی مورد انتظار بر اساس عملکرد
+            expected_output = {
+                'buy_confidence': random.uniform(0.3, 0.8),
+                'sell_confidence': random.uniform(0.3, 0.8),
+                'overall_confidence': random.uniform(0.5, 0.9)
+            }
+            
+            self.brain.learn_from_experience(inputs, expected_output, random.uniform(-0.1, 0.1))
+    
     def _calculate_confidence(self, coins_data: List[Dict]) -> float:
-        """Calculate AI confidence level"""
+        """محاسبه اعتماد هوش مصنوعی"""
         if not coins_data:
             return 0.0
             
-        confidence_factors = []
-        confidence_factors.append(min(len(coins_data) / 50, 1.0) * 0.4)
+        base_confidence = min(len(coins_data) / 50, 1.0) * 0.3
+        neural_confidence = self.brain.get_network_stats()['network_maturity'] * 0.7
         
-        changes = [abs(c.get('priceChange24h', 0)) for c in coins_data]
-        market_volatility = np.std(changes) if changes else 0
-        stability_factor = max(0, 1 - (market_volatility / 20))
-        confidence_factors.append(stability_factor * 0.6)
-        
-        return min(sum(confidence_factors), 1.0) * 100
-
-    def _generate_recommendation(self, signal_strength: float, risk_level: float) -> str:
-        """Generate trading recommendation"""
-        if lang.current_lang == 'fa':
-            if signal_strength >= 70 and risk_level < 40:
-                return "خرید قوی"
-            elif signal_strength >= 50 and risk_level < 60:
-                return "خرید محتاطانه"
-            elif signal_strength >= 30 or risk_level > 70:
-                return "نظارت بدون اقدام"
-            else:
-                return "صبر کنید"
-        else:
-            if signal_strength >= 70 and risk_level < 40:
-                return "🔍 Strong Buy"
-            elif signal_strength >= 50 and risk_level < 60:
-                return "🔍 Cautious Buy"
-            elif signal_strength >= 30 or risk_level > 70:
-                return "🔍 Monitor Only"
-            else:
-                return "🔍 Wait"
-
-    def _generate_market_insights(self, coins_data: List[Dict]) -> List[str]:
-        """Generate market insights"""
-        insights = []
-        
-        if lang.current_lang == 'fa':
-            changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
-            avg_change_24h = np.mean(changes_24h) if changes_24h else 0
-            
-            if avg_change_24h > 5:
-                insights.append("✅ بازار در حالت صعودی قوی")
-            elif avg_change_24h < -3:
-                insights.append("⚠️ بازار در حالت نزولی")
-            else:
-                insights.append("⚖️ بازار در حالت تعادل")
-                
-            bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
-            bearish_coins = len(coins_data) - bullish_coins
-            
-            if bullish_coins > bearish_coins * 1.5:
-                insights.append("😊 اکثریت ارزها صعودی هستند")
-            elif bearish_coins > bullish_coins * 1.5:
-                insights.append("⚠️ اکثریت ارزها نزولی هستند")
-        else:
-            changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
-            avg_change_24h = np.mean(changes_24h) if changes_24h else 0
-            
-            if avg_change_24h > 5:
-                insights.append("✅ Market in strong bullish mode")
-            elif avg_change_24h < -3:
-                insights.append("⚠️ Market in bearish mode")
-            else:
-                insights.append("⚖️ Market in balance")
-                
-            bullish_coins = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
-            bearish_coins = len(coins_data) - bullish_coins
-            
-            if bullish_coins > bearish_coins * 1.5:
-                insights.append("😊 Majority of coins are bullish")
-            elif bearish_coins > bullish_coins * 1.5:
-                insights.append("⚠️ Majority of coins are bearish")
-                
-        return insights
+        return min(base_confidence + neural_confidence, 1.0) * 100
+    
+    def force_evolution(self):
+        """اجبار به تکامل شبکه"""
+        print("🧬 Forcing neural network evolution...")
+        self.brain.evolve()
+        return f"✅ شبکه به نسل {self.brain.generation} تکامل یافت"
 # --- SECTION 5: CRYPTO SCANNER ---
 
 class CryptoScanner:
