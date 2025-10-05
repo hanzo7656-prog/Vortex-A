@@ -1551,8 +1551,177 @@ def display_monitoring_tab(scanner):
         - از دکمه پاک‌سازی حافظه استفاده کنید
         - برنامه را مجدداً راه‌اندازی کنید
         """)
+
+def display_market_results(results: Dict):
+    """Display market scan results"""
+    
+    if not results or not results.get('success'):
+        st.error("❌ " + "خطا در دریافت داده‌ها")
+        return
+
+    coins_data = results.get('coins', [])
+    
+    if not coins_data:
+        st.warning("⚠️ هیچ داده‌ای برای نمایش وجود ندارد")
+        return
+
+    # هدر با تعداد ارزها
+    st.header(f"📊 نتایج اسکن - {len(coins_data)} ارز")
+
+    # ایجاد دیتافریم برای نمایش
+    df_data = []
+    
+    for coin in coins_data:
+        # بررسی وجود داده
+        price = coin.get('price', 0)
+        change_24h = coin.get('priceChange24h', 0)
+        change_1h = coin.get('priceChange1h', 0)
+        volume = coin.get('volume', 0)
+        market_cap = coin.get('marketCap', 0)
         
-# -- SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED --
+        df_data.append({
+            'نام ارز': coin.get('name', 'نامشخص'),
+            'نماد': coin.get('symbol', 'N/A'),
+            'قیمت': f"${price:,.2f}" if price > 0 else "$0.00",
+            'تغییر 24h': f"{change_24h:+.2f}%" if change_24h != 0 else "0.00%",
+            'تغییر 1h': f"{change_1h:+.2f}%" if change_1h != 0 else "0.00%", 
+            'حجم': f"${volume:,.0f}" if volume > 0 else "$0",
+            'ارزش بازار': f"${market_cap:,.0f}" if market_cap > 0 else "$0"
+        })
+
+    # ایجاد دیتافریم
+    df = pd.DataFrame(df_data)
+    
+    # تنظیم اپندکس از 1 شروع شود
+    df.index = df.index + 1
+
+    # تنظیمات استایل برای دیتافریم
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=min(600, 35 * len(df) + 40),
+        hide_index=False
+    )
+
+    # متریک‌های کلی
+    st.subheader("📈 آنالیز کلی بازار")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        total_coins = len(coins_data)
+        st.metric("تعداد ارزها", value=total_coins, delta=None)
+    
+    with col2:
+        changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
+        avg_change_24h = np.mean(changes_24h) if changes_24h else 0
+        st.metric("میانگین تغییرات", value=f"{avg_change_24h:+.2f}%", delta=None)
+    
+    with col3:
+        total_volume = sum(c.get('volume', 0) for c in coins_data)
+        st.metric("حجم کل بازار", value=f"${total_volume:,.0f}", delta=None)
+    
+    with col4:
+        bullish_count = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
+        bearish_count = total_coins - bullish_count
+        st.metric("روند بازار", value=f"🟢 {bullish_count} / 🔴 {bearish_count}", delta=None)
+
+def display_ai_analysis(ai_analysis: Dict):
+    """Display AI analysis results"""
+    
+    if not ai_analysis:
+        st.info("🤖 تحلیل هوش مصنوعی در دسترس نیست")
+        return
+
+    st.markdown("---")
+    st.header("🧠 تحلیل هوش مصنوعی")
+
+    # اعتماد AI
+    ai_confidence = ai_analysis.get('ai_confidence', 0)
+    
+    if ai_confidence > 70:
+        confidence_color = "🟢"
+        confidence_text = "عالی"
+    elif ai_confidence > 40:
+        confidence_color = "🟡" 
+        confidence_text = "متوسط"
+    else:
+        confidence_color = "🔴"
+        confidence_text = "ضعیف"
+
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric(
+            label="اعتماد هوش مصنوعی",
+            value=f"{ai_confidence:.1f}%",
+            delta=None
+        )
+    
+    with col2:
+        st.write(f"{confidence_color} {confidence_text}")
+
+    # سیگنال‌های قوی
+    strong_signals = ai_analysis.get('strong_signals', [])
+    if strong_signals:
+        st.subheader("🚀 سیگنال‌های قوی")
+        
+        for i, signal in enumerate(strong_signals[:5], 1):
+            with st.container():
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+                
+                with col1:
+                    st.write(f"**{i}. {signal.get('coin', '')}** ({signal.get('symbol', '')})")
+                
+                with col2:
+                    signal_strength = signal.get('signal_strength', 0)
+                    if signal_strength > 70:
+                        strength_color = "🟢"
+                    elif signal_strength > 50:
+                        strength_color = "🟡"
+                    else:
+                        strength_color = "🔴"
+                    st.write(f"{strength_color} {signal_strength:.1f}%")
+                
+                with col3:
+                    risk_level = signal.get('risk_score', 0)
+                    if risk_level > 70:
+                        risk_color = "🔴"
+                    elif risk_level > 40:
+                        risk_color = "🟡"
+                    else:
+                        risk_color = "🟢"
+                    st.write(f"{risk_color} ریسک: {risk_level:.1f}%")
+                
+                with col4:
+                    rec = signal.get('recommendation', '')
+                    st.write(f"**{rec}**")
+            
+            st.markdown("---")
+
+    # هشدارهای ریسک
+    risk_warnings = ai_analysis.get('risk_warnings', [])
+    if risk_warnings:
+        st.subheader("⚠️ هشدارهای ریسک")
+        
+        for warning in risk_warnings[:3]:
+            with st.expander(f"🔴 {warning.get('coin', '')} ({warning.get('symbol', '')}) - سطح ریسک: {warning.get('risk_score', 0):.1f}%", expanded=False):
+                st.error("**این ارز دارای نوسانات شدید یا ریسک معاملاتی بالایی است!**")
+                st.write(f"**پیشنهاد:** {warning.get('recommendation', '')}")
+
+    # بینش‌های بازار
+    market_insights = ai_analysis.get('market_insights', [])
+    if market_insights:
+        st.subheader("💡 بینش‌های بازار")
+        
+        for insight in market_insights:
+            if "صعودی" in insight or "bullish" in insight.lower():
+                st.success(insight)
+            elif "نزولی" in insight or "bearish" in insight.lower():
+                st.warning(insight)
+            else:
+                st.info(insight)
+                
 # – SECTION 7: MAIN APPLICATION - نسخه اصلاح شده –
 
 def display_ai_health_dashboard(vortex_ai, emergency_system):
