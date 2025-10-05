@@ -353,6 +353,7 @@ class VortexAI:
                 
         return insights
 
+# --- SECTION 5: CRYPTO SCANNER --- 
 # --- SECTION 5: CRYPTO SCANNER ---
 
 class CryptoScanner:
@@ -365,83 +366,159 @@ class CryptoScanner:
         """Scan cryptocurrency market"""
         try:
             url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
-            print(f"🚀 STEP 1 - Calling API: {url}")
+            print(f"🔍 Calling API: {url}")
             
-            response = requests.get(url, timeout=30)
-            print(f"📡 STEP 2 - Response status: {response.status_code}")
+            response = requests.get(url, timeout=15)
+            print(f"📡 Response status: {response.status_code}")
             
-            if response.status_code != 200:
-                print(f"❌ HTTP Error: {response.status_code}")
-                print(f"❌ Response text: {response.text}")
-                return self._get_fallback_data()
-            
-            data = response.json()
-            print(f"✅ STEP 3 - API Success: {data.get('success')}")
-            print(f"✅ STEP 4 - Total coins: {data.get('total_coins', 0)}")
-            
-            # بررسی ساختار داده
-            print(f"🔍 STEP 5 - Data keys: {list(data.keys())}")
-            
-            raw_coins = data.get('coins', [])
-            print(f"📦 STEP 6 - Raw coins count: {len(raw_coins)}")
-            
-            if raw_coins:
-                print(f"🔍 STEP 7 - First coin keys: {list(raw_coins[0].keys())}")
-                print(f"🔍 STEP 8 - First coin sample: {raw_coins[0]}")
-            
-            # تبدیل ساختار داده
-            coins = []
-            for i, coin in enumerate(raw_coins):
-                processed_coin = {
-                    'name': coin.get('name', f'Coin_{i}'),
-                    'symbol': coin.get('symbol', 'UNKNOWN'),
-                    'price': float(coin.get('price', 0)),
-                    'priceChange24h': float(coin.get('priceChange1d', 0)),
-                    'priceChange1h': float(coin.get('priceChange1h', 0)),
-                    'volume': float(coin.get('volume', 0)),
-                    'marketCap': float(coin.get('marketCap', 0))
-                }
-                coins.append(processed_coin)
-                print(f"🔄 Coin {i}: {processed_coin['symbol']} - ${processed_coin['price']}")
-            
-            print(f"✅ STEP 9 - Final processed coins: {len(coins)}")
-            
-            if not coins:
-                print("❌ STEP 10 - No coins after processing!")
-                return self._get_fallback_data()
+            if response.status_code == 200:
+                data = response.json()
+                print(f"✅ API Success: {data.get('success')}")
+                print(f"✅ Total coins from API: {data.get('total_coins', 0)}")
                 
-            # ذخیره در دیتابیس
-            self.db_manager.save_market_data(coins)
-            print("💾 STEP 11 - Data saved to database")
+                if data.get('success') and data.get('coins'):
+                    raw_coins = data['coins']
+                    print(f"📦 Raw coins received: {len(raw_coins)}")
+                    
+                    # پردازش داده‌ها
+                    coins = []
+                    for i, coin in enumerate(raw_coins):
+                        processed_coin = {
+                            'name': coin.get('name', f'Coin_{i}'),
+                            'symbol': coin.get('symbol', 'UNKNOWN'),
+                            'price': float(coin.get('price', 0)),
+                            'priceChange24h': float(coin.get('priceChange1d', coin.get('priceChange24h', 0))),
+                            'priceChange1h': float(coin.get('priceChange1h', 0)),
+                            'volume': float(coin.get('volume', 0)),
+                            'marketCap': float(coin.get('marketCap', 0))
+                        }
+                        coins.append(processed_coin)
+                    
+                    print(f"🔄 Processed coins: {len(coins)}")
+                    
+                    if coins:
+                        self.db_manager.save_market_data(coins)
+                        print("💾 Data saved to database")
+                        
+                        return {
+                            'success': True,
+                            'coins': coins,
+                            'count': len(coins),
+                            'timestamp': datetime.now().isoformat()
+                        }
             
-            return {
-                'success': True,
-                'coins': coins,
-                'count': len(coins),
-                'timestamp': datetime.now().isoformat()
-            }
+            print("❌ No valid data from server, using fallback")
+            return self._get_fallback_data()
             
+        except requests.exceptions.Timeout:
+            print("⏰ Request timeout, using fallback")
+            return self._get_fallback_data()
+        except requests.exceptions.ConnectionError:
+            print("🌐 Connection error, using fallback")
+            return self._get_fallback_data()
+        except json.JSONDecodeError:
+            print("📄 JSON decode error, using fallback")
+            return self._get_fallback_data()
         except Exception as e:
-            print(f"💥 ERROR: {str(e)}")
-            import traceback
-            print(f"📋 Traceback: {traceback.format_exc()}")
+            print(f"💥 Unexpected error: {e}")
             return self._get_fallback_data()
 
     def _get_fallback_data(self):
-        """Sample data as fallback"""
-        print("🔄 Using fallback data")
+        """Sample data as fallback when server is unavailable"""
+        print("🔄 Using fallback sample data")
         sample_coins = [
             {
-                'name': 'Bitcoin', 'symbol': 'BTC', 'price': 124619.36, 
-                'priceChange24h': 1.92, 'priceChange1h': -0.08,
-                'volume': 39306468043, 'marketCap': 2483440001648
+                'name': 'Bitcoin',
+                'symbol': 'BTC',
+                'price': 124619.36,
+                'priceChange24h': 1.92,
+                'priceChange1h': -0.08,
+                'volume': 39306468043,
+                'marketCap': 2483440001648
             },
             {
-                'name': 'Ethereum', 'symbol': 'ETH', 'price': 4586.82, 
-                'priceChange24h': 2.15, 'priceChange1h': -0.32,
-                'volume': 40423228887, 'marketCap': 553641132921
+                'name': 'Ethereum',
+                'symbol': 'ETH',
+                'price': 4586.82,
+                'priceChange24h': 2.15,
+                'priceChange1h': -0.32,
+                'volume': 40423228887,
+                'marketCap': 553641132921
+            },
+            {
+                'name': 'BNB',
+                'symbol': 'BNB',
+                'price': 1171.38,
+                'priceChange24h': 1.38,
+                'priceChange1h': -0.58,
+                'volume': 14106039249,
+                'marketCap': 163038687343
+            },
+            {
+                'name': 'Solana',
+                'symbol': 'SOL',
+                'price': 235.20,
+                'priceChange24h': 2.77,
+                'priceChange1h': -0.59,
+                'volume': 12280809846,
+                'marketCap': 128270536156
+            },
+            {
+                'name': 'XRP',
+                'symbol': 'XRP',
+                'price': 3.05,
+                'priceChange24h': 1.64,
+                'priceChange1h': -0.45,
+                'volume': 3140519134,
+                'marketCap': 182571288194
+            },
+            {
+                'name': 'Dogecoin',
+                'symbol': 'DOGE',
+                'price': 0.264,
+                'priceChange24h': 4.76,
+                'priceChange1h': 0.14,
+                'volume': 3468278650,
+                'marketCap': 39972638068
+            },
+            {
+                'name': 'TRON',
+                'symbol': 'TRX',
+                'price': 0.343,
+                'priceChange24h': 0.92,
+                'priceChange1h': 0.03,
+                'volume': 276037631,
+                'marketCap': 32489215239
+            },
+            {
+                'name': 'Cardano',
+                'symbol': 'ADA',
+                'price': 0.48,
+                'priceChange24h': 1.25,
+                'priceChange1h': -0.15,
+                'volume': 3456789012,
+                'marketCap': 17123456789
+            },
+            {
+                'name': 'Polkadot',
+                'symbol': 'DOT',
+                'price': 7.25,
+                'priceChange24h': 0.89,
+                'priceChange1h': -0.22,
+                'volume': 2345678901,
+                'marketCap': 9123456789
+            },
+            {
+                'name': 'Litecoin',
+                'symbol': 'LTC',
+                'price': 75.60,
+                'priceChange24h': 0.45,
+                'priceChange1h': -0.08,
+                'volume': 1234567890,
+                'marketCap': 5678901234
             }
         ]
+        
         return {
             'success': True,
             'coins': sample_coins,
@@ -452,116 +529,298 @@ class CryptoScanner:
     def scan_with_ai(self, limit: int = 100) -> Optional[Dict]:
         """Scan market with AI analysis"""
         try:
-            print("🤖 Starting AI scan...")
+            print("🤖 Starting AI-enhanced scan...")
+            
+            # دریافت داده از بازار
             market_result = self.scan_market(limit)
             
             if not market_result or not market_result.get('success'):
-                print("❌ AI Scan: No market data")
+                print("❌ AI Scan: No market data available")
                 return None
                 
             coins = market_result['coins']
-            print(f"🤖 AI analyzing {len(coins)} coins...")
+            print(f"🤖 Analyzing {len(coins)} coins with VortexAI...")
             
+            # تحلیل هوش مصنوعی
             ai_analysis = self.vortex_ai.analyze_market_data(coins)
-            print(f"🤖 AI analysis completed")
+            print(f"🤖 AI analysis completed - {len(ai_analysis.get('strong_signals', []))} strong signals found")
             
-            return {
+            # ترکیب نتایج
+            result = {
                 **market_result,
                 "ai_analysis": ai_analysis,
                 "scan_mode": "ai_enhanced"
             }
+            
+            return result
+            
         except Exception as e:
             print(f"🤖 AI Scan Error: {e}")
             logging.error(f"AI scan error: {e}")
-            return None        
+            return None
 # --- SECTION 6: UI COMPONENTS ---
 
 def display_market_results(results: Dict):
     """Display market scan results"""
     if not results or not results.get('success'):
-        st.error(lang.t('error'))
+        st.error("❌ " + lang.t('error'))
         return
         
     coins_data = results.get('coins', [])
-    st.header(lang.t('results_title'))
     
-    # Create DataFrame for display
+    if not coins_data:
+        st.warning("⚠️ هیچ داده‌ای برای نمایش وجود ندارد")
+        return
+    
+    # هدر با تعداد ارزها
+    st.header(f"{lang.t('results_title')} - {len(coins_data)} ارز")
+    
+    # ایجاد دیتافریم برای نمایش
     df_data = []
-    for coin in coins_data[:50]:  # Show top 50 coins
+    for coin in coins_data:
+        # بررسی وجود داده‌ها
+        price = coin.get('price', 0)
+        change_24h = coin.get('priceChange24h', 0)
+        change_1h = coin.get('priceChange1h', 0)
+        volume = coin.get('volume', 0)
+        market_cap = coin.get('marketCap', 0)
+        
         df_data.append((
-            coin.get('name', ''),
-            coin.get('symbol', ''),
-            f"${coin.get('price', 0):.2f}",
-            f"{coin.get('priceChange24h', 0):.2f}%",
-            f"{coin.get('priceChange1h', 0):.2f}%",
-            f"{coin.get('volume', 0):.0f}",
-            f"{coin.get('marketCap', 0):.0f}"
+            coin.get('name', 'نامشخص'),
+            coin.get('symbol', 'N/A'),
+            f"${price:,.2f}" if price > 0 else "$0.00",
+            f"{change_24h:+.2f}%" if change_24h != 0 else "0.00%",
+            f"{change_1h:+.2f}%" if change_1h != 0 else "0.00%",
+            f"${volume:,.0f}" if volume > 0 else "$0",
+            f"${market_cap:,.0f}" if market_cap > 0 else "$0"
         ))
     
-    if df_data:
-        df = pd.DataFrame(df_data, columns=[
-            lang.t('coin_name'),
-            'Symbol',
-            lang.t('price'),
-            lang.t('change_24h'),
-            lang.t('change_1h'),
-            lang.t('volume'),
-            lang.t('market_cap')
-        ])
-        st.dataframe(df, use_container_width=True, height=400)
+    # ایجاد دیتافریم
+    df = pd.DataFrame(df_data, columns=[
+        lang.t('coin_name'),
+        'نماد',
+        lang.t('price'),
+        lang.t('change_24h'),
+        lang.t('change_1h'),
+        lang.t('volume'),
+        lang.t('market_cap')
+    ])
     
-    # Display metrics
+    # تنظیم ایندکس از 1 شروع بشه
+    df.index = df.index + 1
+    
+    # تنظیمات استایل برای دیتافریم
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=min(600, 35 * len(df) + 40),  # ارتفاع داینامیک
+        hide_index=False
+    )
+    
+    # متریک‌های کلی
+    st.subheader("📊 آمار کلی بازار")
     col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        st.metric("تعداد ارزها" if lang.current_lang == 'fa' else "Total Coins", len(coins_data))
+        total_coins = len(coins_data)
+        st.metric(
+            label="تعداد ارزها",
+            value=total_coins,
+            delta=None
+        )
+    
     with col2:
-        avg_change = np.mean([c.get('priceChange24h', 0) for c in coins_data])
-        st.metric("میانگین تغییر" if lang.current_lang == 'fa' else "Average Change", f"{avg_change:.2f}%")
+        changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
+        avg_change_24h = np.mean(changes_24h) if changes_24h else 0
+        st.metric(
+            label="میانگین تغییر 24h",
+            value=f"{avg_change_24h:+.2f}%",
+            delta=None
+        )
+    
     with col3:
         total_volume = sum(c.get('volume', 0) for c in coins_data)
-        st.metric("حجم کل" if lang.current_lang == 'fa' else "Total Volume", f"{total_volume:.0f}")
+        st.metric(
+            label="حجم کل بازار",
+            value=f"${total_volume:,.0f}",
+            delta=None
+        )
+    
     with col4:
-        st.metric("وضعیت" if lang.current_lang == 'fa' else "Status", lang.t('completed'))
+        bullish_count = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
+        bearish_count = total_coins - bullish_count
+        st.metric(
+            label="روند بازار",
+            value=f"{bullish_count}↑ {bearish_count}↓",
+            delta=None
+        )
 
 def display_ai_analysis(ai_analysis: Dict):
     """Display AI analysis results"""
     if not ai_analysis:
+        st.info("🤖 تحلیل هوش مصنوعی در دسترس نیست")
         return
         
     st.markdown("---")
-    st.header(lang.t('ai_analysis'))
+    st.header("🧠 " + lang.t('ai_analysis'))
     
-    # AI Confidence
+    # اعتماد هوش مصنوعی
     ai_confidence = ai_analysis.get('ai_confidence', 0)
-    st.metric(lang.t('ai_confidence'), f'{ai_confidence:.1f}%')
+    confidence_color = "🟢" if ai_confidence > 70 else "🟡" if ai_confidence > 40 else "🔴"
     
-    # Strong Signals
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric(
+            label=lang.t('ai_confidence'),
+            value=f"{ai_confidence:.1f}%",
+            delta=None
+        )
+    
+    with col2:
+        st.write(f"{confidence_color} سطح اعتماد: {'عالی' if ai_confidence > 70 else 'متوسط' if ai_confidence > 40 else 'پایین'}")
+    
+    # سیگنال‌های قوی
     strong_signals = ai_analysis.get('strong_signals', [])
     if strong_signals:
-        st.subheader(lang.t('strong_signals'))
-        for signal in strong_signals[:5]:
-            col1, col2, col3 = st.columns([3, 2, 2])
-            with col1:
-                st.write(f"**{signal['coin']}** ({signal['symbol']})")
-            with col2:
-                st.write(f"قدرت سیگنال: {signal['signal_strength']}%" if lang.current_lang == 'fa' else f"Signal: {signal['signal_strength']}%")
-            with col3:
-                st.write(signal['recommendation'])
+        st.subheader("🎯 " + lang.t('strong_signals'))
+        
+        for i, signal in enumerate(strong_signals[:8], 1):  # حداکثر 8 سیگنال
+            with st.container():
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+                
+                with col1:
+                    st.write(f"**{i}. {signal['coin']}** ({signal['symbol']})")
+                
+                with col2:
+                    signal_strength = signal['signal_strength']
+                    strength_color = "🟢" if signal_strength > 70 else "🟡" if signal_strength > 50 else "🔴"
+                    st.write(f"{strength_color} {signal_strength}%")
+                
+                with col3:
+                    risk_level = signal['risk_level']
+                    risk_color = "🔴" if risk_level > 70 else "🟡" if risk_level > 40 else "🟢"
+                    st.write(f"{risk_color} ریسک: {risk_level}%")
+                
+                with col4:
+                    rec = signal['recommendation']
+                    rec_color = "success" if "قوی" in rec or "Strong" in rec else "warning" if "محتاط" in rec or "Cautious" in rec else "info"
+                    st.write(f":{rec_color}[{rec}]")
+            
+            st.markdown("---")
     
-    # Risk Warnings
+    # هشدارهای ریسک
     risk_warnings = ai_analysis.get('risk_warnings', [])
     if risk_warnings:
-        st.subheader(lang.t('risk_warnings'))
-        for warning in risk_warnings[:3]:
-            st.error(f"**{warning['coin']}**: سطح ریسک {warning['risk_level']}%" if lang.current_lang == 'fa' else f"**{warning['coin']}**: Risk level {warning['risk_level']}%")
+        st.subheader("⚠️ " + lang.t('risk_warnings'))
+        
+        for warning in risk_warnings[:5]:  # حداکثر 5 هشدار
+            with st.expander(f"🚨 {warning['coin']} ({warning['symbol']}) - سطح ریسک: {warning['risk_level']}%", expanded=False):
+                st.error(f"**هشدار ریسک بالا** - این ارز دارای نوسانات شدید یا ریسک معاملاتی بالایی است.")
+                st.write(f"💡 پیشنهاد: {warning['recommendation']}")
     
-    # Market Insights
+    # بینش‌های بازار
     market_insights = ai_analysis.get('market_insights', [])
     if market_insights:
-        st.subheader(lang.t('market_insights'))
+        st.subheader("💡 " + lang.t('market_insights'))
+        
         for insight in market_insights:
-            st.info(insight)
+            if "صعودی" in insight or "bullish" in insight:
+                st.success(insight)
+            elif "نزولی" in insight or "bearish" in insight:
+                st.warning(insight)
+            else:
+                st.info(insight)
 
+def display_search_filter(coins_data: List[Dict]):
+    """Display search and filter controls"""
+    if not coins_data:
+        return
+    
+    st.markdown("---")
+    st.subheader("🔍 جستجو و فیلتر")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        search_term = st.text_input(
+            lang.t('search_placeholder'),
+            placeholder="...نام یا نماد ارز",
+            key="search_input"
+        )
+    
+    with col2:
+        min_volume = st.number_input(
+            "حداقل حجم (میلیون دلار)",
+            min_value=0,
+            value=10,
+            step=10,
+            key="min_volume"
+        ) * 1000000  # تبدیل به دلار
+    
+    with col3:
+        trend_filter = st.selectbox(
+            "فیلتر روند",
+            options=["همه", "صعودی", "نزولی"],
+            index=0,
+            key="trend_filter"
+        )
+    
+    # اعمال فیلترها
+    filtered_coins = coins_data
+    
+    if search_term:
+        filtered_coins = [
+            coin for coin in filtered_coins 
+            if search_term.lower() in coin.get('name', '').lower() 
+            or search_term.lower() in coin.get('symbol', '').lower()
+        ]
+    
+    if min_volume > 0:
+        filtered_coins = [
+            coin for coin in filtered_coins 
+            if coin.get('volume', 0) >= min_volume
+        ]
+    
+    if trend_filter == "صعودی":
+        filtered_coins = [
+            coin for coin in filtered_coins 
+            if coin.get('priceChange24h', 0) > 0
+        ]
+    elif trend_filter == "نزولی":
+        filtered_coins = [
+            coin for coin in filtered_coins 
+            if coin.get('priceChange24h', 0) < 0
+        ]
+    
+    # نمایش نتایج فیلتر شده
+    if len(filtered_coins) != len(coins_data):
+        st.info(f"📊 نمایش {len(filtered_coins)} از {len(coins_data)} ارز (فیلتر شده)")
+    
+    return filtered_coins
+
+def display_quick_actions():
+    """Display quick action buttons"""
+    st.markdown("---")
+    st.subheader("⚡ اقدامات سریع")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        if st.button("🔄 اسکن مجدد", use_container_width=True):
+            st.rerun()
+    
+    with col2:
+        if st.button("💾 ذخیره گزارش", use_container_width=True):
+            st.success("گزارش ذخیره شد")
+    
+    with col3:
+        if st.button("📧 اشتراک‌گذاری", use_container_width=True):
+            st.info("امکان اشتراک‌گذاری")
+    
+    with col4:
+        if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
+            st.session_state.show_settings = True
 # --- SECTION 7: MAIN APPLICATION ---
 
 def main():
