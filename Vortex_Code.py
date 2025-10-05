@@ -1530,7 +1530,7 @@ def display_real_health_metrics(vortex_ai):
         st.write(f"**رضایت کاربر**: {metrics.get('user_satisfaction', 0)*100:.1f}%")
 
 def display_emergency_controls(emergency_system):
-    """نمایش کنترل‌های اضطراری"""
+    """نمایش کنترل‌های اضطراری با دسترسی به scanner"""
     st.header("🎮 کنترل‌های مدیریتی")
     
     col1, col2, col3 = st.columns(3)
@@ -1538,33 +1538,39 @@ def display_emergency_controls(emergency_system):
     with col1:
         st.subheader("🛑 کنترل اضطراری")
         if st.button("🔴 توقف فوری هوش مصنوعی", type="secondary", use_container_width=True):
-            result = emergency_system.activate_emergency_stop("دستور کاربر از UI")
-            st.error(result)
+            emergency_system.activate_emergency_stop("دستور کاربر از UI")
+            st.error("✅ توقف اضطراری فعال شد")
             st.rerun()
         
         if st.button("🟢 بازگشت به حالت عادی", type="primary", use_container_width=True):
-            result = emergency_system.deactivate_emergency_stop()
-            st.success(result)
+            emergency_system.deactivate_emergency_stop()
+            st.success("✅ سیستم به حالت عادی بازگشت")
             st.rerun()
     
     with col2:
         st.subheader("🧬 کنترل رشد")
         if st.button("⚡ اجبار به تکامل", use_container_width=True):
-            if hasattr(st.session_state, 'scanner') and st.session_state.scanner:
+            # دسترسی مستقیم به scanner از session_state
+            if 'scanner' in st.session_state and st.session_state.scanner:
                 result = st.session_state.scanner.vortex_ai.force_evolution()
                 st.info(result)
+                st.rerun()
             else:
-                st.error("اسکنر در دسترس نیست")
+                st.error("❌ اسکنر در دسترس نیست. لطفاً ابتدا اسکن انجام دهید.")
     
     with col3:
         st.subheader("🔧 بهینه‌سازی")
-        if st.button("🧹 بهینه‌سازی حافظه", use_container_width=True):
-            if hasattr(st.session_state, 'scanner') and st.session_state.scanner:
-                pruned_count = st.session_state.scanner.vortex_ai.brain.optimize_memory()
-                st.success(f"✅ {pruned_count} نورون بهینه‌سازی شد")
+        if st.button("🧹 پاک‌سازی اضطراری حافظه", use_container_width=True):
+            # دسترسی مستقیم به scanner از session_state
+            if 'scanner' in st.session_state and st.session_state.scanner:
+                try:
+                    pruned_count = st.session_state.scanner.vortex_ai.brain.optimize_memory()
+                    st.success(f"✅ {pruned_count} نورون پاک‌سازی شد")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ خطا در پاک‌سازی: {e}")
             else:
-                st.error("اسکنر در دسترس نیست")
-
+                st.error("❌ اسکنر در دسترس نیست. لطفاً ابتدا اسکن انجام دهید.")
 def display_performance_metrics(vortex_ai):
     """نمایش معیارهای عملکرد دقیق"""
     st.subheader("📊 تحلیل عملکرد دقیق")
@@ -1751,6 +1757,8 @@ def main():
             return None
 
     scanner = load_scanner()
+
+    st.session_state.scanner = scanner
 
     # Initialize emergency system
     if 'emergency_system' not in st.session_state:
