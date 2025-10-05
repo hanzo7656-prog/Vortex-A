@@ -210,7 +210,6 @@ class DatabaseManager:
                     ))
         except Exception as e:
             logging.error(f"Error saving market data: {e}")
-# -- SECTION 4: VORTEXAI NEURAL NETWORK WITH SAFETY SYSTEMS --
 # – SECTION 4: VORTEXAI NEURAL NETWORK WITH SAFETY SYSTEMS –
 import random
 import math
@@ -752,14 +751,23 @@ class VortexNeuralNetwork:
         total_weights = sum(len(neuron.weights) for neuron in self.neurons.values())
         avg_activation = sum(neuron.activation_count for neuron in self.neurons.values()) / len(self.neurons)
 
-        # ✨ محاسبه واقعی حافظه - بدون محدودیت مصنوعی
-        base_memory = 8.0  # حافظه پایه کاهش یافته
-        neuron_memory = len(self.neurons) * 0.0002  # 0.2KB per neuron (واقعی‌تر)
-        synapse_memory = len(self.synapses) * 0.0001  # 0.1KB per synapse (واقعی‌تر)
-        memory_data_size = len(self.memory) * 0.001  # 1KB per experience
+        total_neurons = len(self.neurons)
+        total_synapses = len(self.synapses)
+        total_records = len(self.memory)
 
-        memory_usage_mb = base_memory + neuron_memory + synapse_memory + memory_data_size
+        base_memory = 3.0
+        neuron_memory = total_neurons * 0.0002
+        synapse_memory = total_synapses * 0.0001  
+        memory_data = memory_records * 0.0005  
 
+        total_memory = base_memory + neuron_memory + synapse_memory + memory_data
+
+        print
+
+
+
+
+        
         # ✨ هیچ محدودیت مصنوعی اعمال نمی‌کنیم
         return {
             'total_neurons': len(self.neurons),
