@@ -747,8 +747,7 @@ class VortexNeuralNetwork:
 
 
     def get_network_stats(self) -> Dict:
-    """محاسبه ساده و ایمن آمار شبکه عصبی"""
-    
+        """محاسبه ساده و ایمن آمار شبکه عصبی"""
         try:
             # محاسبات پایه با مدیریت خطا
             total_neurons = len(self.neurons) if hasattr(self, 'neurons') else 0
