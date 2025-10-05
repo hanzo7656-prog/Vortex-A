@@ -1016,7 +1016,35 @@ class VortexAI:
             'learning_sessions': self.learning_sessions,
             'analysis_count': len(self.analysis_history)
         }
-    
+        
+    def _calculate_overall_health(self, network_stats: Dict, health_report: Dict) -> float:
+        """محاسبه سلامت کلی"""
+        try:
+            health_score = 0.0
+            
+            # سلامت فنی (40%)
+            technical_health = sum(health_report.values()) / len(health_report) * 0.4
+            
+            # سلامت عملکردی (30%)
+            performance_health = (
+                network_stats.get('current_accuracy', 0.5) * 0.15 +
+                network_stats.get('signal_quality', 0.5) * 0.15
+            )
+            
+            # سلامت عملیاتی (30%)
+            operational_health = (
+                (1 - min(network_stats.get('memory_usage', 0) / 450, 1)) * 0.1 +
+                (1 - min(network_stats.get('cpu_usage', 0) / 100, 1)) * 0.1 +
+                (0.0 if self.emergency_system.emergency_stop_active else 0.1)
+            )
+            
+            health_score = (technical_health + performance_health + operational_health) * 100
+            return min(100, max(0, health_score))
+            
+        except Exception as e:
+            print(f"❌ خطا در محاسبه سلامت: {e}")
+            return 50.0  # مقدار پیش‌فرض   
+            
     def _calculate_overall_health(self, network_stats: Dict, health_report: Dict) -> float:
         """محاسبه سلامت کلی"""
         health_score = 0.0
