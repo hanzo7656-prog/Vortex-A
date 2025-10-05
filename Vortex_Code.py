@@ -13,7 +13,7 @@ import json
 
 # --- SECTION 1: MULTI-LANGUAGE SYSTEM ---
 
-class MultiLanguage:  # تصحیح نام کلاس
+class Multilanguage:  # تصحیح نام کلاس
     def __init__(self):
         self.dictionaries = {
             'fa': self._persian_dict(),
