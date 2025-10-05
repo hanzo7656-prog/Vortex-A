@@ -127,7 +127,7 @@ class Multilanguage:  # تصحیح نام کلاس
             self.current_lang = lang
 
 # Initialize multi-language system
-lang = MultiLanguage()
+lang = Multilanguage()
 
 # --- SECTION 2: CONFIGURATION ---
 
