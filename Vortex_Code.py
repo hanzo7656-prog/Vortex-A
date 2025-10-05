@@ -352,72 +352,122 @@ class VortexAI:
                 insights.append("⚠️ Majority of coins are bearish")
                 
         return insights
+        
+# --- SECTION 5: CRYPTO SCANNER ---
 
-#سکشن 5
-def scan_market(self, limit: int = 100) -> Optional[Dict]:
-    try:
-        url = f"https://server-test-ovta.onrender.com/api/scan/vortexai?limit={limit}"
-        print(f"🔍 Calling: {url}")
-        
-        response = requests.get(url, timeout=30)
-        print(f"📡 Status: {response.status_code}")
-        print(f"📦 Headers: {response.headers}")
-        
-        # اگر وضعیت 200 نبود، خطا رو ببین
-        if response.status_code != 200:
-            print(f"❌ HTTP Error: {response.status_code}")
-            print(f"❌ Response text: {response.text}")
-            return self._get_fallback_data()
-        
-        data = response.json()
-        print(f"✅ Data keys: {data.keys()}")
-        print(f"✅ Success: {data.get('success')}")
-        print(f"✅ Coins count: {len(data.get('coins', []))}")
-        
-        coins = data.get('coins', [])
-        
-        if not coins:
-            print("⚠️ No coins in response, using fallback")
-            return self._get_fallback_data()
+class CryptoScanner:
+    def __init__(self):
+        self.db_manager = DatabaseManager()
+        self.vortex_ai = VortexAI()
+        self.api_base = "https://server-test-ovta.onrender.com"
+
+    def scan_market(self, limit: int = 100) -> Optional[Dict]:
+        """Scan cryptocurrency market"""
+        try:
+            url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
+            print(f"🔍 Calling: {url}")
             
-        self.db_manager.save_market_data(coins)
+            response = requests.get(url, timeout=30)
+            print(f"📡 Status: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"❌ HTTP Error: {response.status_code}")
+                print(f"❌ Response text: {response.text}")
+                return self._get_fallback_data()
+            
+            data = response.json()
+            print(f"✅ Data keys: {data.keys()}")
+            print(f"✅ Success: {data.get('success')}")
+            print(f"✅ Coins count: {len(data.get('coins', []))}")
+            
+            coins = data.get('coins', [])
+            
+            if not coins:
+                print("⚠️ No coins in response, using fallback")
+                return self._get_fallback_data()
+                
+            self.db_manager.save_market_data(coins)
+            
+            return {
+                'success': True,
+                'coins': coins,
+                'count': len(coins),
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except requests.exceptions.RequestException as e:
+            print(f"🌐 Network Error: {e}")
+            return self._get_fallback_data()
+        except json.JSONDecodeError as e:
+            print(f"📄 JSON Parse Error: {e}")
+            return self._get_fallback_data()
+        except Exception as e:
+            print(f"💥 Unexpected Error: {e}")
+            return self._get_fallback_data()
+
+    def _get_fallback_data(self):
+        """داده نمونه موقت"""
+        sample_coins = [
+            {
+                'name': 'Bitcoin',
+                'symbol': 'BTC',
+                'price': 45000.50,
+                'priceChange24h': 2.34,
+                'priceChange1h': 0.56,
+                'volume': 25467890000,
+                'marketCap': 882456123000
+            },
+            {
+                'name': 'Ethereum',
+                'symbol': 'ETH',
+                'price': 2345.67,
+                'priceChange24h': 1.23,
+                'priceChange1h': -0.34,
+                'volume': 14567890000,
+                'marketCap': 282456123000
+            },
+            {
+                'name': 'Binance Coin',
+                'symbol': 'BNB',
+                'price': 305.25,
+                'priceChange24h': 0.89,
+                'priceChange1h': 0.12,
+                'volume': 8567890000,
+                'marketCap': 45891230000
+            }
+        ]
         
         return {
             'success': True,
-            'coins': coins,
-            'count': len(coins),
+            'coins': sample_coins,
+            'count': len(sample_coins),
             'timestamp': datetime.now().isoformat()
         }
-        
-    except requests.exceptions.RequestException as e:
-        print(f"🌐 Network Error: {e}")
-        return self._get_fallback_data()
-    except json.JSONDecodeError as e:
-        print(f"📄 JSON Parse Error: {e}")
-        print(f"📄 Response text: {response.text}")
-        return self._get_fallback_data()
-    except Exception as e:
-        print(f"💥 Unexpected Error: {e}")
-        return self._get_fallback_data()
 
-def _get_fallback_data(self):
-    """داده نمونه موقت"""
-    sample_coins = [
-        {
-            'name': 'Bitcoin', 'symbol': 'BTC', 'price': 45000.50, 'priceChange24h': 2.34,
-            'priceChange1h': 0.56, 'volume': 25467890000, 'marketCap': 882456123000
-        },
-        {
-            'name': 'Ethereum', 'symbol': 'ETH', 'price': 2345.67, 'priceChange24h': 1.23,
-            'priceChange1h': -0.34, 'volume': 14567890000, 'marketCap': 282456123000
-        }
-    ]
-    return {
-        'success': True,
-        'coins': sample_coins,
-        'count': len(sample_coins),
-        'timestamp': datetime.now().isoformat()
-    }
+    def scan_with_ai(self, limit: int = 100) -> Optional[Dict]:
+        """Scan market with AI analysis"""
+        try:
+            # Get market data
+            market_result = self.scan_market(limit)
+            if not market_result or not market_result.get('success'):
+                return None
+                
+            coins = market_result['coins']
+            
+            # AI analysis
+            ai_analysis = self.vortex_ai.analyze_market_data(coins)
+            
+            # Combine results
+            result = {
+                **market_result,
+                "ai_analysis": ai_analysis,
+                "scan_mode": "ai_enhanced"
+            }
+            
+            return result
+        except Exception as e:
+            logging.error(f"AI scan error: {e}")
+            return None
 
 # --- SECTION 6: UI COMPONENTS ---
 
