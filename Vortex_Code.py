@@ -1230,42 +1230,42 @@ class CryptoScanner:
             logging.error(f"AI scan error: {e}")
             return None
 # --- SECTION 6: UI COMPONENTS ---
+# -- SECTION 6: UI COMPONENTS WITH MONITORING --
 
 def display_market_results(results: Dict):
     """Display market scan results"""
     if not results or not results.get('success'):
         st.error("❌ " + lang.t('error'))
         return
-        
+
     coins_data = results.get('coins', [])
-    
     if not coins_data:
-        st.warning("⚠️ هیچ داده‌ای برای نمایش وجود ندارد")
+        st.warning("📭 هیچ داده‌ای برای نمایش وجود ندارد")
         return
-    
+
     # هدر با تعداد ارزها
     st.header(f"{lang.t('results_title')} - {len(coins_data)} ارز")
-    
+
     # ایجاد دیتافریم برای نمایش
     df_data = []
     for coin in coins_data:
-        # بررسی وجود داده‌ها
+        # بررسی وجود داده
         price = coin.get('price', 0)
         change_24h = coin.get('priceChange24h', 0)
         change_1h = coin.get('priceChange1h', 0)
         volume = coin.get('volume', 0)
         market_cap = coin.get('marketCap', 0)
-        
+
         df_data.append((
             coin.get('name', 'نامشخص'),
             coin.get('symbol', 'N/A'),
-            f"${price:,.2f}" if price > 0 else "$0.00",
+            f"${price:.2f}" if price > 0 else "$0.00",
             f"{change_24h:+.2f}%" if change_24h != 0 else "0.00%",
             f"{change_1h:+.2f}%" if change_1h != 0 else "0.00%",
             f"${volume:,.0f}" if volume > 0 else "$0",
             f"${market_cap:,.0f}" if market_cap > 0 else "$0"
         ))
-    
+
     # ایجاد دیتافریم
     df = pd.DataFrame(df_data, columns=[
         lang.t('coin_name'),
@@ -1276,69 +1276,53 @@ def display_market_results(results: Dict):
         lang.t('volume'),
         lang.t('market_cap')
     ])
-    
+
     # تنظیم ایندکس از 1 شروع بشه
     df.index = df.index + 1
-    
+
     # تنظیمات استایل برای دیتافریم
     st.dataframe(
         df,
         use_container_width=True,
-        height=min(600, 35 * len(df) + 40),  # ارتفاع داینامیک
+        height=min(600, 35 * len(df) + 40),
         hide_index=False
     )
-    
+
     # متریک‌های کلی
     st.subheader("📊 آمار کلی بازار")
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         total_coins = len(coins_data)
-        st.metric(
-            label="تعداد ارزها",
-            value=total_coins,
-            delta=None
-        )
-    
+        st.metric("تعداد ارزها", value=total_coins, delta=None)
+
     with col2:
         changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
         avg_change_24h = np.mean(changes_24h) if changes_24h else 0
-        st.metric(
-            label="میانگین تغییر 24h",
-            value=f"{avg_change_24h:+.2f}%",
-            delta=None
-        )
-    
+        st.metric("میانگین تغییرات", value=f"{avg_change_24h:+.2f}%", delta=None)
+
     with col3:
         total_volume = sum(c.get('volume', 0) for c in coins_data)
-        st.metric(
-            label="حجم کل بازار",
-            value=f"${total_volume:,.0f}",
-            delta=None
-        )
-    
+        st.metric("حجم کل بازار", value=f"${total_volume:,.0f}", delta=None)
+
     with col4:
         bullish_count = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
         bearish_count = total_coins - bullish_count
-        st.metric(
-            label="روند بازار",
-            value=f"{bullish_count}↑ {bearish_count}↓",
-            delta=None
-        )
+        st.metric("روند بازار", value=f"{bullish_count}🟢 {bearish_count}🔴", delta=None)
 
 def display_ai_analysis(ai_analysis: Dict):
     """Display AI analysis results"""
     if not ai_analysis:
         st.info("🤖 تحلیل هوش مصنوعی در دسترس نیست")
         return
-        
+
     st.markdown("---")
     st.header("🧠 " + lang.t('ai_analysis'))
     
     # اعتماد هوش مصنوعی
     ai_confidence = ai_analysis.get('ai_confidence', 0)
     confidence_color = "🟢" if ai_confidence > 70 else "🟡" if ai_confidence > 40 else "🔴"
-    
+
     col1, col2 = st.columns(2)
     
     with col1:
@@ -1349,14 +1333,14 @@ def display_ai_analysis(ai_analysis: Dict):
         )
     
     with col2:
-        st.write(f"{confidence_color} سطح اعتماد: {'عالی' if ai_confidence > 70 else 'متوسط' if ai_confidence > 40 else 'پایین'}")
-    
+        confidence_text = "عالی" if ai_confidence > 70 else "متوسط" if ai_confidence > 40 else "پایین"
+        st.write(f"{confidence_color} سطح اعتماد: {confidence_text}")
+
     # سیگنال‌های قوی
     strong_signals = ai_analysis.get('strong_signals', [])
     if strong_signals:
-        st.subheader("🎯 " + lang.t('strong_signals'))
-        
-        for i, signal in enumerate(strong_signals[:8], 1):  # حداکثر 8 سیگنال
+        st.subheader("🚀 " + lang.t('strong_signals'))
+        for i, signal in enumerate(strong_signals[:5], 1):
             with st.container():
                 col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
                 
@@ -1366,35 +1350,32 @@ def display_ai_analysis(ai_analysis: Dict):
                 with col2:
                     signal_strength = signal['signal_strength']
                     strength_color = "🟢" if signal_strength > 70 else "🟡" if signal_strength > 50 else "🔴"
-                    st.write(f"{strength_color} {signal_strength}%")
+                    st.write(f"{strength_color} {signal_strength:.1f}%")
                 
                 with col3:
-                    risk_level = signal['risk_level']
+                    risk_level = signal['risk_score']
                     risk_color = "🔴" if risk_level > 70 else "🟡" if risk_level > 40 else "🟢"
-                    st.write(f"{risk_color} ریسک: {risk_level}%")
+                    st.write(f"{risk_color} ریسک: {risk_level:.1f}%")
                 
                 with col4:
                     rec = signal['recommendation']
-                    rec_color = "success" if "قوی" in rec or "Strong" in rec else "warning" if "محتاط" in rec or "Cautious" in rec else "info"
-                    st.write(f":{rec_color}[{rec}]")
+                    st.write(f"**{rec}**")
             
             st.markdown("---")
-    
+
     # هشدارهای ریسک
     risk_warnings = ai_analysis.get('risk_warnings', [])
     if risk_warnings:
         st.subheader("⚠️ " + lang.t('risk_warnings'))
-        
-        for warning in risk_warnings[:5]:  # حداکثر 5 هشدار
-            with st.expander(f"🚨 {warning['coin']} ({warning['symbol']}) - سطح ریسک: {warning['risk_level']}%", expanded=False):
-                st.error(f"**هشدار ریسک بالا** - این ارز دارای نوسانات شدید یا ریسک معاملاتی بالایی است.")
-                st.write(f"💡 پیشنهاد: {warning['recommendation']}")
-    
+        for warning in risk_warnings[:3]:
+            with st.expander(f"🔴 {warning['coin']} ({warning['symbol']}) - سطح ریسک: {warning['risk_score']:.1f}%", expanded=False):
+                st.error("**هشدار ریسک بالا**: این ارز دارای نوسانات شدید یا ریسک معاملاتی بالایی است.")
+                st.write(f"**پیشنهاد**: {warning['recommendation']}")
+
     # بینش‌های بازار
     market_insights = ai_analysis.get('market_insights', [])
     if market_insights:
-        st.subheader("💡 " + lang.t('market_insights'))
-        
+        st.subheader("🔍 " + lang.t('market_insights'))
         for insight in market_insights:
             if "صعودی" in insight or "bullish" in insight:
                 st.success(insight)
@@ -1403,20 +1384,223 @@ def display_ai_analysis(ai_analysis: Dict):
             else:
                 st.info(insight)
 
-def display_search_filter(coins_data: List[Dict]):
-    """Display search and filter controls"""
-    if not coins_data:
+# ==================== کامپوننت‌های مانیتورینگ جدید ====================
+
+def display_ai_health_dashboard(vortex_ai, emergency_system):
+    """نمایش دشبورد سلامت هوش مصنوعی"""
+    st.header("🏥 دشبورد سلامت VortexAI")
+    
+    if not vortex_ai:
+        st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
         return
     
-    st.markdown("---")
-    st.subheader("🔍 جستجو و فیلتر")
+    # دریافت گزارش سلامت
+    health_report = vortex_ai.get_health_report()
+    
+    # کارت‌های وضعیت فوری
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        overall_health = health_report['overall_health']
+        status_color = "🟢" if overall_health > 70 else "🟡" if overall_health > 40 else "🔴"
+        st.metric("🧠 سلامت کلی", f"{overall_health:.1f}%")
+        st.write(f"{status_color} {'عالی' if overall_health > 70 else 'متوسط' if overall_health > 40 else 'نیازمند توجه'}")
+    
+    with col2:
+        emergency_status = health_report['emergency_status']['active']
+        st.metric("🛑 وضعیت اضطراری", "فعال" if emergency_status else "غیرفعال")
+        st.write("🔴" if emergency_status else "🟢")
+    
+    with col3:
+        network_stats = health_report['network_stats']
+        st.metric("🧬 نسل شبکه", network_stats['generation'])
+        st.write(f"📊 {network_stats['total_activations']:,} فعال‌سازی")
+    
+    with col4:
+        st.metric("🎯 دقت فعلی", f"{network_stats['current_accuracy']*100:.1f}%")
+        st.metric("📈 کیفیت سیگنال", f"{network_stats['signal_quality']*100:.1f}%")
+
+def display_growth_monitoring(vortex_ai):
+    """نمایش مانیتورینگ رشد شبکه"""
+    st.header("🌱 مانیتورینگ رشد و توسعه")
+    
+    if not vortex_ai:
+        return
+        
+    health_report = vortex_ai.get_health_report()
+    network_stats = health_report['network_stats']
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
+        st.subheader("🧠 معماری شبکه")
+        st.write(f"**نورون‌ها**: {network_stats['total_neurons']} از ۴,۰۰۰")
+        st.write(f"**سیناپس‌ها**: {network_stats['total_synapses']} از ۱۵,۰۰۰")
+        st.write(f"**وزن‌ها**: {network_stats['total_weights']:,}")
+        
+        # نمایش پیشرفت
+        neuron_progress = network_stats['total_neurons'] / 4000
+        st.progress(neuron_progress)
+        st.caption(f"ظرفیت نورون‌ها: {neuron_progress:.1%}")
+    
+    with col2:
+        st.subheader("📊 عملکرد یادگیری")
+        st.write(f"**جلسات یادگیری**: {vortex_ai.learning_sessions}")
+        st.write(f"**تحلیل‌های انجام شده**: {len(vortex_ai.analysis_history)}")
+        st.write(f"**حجم حافظه یادگیری**: {len(vortex_ai.market_experiences)} تجربه")
+        
+        # نرخ یادگیری
+        learning_rate = network_stats['learning_rate']
+        st.metric("🎓 نرخ یادگیری", f"{learning_rate:.4f}")
+    
+    with col3:
+        st.subheader("💾 مصرف منابع")
+        st.write(f"**مصرف RAM**: {network_stats['memory_usage']}MB از ۴۵۰MB")
+        st.write(f"**مصرف CPU**: {network_stats['cpu_usage']:.1f}%")
+        st.write(f"**بلوغ شبکه**: {network_stats['network_maturity']:.1%}")
+        
+        # پیشرفت حافظه
+        memory_progress = network_stats['memory_usage'] / 450
+        st.progress(memory_progress)
+        st.caption(f"مصرف حافظه: {memory_progress:.1%}")
+
+def display_real_health_metrics(vortex_ai):
+    """نمایش شاخص‌های سلامت واقعی"""
+    st.header("❤️ شاخص‌های حیاتی")
+    
+    if not vortex_ai:
+        return
+        
+    health_report = vortex_ai.get_health_report()
+    health_checks = health_report['health_checks']
+    
+    # نمایش وضعیت سلامت
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("✅ بررسی‌های فنی")
+        for check_name, check_status in health_checks.items():
+            status_icon = "✅" if check_status else "❌"
+            status_text = "خوب" if check_status else "نیازمند توجه"
+            st.write(f"{status_icon} {check_name}: {status_text}")
+    
+    with col2:
+        st.subheader("📈 معیارهای عملکرد")
+        metrics = health_report['performance_metrics']
+        st.write(f"**روند دقت**: {'📈 بهبود' if metrics.get('accuracy_trend', 0) > 0 else '📉 کاهش'}")
+        st.write(f"**الگوهای جدید**: {'✅ کشف شده' if metrics.get('new_patterns_detected', False) else '❌ ندارد'}")
+        st.write(f"**رضایت کاربر**: {metrics.get('user_satisfaction', 0)*100:.1f}%")
+
+def display_emergency_controls(emergency_system):
+    """نمایش کنترل‌های اضطراری"""
+    st.header("🎮 کنترل‌های مدیریتی")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.subheader("🛑 کنترل اضطراری")
+        if st.button("🔴 توقف فوری هوش مصنوعی", type="secondary", use_container_width=True):
+            result = emergency_system.activate_emergency_stop("دستور کاربر از UI")
+            st.error(result)
+            st.rerun()
+        
+        if st.button("🟢 بازگشت به حالت عادی", type="primary", use_container_width=True):
+            result = emergency_system.deactivate_emergency_stop()
+            st.success(result)
+            st.rerun()
+    
+    with col2:
+        st.subheader("🧬 کنترل رشد")
+        if st.button("⚡ اجبار به تکامل", use_container_width=True):
+            if hasattr(st.session_state, 'scanner') and st.session_state.scanner:
+                result = st.session_state.scanner.vortex_ai.force_evolution()
+                st.info(result)
+            else:
+                st.error("اسکنر در دسترس نیست")
+    
+    with col3:
+        st.subheader("🔧 بهینه‌سازی")
+        if st.button("🧹 بهینه‌سازی حافظه", use_container_width=True):
+            if hasattr(st.session_state, 'scanner') and st.session_state.scanner:
+                pruned_count = st.session_state.scanner.vortex_ai.brain.optimize_memory()
+                st.success(f"✅ {pruned_count} نورون بهینه‌سازی شد")
+            else:
+                st.error("اسکنر در دسترس نیست")
+
+def display_performance_metrics(vortex_ai):
+    """نمایش معیارهای عملکرد دقیق"""
+    st.subheader("📊 تحلیل عملکرد دقیق")
+    
+    if not vortex_ai or not vortex_ai.analysis_history:
+        st.info("📝 داده‌های عملکردی هنوز جمع‌آوری نشده‌اند")
+        return
+    
+    # محاسبه آمار پیشرفت
+    recent_analyses = vortex_ai.analysis_history[-10:]  # 10 تحلیل اخیر
+    if recent_analyses:
+        confidences = [analysis.get('ai_confidence', 0) for analysis in recent_analyses]
+        avg_confidence = sum(confidences) / len(confidences)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("میانگین اعتماد اخیر", f"{avg_confidence:.1f}%")
+        with col2:
+            trend = "📈 بهبود" if len(confidences) > 1 and confidences[-1] > confidences[0] else "📉 کاهش"
+            st.metric("روند اعتماد", trend)
+        
+        # نمودار ساده اعتماد
+        st.line_chart(confidences)
+
+def display_alerts_and_warnings(vortex_ai):
+    """نمایش هشدارها و اعلان‌ها"""
+    st.subheader("⚠️ هشدارها و اعلان‌ها")
+    
+    if not vortex_ai:
+        return
+        
+    health_report = vortex_ai.get_health_report()
+    alerts = []
+    
+    # بررسی شرایط هشدار
+    network_stats = health_report['network_stats']
+    if network_stats['memory_usage'] > 300:
+        alerts.append("🔴 مصرف حافظه به حد هشدار نزدیک است")
+    
+    if network_stats['current_accuracy'] < 0.6:
+        alerts.append("🟠 دقت تحلیل کمتر از ۶۰٪ است")
+    
+    if health_report['emergency_status']['active']:
+        alerts.append("🛑 سیستم در حالت توقف اضطراری است")
+    
+    if network_stats['total_neurons'] > 3500:
+        alerts.append("🟡 تعداد نورون‌ها به حد مجاز نزدیک است")
+    
+    # نمایش هشدارها
+    if alerts:
+        for alert in alerts:
+            if "🔴" in alert or "🛑" in alert:
+                st.error(alert)
+            elif "🟠" in alert:
+                st.warning(alert)
+            else:
+                st.info(alert)
+    else:
+        st.success("✅ همه سیستم‌ها در وضعیت نرمال هستند")
+
+def display_search_filter(coins_data: List[Dict]):
+    """Display search and filter controls"""
+    if not coins_data:
+        return
+
+    st.markdown("---")
+    st.subheader("🔍 جستجو و فیلتر")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
         search_term = st.text_input(
             lang.t('search_placeholder'),
-            placeholder="...نام یا نماد ارز",
+            placeholder="نام یا نماد ارز...",
             key="search_input"
         )
     
@@ -1427,8 +1611,9 @@ def display_search_filter(coins_data: List[Dict]):
             value=10,
             step=10,
             key="min_volume"
-        ) * 1000000  # تبدیل به دلار
-    
+        )
+        # تبدیل به دلار * 1000000
+
     with col3:
         trend_filter = st.selectbox(
             "فیلتر روند",
@@ -1436,38 +1621,38 @@ def display_search_filter(coins_data: List[Dict]):
             index=0,
             key="trend_filter"
         )
-    
+
     # اعمال فیلترها
     filtered_coins = coins_data
-    
+
     if search_term:
         filtered_coins = [
-            coin for coin in filtered_coins 
-            if search_term.lower() in coin.get('name', '').lower() 
-            or search_term.lower() in coin.get('symbol', '').lower()
+            coin for coin in filtered_coins
+            if search_term.lower() in coin.get('name', "").lower()
+            or search_term.lower() in coin.get('symbol', "").lower()
         ]
-    
+
     if min_volume > 0:
         filtered_coins = [
-            coin for coin in filtered_coins 
-            if coin.get('volume', 0) >= min_volume
+            coin for coin in filtered_coins
+            if coin.get('volume', 0) >= min_volume * 1000000
         ]
-    
+
     if trend_filter == "صعودی":
         filtered_coins = [
-            coin for coin in filtered_coins 
+            coin for coin in filtered_coins
             if coin.get('priceChange24h', 0) > 0
         ]
     elif trend_filter == "نزولی":
         filtered_coins = [
-            coin for coin in filtered_coins 
+            coin for coin in filtered_coins
             if coin.get('priceChange24h', 0) < 0
         ]
-    
+
     # نمایش نتایج فیلتر شده
     if len(filtered_coins) != len(coins_data):
-        st.info(f"📊 نمایش {len(filtered_coins)} از {len(coins_data)} ارز (فیلتر شده)")
-    
+        st.info(f"📋 نمایش {len(filtered_coins)} از {len(coins_data)} ارز (فیلتر شده)")
+
     return filtered_coins
 
 def display_quick_actions():
@@ -1476,35 +1661,40 @@ def display_quick_actions():
     st.subheader("⚡ اقدامات سریع")
     
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         if st.button("🔄 اسکن مجدد", use_container_width=True):
             st.rerun()
-    
+
     with col2:
         if st.button("💾 ذخیره گزارش", use_container_width=True):
-            st.success("گزارش ذخیره شد")
-    
+            st.success("✅ گزارش ذخیره شد")
+
     with col3:
-        if st.button("📧 اشتراک‌گذاری", use_container_width=True):
-            st.info("امکان اشتراک‌گذاری")
-    
+        if st.button("📤 اشتراک‌گذاری", use_container_width=True):
+            st.info("📤 امکان اشتراک‌گذاری")
+
     with col4:
         if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
             st.session_state.show_settings = True
+            
 # --- SECTION 7: MAIN APPLICATION ---
+# -- SECTION 7: MAIN APPLICATION WITH MONITORING --
 
 def main():
     """Main application function"""
     setup_page_config()
-    
+
+    # Initialize multi-language system
+    lang = Multilanguage()
+
     # Display title
     st.title(lang.t('app_title'))
     st.markdown("---")
-    
+
     # Setup sidebar and get scan buttons
     normal_scan, ai_scan = setup_sidebar()
-    
+
     # Initialize scanner با خطایابی بهتر
     @st.cache_resource
     def load_scanner():
@@ -1515,110 +1705,187 @@ def main():
         except Exception as e:
             print(f"❌ Scanner initialization failed: {e}")
             return None
-    
+
     scanner = load_scanner()
-    
+
+    # Initialize emergency system
+    if 'emergency_system' not in st.session_state:
+        st.session_state.emergency_system = EmergencyStopSystem()
+
     # استفاده از session state برای ذخیره نتایج
     if 'scan_results' not in st.session_state:
         st.session_state.scan_results = None
+
     if 'ai_results' not in st.session_state:
         st.session_state.ai_results = None
-    
-    # Handle scan requests
-    if normal_scan:
-        with st.spinner(lang.t('scanning')):
-            print("🎯 NORMAL SCAN TRIGGERED")
-            if scanner:
-                results = scanner.scan_market(limit=100)
-            else:
-                results = None
-                st.error("❌ Scanner initialization failed")
-            
-            print(f"📊 NORMAL SCAN RESULTS: {results is not None}")
-            
-            if results and results.get('success'):
-                st.session_state.scan_results = results
-                st.session_state.ai_results = None
-                st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
-            else:
-                st.error("❌ خطا در دریافت داده‌ها")
-                # حتی در صورت خطا هم داده نمونه نمایش بده
+
+    if 'current_tab' not in st.session_state:
+        st.session_state.current_tab = "اسکن بازار"
+
+    # ایجاد تب‌های اصلی
+    tab1, tab2, tab3 = st.tabs(["📊 اسکن بازار", "🧠 مانیتورینگ هوش مصنوعی", "ℹ️ راهنما"])
+
+    with tab1:
+        # Handle scan requests
+        if normal_scan:
+            with st.spinner(lang.t('scanning')):
+                print("🔍 NORMAL SCAN TRIGGERED")
                 if scanner:
-                    fallback_data = get_fallback_data_safe()
-                    st.session_state.scan_results = fallback_data
+                    results = scanner.scan_market(limit=100)
+                else:
+                    results = None
+                    st.error("❌ Scanner initialization failed")
+
+                print(f"📊 NORMAL SCAN RESULTS: {results is not None}")
+
+                if results and results.get('success'):
+                    st.session_state.scan_results = results
                     st.session_state.ai_results = None
-    
-    if ai_scan:
-        with st.spinner(lang.t('analyzing')):
-            print("🎯 AI SCAN TRIGGERED")
-            if scanner:
-                results = scanner.scan_with_ai(limit=100)
-            else:
-                results = None
-                st.error("❌ Scanner initialization failed")
-            
-            print(f"📊 AI SCAN RESULTS: {results is not None}")
-            
-            if results and results.get('success'):
-                st.session_state.scan_results = results
-                st.session_state.ai_results = results.get('ai_analysis')
-                st.success(f"✅ تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
-            else:
-                st.error("❌ خطا در تحلیل AI")
+                    st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز پیدا شد")
+                else:
+                    st.error("❌ خطا در دریافت داده‌ها")
+                    # نمایش داده نمونه در صورت خطا
+                    if scanner:
+                        fallback_data = get_fallback_data_safe()
+                        st.session_state.scan_results = fallback_data
+                        st.session_state.ai_results = None
+
+        if ai_scan:
+            with st.spinner(lang.t('analyzing')):
+                print("🎯 AI SCAN TRIGGERED")
                 if scanner:
-                    fallback_data = get_fallback_data_safe()
-                    st.session_state.scan_results = fallback_data
-                    st.session_state.ai_results = None
-    
-    # نمایش نتایج از session state
-    if st.session_state.scan_results:
-        print(f"🔄 DISPLAYING RESULTS: {len(st.session_state.scan_results.get('coins', []))} coins")
-        
+                    results = scanner.scan_with_ai(limit=100)
+                else:
+                    results = None
+                    st.error("❌ Scanner initialization failed")
+
+                print(f"📈 AI SCAN RESULTS: {results is not None}")
+
+                if results and results.get('success'):
+                    st.session_state.scan_results = results
+                    st.session_state.ai_results = results.get('ai_analysis')
+                    st.success(f"🧠 تحلیل AI موفق! {len(results.get('coins', []))} ارز تحلیل شد")
+                else:
+                    st.error("❌ خطا در تحلیل AI")
+                    if scanner:
+                        fallback_data = get_fallback_data_safe()
+                        st.session_state.scan_results = fallback_data
+                        st.session_state.ai_results = None
+
         # نمایش نتایج بازار
-        display_market_results(st.session_state.scan_results)
+        if st.session_state.scan_results:
+            print(f"📋 DISPLAYING RESULTS: {len(st.session_state.scan_results.get('coins', []))} coins")
+            
+            # نمایش نتایج بازار
+            display_market_results(st.session_state.scan_results)
+
+            # نمایش تحلیل AI اگر موجود باشد
+            if st.session_state.ai_results:
+                display_ai_analysis(st.session_state.ai_results)
+        else:
+            # نمایش صفحه خالی با راهنما
+            st.info("""
+            **📋 راهنمای شروع:**
+
+            1. **اسکن بازار** برای دریافت لیست ارزها
+            2. **اسکن با VortexAI** برای تحلیل پیشرفته با هوش مصنوعی
+
+            **💡 نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند
+            """)
+
+            # دکمه تست سریع
+            if st.button("🚀 اسکن سریع با داده نمونه", type="secondary"):
+                with st.spinner("📥 در حال بارگذاری داده نمونه..."):
+                    fallback_data = get_fallback_data_safe()
+                    st.session_state.scan_results = fallback_data
+                    st.session_state.ai_results = None
+                    st.rerun()
+
+    with tab2:
+        # نمایش دشبورد مانیتورینگ
+        if scanner and hasattr(scanner, 'vortex_ai'):
+            display_ai_health_dashboard(scanner.vortex_ai, st.session_state.emergency_system)
+            display_growth_monitoring(scanner.vortex_ai)
+            display_real_health_metrics(scanner.vortex_ai)
+            display_performance_metrics(scanner.vortex_ai)
+            display_alerts_and_warnings(scanner.vortex_ai)
+            display_emergency_controls(st.session_state.emergency_system)
+        else:
+            st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
+            st.info("💡 برای فعال‌سازی مانیتورینگ، ابتدا یک اسکن با AI انجام دهید")
+
+    with tab3:
+        # صفحه راهنما
+        st.header("📚 راهنمای استفاده از VortexAI")
         
-        # نمایش تحلیل AI اگر موجود باشد
-        if st.session_state.ai_results:
-            display_ai_analysis(st.session_state.ai_results)
-    else:
-        # نمایش صفحه خالی با راهنما
-        st.info("""
-        🚀 **راهنمای شروع:**
+        col1, col2 = st.columns(2)
         
-        1. **اسکن بازار** - برای دریافت لیست ارزها
-        2. **اسکن با VortexAI** - برای تحلیل پیشرفته با هوش مصنوعی
+        with col1:
+            st.subheader("🎯 قابلیت‌های اصلی")
+            st.write("""
+            - **اسکن بازار**: دریافت لیست ارزها با اطلاعات پایه
+            - **تحلیل AI**: تحلیل پیشرفته با شبکه عصبی
+            - **مدیریت ریسک**: شناسایی خودکار ریسک‌های بازار
+            - **سیگنال‌های هوشمند**: پیشنهادات معاملاتی مبتنی بر AI
+            """)
+            
+            st.subheader("🧠 سیستم هوش مصنوعی")
+            st.write("""
+            - **شبکه عصبی ۲۸۰۰ نورونی**
+            - **یادگیری مستمر از تجربیات**
+            - **تکامل خودکار معماری**
+            - **کنترل رشد هوشمند**
+            """)
         
-        💡 **نکته:** داده‌ها از سرور میانی VortexAI دریافت می‌شوند.
-        """)
-        
-        # نمایش داده‌های نمونه برای تست - نسخه ایمن
-        st.warning("در حال حاضر داده‌ای برای نمایش وجود ندارد. لطفاً یکی از دکمه‌های اسکن را فشار دهید.")
-        
-        # دکمه تست سریع - نسخه ایمن
-        if st.button("🧪 تست سریع با داده نمونه", type="secondary"):
-            with st.spinner("بارگذاری داده نمونه..."):
-                fallback_data = get_fallback_data_safe()
-                st.session_state.scan_results = fallback_data
-                st.session_state.ai_results = None
-                st.rerun()
-    
+        with col2:
+            st.subheader("🛡️ سیستم‌های ایمنی")
+            st.write("""
+            - **مانیتورینگ سلامت لحظه‌ای**
+            - **توقف اضطراری خودکار**
+            - **کنترل مصرف منابع**
+            - **پیشگیری از تورم عصبی**
+            """)
+            
+            st.subheader("📊 مانیتورینگ")
+            st.write("""
+            - **سلامت فنی سیستم**
+            - **عملکرد شبکه عصبی**
+            - **روند رشد و توسعه**
+            - **هشدارهای خودکار**
+            """)
+
     # Display AI status in sidebar
     with st.sidebar:
         st.markdown("---")
-        st.subheader("🤖 وضعیت VortexAI" if lang.current_lang == 'fa' else "🤖 VortexAI Status")
+        st.subheader("🤖 وضعیت VortexAI")
         
-        if scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
+        if scanner and hasattr(scanner, 'vortex_ai'):
+            vortex_ai = scanner.vortex_ai
+            health_report = vortex_ai.get_health_report()
+            
             st.metric(
-                "جلسات یادگیری" if lang.current_lang == 'fa' else "Learning Sessions", 
-                scanner.vortex_ai.learning_sessions
+                "🎓 جلسات یادگیری",
+                vortex_ai.learning_sessions
             )
+            
             st.metric(
-                "تحلیل‌های انجام شده" if lang.current_lang == 'fa' else "Analysis Completed", 
-                len(scanner.vortex_ai.analysis_history)
+                "📈 تحلیل‌های انجام شده",
+                len(vortex_ai.analysis_history)
             )
+            
+            st.metric(
+                "🧠 سلامت کلی",
+                f"{health_report['overall_health']:.1f}%"
+            )
+            
+            # نمایش وضعیت اضطراری
+            if health_report['emergency_status']['active']:
+                st.error("🛑 حالت ایمن فعال")
+            else:
+                st.success("🟢 حالت عادی")
         else:
-            st.warning("AI در دسترس نیست")
-        
+            st.warning("🔴 هوش مصنوعی غیرفعال")
+
         # نمایش وضعیت اتصال
         st.markdown("---")
         st.subheader("🌐 وضعیت اتصال")
@@ -1628,9 +1895,27 @@ def main():
             if coin_count > 5:  # اگر داده واقعی باشد
                 st.success("✅ متصل به سرور میانی")
             else:
-                st.warning("⚠️ استفاده از داده نمونه")
+                st.warning("📋 استفاده از داده نمونه")
         else:
-            st.info("🔌 در انتظار اتصال")
+            st.info("⏳ در انتظار اتصال")
+
+        # دکمه‌های سریع در sidebar
+        st.markdown("---")
+        st.subheader("⚡ اقدامات سریع")
+        
+        if st.button("🔄 اسکن فوری بازار", use_container_width=True):
+            st.session_state.scan_results = None
+            st.session_state.ai_results = None
+            st.rerun()
+            
+        if st.button("🧠 تحلیل AI سریع", use_container_width=True):
+            if scanner:
+                with st.spinner("🔍 در حال تحلیل با AI..."):
+                    results = scanner.scan_with_ai(limit=50)
+                    if results and results.get('success'):
+                        st.session_state.scan_results = results
+                        st.session_state.ai_results = results.get('ai_analysis')
+                        st.rerun()
 
 # تابع کمکی برای داده نمونه ایمن
 def get_fallback_data_safe():
@@ -1640,32 +1925,32 @@ def get_fallback_data_safe():
             {
                 'name': 'Bitcoin',
                 'symbol': 'BTC',
-                'price': 124619.36,
-                'priceChange24h': 1.92,
-                'priceChange1h': -0.08,
-                'volume': 39306468043,
-                'marketCap': 2483440001648
+                'price': 65432.10,
+                'priceChange24h': 2.15,
+                'priceChange1h': 0.32,
+                'volume': 39245678901,
+                'marketCap': 1287654321098
             },
             {
                 'name': 'Ethereum',
                 'symbol': 'ETH',
-                'price': 4586.82,
-                'priceChange24h': 2.15,
-                'priceChange1h': -0.32,
-                'volume': 40423228887,
-                'marketCap': 553641132921
+                'price': 3456.78,
+                'priceChange24h': 1.87,
+                'priceChange1h': -0.15,
+                'volume': 18765432987,
+                'marketCap': 415678901234
             },
             {
                 'name': 'BNB',
-                'symbol': 'BNB', 
-                'price': 1171.38,
-                'priceChange24h': 1.38,
-                'priceChange1h': -0.58,
-                'volume': 14106039249,
-                'marketCap': 163038687343
+                'symbol': 'BNB',
+                'price': 567.89,
+                'priceChange24h': 3.21,
+                'priceChange1h': 0.45,
+                'volume': 2987654321,
+                'marketCap': 87654321098
             }
         ]
-        
+
         return {
             'success': True,
             'coins': sample_coins,
