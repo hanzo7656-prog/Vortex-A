@@ -1257,6 +1257,7 @@ class CryptoScanner:
             print(f"🤖 AI Scan Error: {e}")
             logging.error(f"AI scan error: {e}")
             return None
+            
 # -- SECTION 6: UI COMPONENTS WITH MONITORING --
 
 def display_market_results(results: Dict):
@@ -1466,7 +1467,7 @@ def display_growth_monitoring(vortex_ai):
         st.write(f"**وزن‌ها**: {network_stats['total_weights']:,}")
         
         # نمایش پیشرفت
-        neuron_progress = network_stats['total_neurons'] / 4000
+        neuron_progress = min(max(network_stats['total_neurons'] / 4000, 0.0), 1.0)
         st.progress(neuron_progress)
         st.caption(f"ظرفیت نورون‌ها: {neuron_progress:.1%}")
     
@@ -1487,7 +1488,7 @@ def display_growth_monitoring(vortex_ai):
         st.write(f"**بلوغ شبکه**: {network_stats['network_maturity']:.1%}")
         
         # پیشرفت حافظه
-        memory_progress = network_stats['memory_usage'] / 450
+        memory_progress = min(max(network_stats['memory_usage'] / 450, 0.0), 1.0)
         st.progress(memory_progress)
         st.caption(f"مصرف حافظه: {memory_progress:.1%}")
 
@@ -1996,7 +1997,7 @@ def display_sidebar_status(scanner):
                     
             except Exception as e:
                 st.warning("⚠️ خطا در دریافت وضعیت")
-                st.metric("🎓 جلسات یادگیری", "N/A")
+                st.metric("🎓 0 ," جلسات یادگیری)
         else:
             st.warning("🔴 هوش مصنوعی غیرفعال")
             st.info("برای فعال‌سازی، اسکن با AI انجام دهید")
