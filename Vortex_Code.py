@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 import json
 
 # --- SECTION 1: MULTI-LANGUAGE SYSTEM ---
-
-class Multilanguage:  # تصحیح نام کلاس
+# -- SECTION 1: MULTI-LANGUAGE SYSTEM --
+class Multilanguage:
     def __init__(self):
         self.dictionaries = {
             'fa': self._persian_dict(),
@@ -24,19 +24,19 @@ class Multilanguage:  # تصحیح نام کلاس
     def _persian_dict(self):
         return {
             # UI Elements
-            'app_title': "🔄 VortexAI - اسکنر بازار کریپتو",
-            'scan_button': "📊 اسکن بازار",
-            'ai_scan_button': "🤖 اسکن با VortexAI",
+            'app_title': "📌 VortexAI - استخر بازار کریپتو",
+            'scan_button': "📖 اسکن بازار",
+            'ai_scan_button': "🧠 اسکن با VortexAI",
             'settings_button': "⚙️ تنظیمات",
-            'search_placeholder': "...جستجوی ارز",
-            
+            'search_placeholder': "جستجوی ارز...",
+
             # Sidebar
             'sidebar_title': "کنترل‌ها",
             'language_label': "زبان",
             'theme_label': "تم",
             'dark_mode': "تیره",
             'light_mode': "روشن",
-            
+
             # Results
             'results_title': "نتایج اسکن",
             'coin_name': "نام ارز",
@@ -46,24 +46,24 @@ class Multilanguage:  # تصحیح نام کلاس
             'volume': "حجم",
             'market_cap': "ارزش بازار",
             'signal_strength': "قدرت سیگنال",
-            
+
             # AI Analysis
             'ai_analysis': "تحلیل هوش مصنوعی",
             'strong_signals': "سیگنال‌های قوی",
             'risk_warnings': "هشدارهای ریسک",
             'market_insights': "بینش‌های بازار",
             'ai_confidence': "اعتماد هوش مصنوعی",
-            
+
             # Technical Analysis
             'technical_analysis': "تحلیل تکنیکال",
             'rsi': "شاخص قدرت نسبی",
             'macd': "واگرایی همگرایی میانگین متحرک",
             'bollinger_bands': "باندهای بولینگر",
             'moving_average': "میانگین متحرک",
-            
+
             # Status Messages
-            'scanning': "...در حال اسکن بازار",
-            'analyzing': "...VortexAI در حال تحلیل",
+            'scanning': "در حال اسکن بازار...",
+            'analyzing': "در حال تحلیل VortexAI...",
             'completed': "تکمیل شد",
             'error': "خطا",
             'success': "موفق"
@@ -73,18 +73,18 @@ class Multilanguage:  # تصحیح نام کلاس
         return {
             # UI Elements
             'app_title': "VortexAI - Crypto Market Scanner",
-            'scan_button': "📊 Scan Market",
-            'ai_scan_button': "🤖 Scan with VortexAI",
-            'settings_button': "⚙️ Settings",
+            'scan_button': "Scan Market",
+            'ai_scan_button': "Scan with VortexAI",
+            'settings_button': "Settings",
             'search_placeholder': "Search coins...",
-            
+
             # Sidebar
             'sidebar_title': "Controls",
             'language_label': "Language",
             'theme_label': "Theme",
             'dark_mode': "Dark",
             'light_mode': "Light",
-            
+
             # Results
             'results_title': "Scan Results",
             'coin_name': "Coin Name",
@@ -94,21 +94,21 @@ class Multilanguage:  # تصحیح نام کلاس
             'volume': "Volume",
             'market_cap': "Market Cap",
             'signal_strength': "Signal Strength",
-            
+
             # AI Analysis
             'ai_analysis': "AI Analysis",
             'strong_signals': "Strong Signals",
             'risk_warnings': "Risk Warnings",
             'market_insights': "Market Insights",
             'ai_confidence': "AI Confidence",
-            
+
             # Technical Analysis
             'technical_analysis': "Technical Analysis",
             'rsi': "Relative Strength Index",
             'macd': "Moving Average Convergence Divergence",
             'bollinger_bands': "Bollinger Bands",
             'moving_average': "Moving Average",
-            
+
             # Status Messages
             'scanning': "Scanning market...",
             'analyzing': "VortexAI analyzing...",
@@ -211,7 +211,7 @@ class DatabaseManager:
         except Exception as e:
             logging.error(f"Error saving market data: {e}")
 # -- SECTION 4: VORTEXAI NEURAL NETWORK WITH SAFETY SYSTEMS --
-
+# – SECTION 4: VORTEXAI NEURAL NETWORK WITH SAFETY SYSTEMS –
 import random
 import math
 from dataclasses import dataclass
@@ -220,8 +220,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-# ==================== سیستم‌های محافظتی ====================
-
+# =============================================================== #
 class DataSanityGuard:
     """محافظ در برابر داده‌های نادرست"""
     
@@ -237,7 +236,7 @@ class DataSanityGuard:
             return all(sanity_checks.values())
         except:
             return False
-    
+
     def detect_data_poisoning(self, data: Dict) -> bool:
         """تشخیص داده‌های مخرب"""
         suspicious_patterns = [
@@ -257,7 +256,7 @@ class NeuralInflationPrevention:
             'max_memory_mb': 450,
             'min_activation_density': 0.1
         }
-        
+
     def check_neural_health(self, network_stats: Dict) -> Dict[str, bool]:
         """بررسی سلامت شبکه عصبی"""
         health_report = {
@@ -267,18 +266,15 @@ class NeuralInflationPrevention:
             'density_ok': (network_stats['total_activations'] / max(1, network_stats['total_neurons'])) > self.growth_limits['min_activation_density']
         }
         return health_report
-    
+
     def should_grow(self, network_stats: Dict, performance_metrics: Dict) -> bool:
         """آیا شبکه مجاز به رشد است؟"""
         health = self.check_neural_health(network_stats)
-        
         growth_conditions = {
             'health_ok': all(health.values()),
             'performance_improving': performance_metrics.get('accuracy_trend', 0) > 0,
-            'real_need': performance_metrics.get('new_patterns_detected', False) or 
-                        performance_metrics.get('complexity_increased', False)
+            'real_need': performance_metrics.get('new_patterns_detected', False) or performance_metrics.get('complexity_increased', False)
         }
-        
         return all(growth_conditions.values())
 
 class EmergencyStopSystem:
@@ -289,41 +285,38 @@ class EmergencyStopSystem:
         self.safe_fallback_mode = False
         self.stop_reason = ""
         self.activation_time = None
-        
+
     def activate_emergency_stop(self, reason: str = "دستور کاربر"):
         """فعال‌سازی توقف اضطراری"""
         self.emergency_stop_active = True
         self.stop_reason = reason
         self.activation_time = datetime.now()
-        
-        logging.warning(f"🛑 توقف اضطراری فعال شد: {reason}")
-        
+        logging.warning(f"توقف اضطراری فعال شد: {reason}")
+
     def deactivate_emergency_stop(self) -> bool:
         """غیرفعال‌سازی توقف اضطراری"""
         if self.emergency_stop_active:
             self.emergency_stop_active = False
             self.safe_fallback_mode = False
-            logging.info("🟢 توقف اضطراری غیرفعال شد")
+            logging.info("توقف اضطراری غیرفعال شد")
             return True
         return False
-    
+
     def can_proceed(self, operation_type: str) -> bool:
         """آیا عملیات مجاز است؟"""
         if not self.emergency_stop_active:
             return True
-            
+
         # عملیات‌های مجاز در حالت اضطراری
         safe_operations = {
             'market_scanning',
-            'basic_analysis', 
+            'basic_analysis',
             'historical_processing',
             'data_display'
         }
-        
         return operation_type in safe_operations
 
-# ==================== معماری شبکه عصبی ====================
-
+# ============================= معماری شبکه عصبی ======================= #
 @dataclass
 class Neuron:
     id: int
@@ -334,33 +327,33 @@ class Neuron:
     specialization_score: float = 0.0  # امتیاز تخصص
     historical_importance: float = 0.0  # اهمیت تاریخی
     last_activated: datetime = None
-    
+
     def activate(self, inputs: Dict[str, float]) -> float:
         """فعال‌سازی نورون"""
         total = self.bias
         for key, value in inputs.items():
             if key in self.weights:
                 total += value * self.weights[key]
-        
+
         self.activation_count += 1
         self.last_activated = datetime.now()
         return self._sigmoid(total)
-    
+
     def _sigmoid(self, x: float) -> float:
         """تابع فعال‌سازی سیگموید"""
         return 1 / (1 + math.exp(-x))
-    
+
     def adjust_weights(self, inputs: Dict[str, float], error: float, learning_rate: float):
         """تنظیم وزن‌ها بر اساس خطا"""
         activation = self.activate(inputs)
         delta = error * activation * (1 - activation)
-        
+
         for key in self.weights:
             if key in inputs:
                 self.weights[key] += learning_rate * delta * inputs[key]
-        
+
         self.bias += learning_rate * delta
-    
+
     def should_protect(self) -> bool:
         """آیا این نورون باید محافظت شود؟"""
         protection_score = (
@@ -369,16 +362,16 @@ class Neuron:
             min(self.activation_count / 1000, 1.0) * 0.3
         )
         return protection_score > 0.6
-    
+
     def mutate(self, mutation_rate: float = 0.1):
         """جهش برای تنوع - با محافظت از نورون‌های متخصص"""
         if self.should_protect():
             mutation_rate *= 0.1  # جهش کمتر برای نورون‌های مهم
-        
+
         for key in self.weights:
             if random.random() < mutation_rate:
                 self.weights[key] += random.uniform(-0.2, 0.2)
-        
+
         if random.random() < mutation_rate:
             self.bias += random.uniform(-0.1, 0.1)
 
@@ -397,46 +390,45 @@ class VortexNeuralNetwork:
         self.input_layer = []
         self.hidden_layers = []
         self.output_layer = []
-        
+
         # سیستم‌های محافظتی
         self.data_guard = DataSanityGuard()
         self.inflation_guard = NeuralInflationPrevention()
-        
+
         # پارامترهای یادگیری
         self.learning_rate = 0.01
         self.generation = 0
         self.total_activations = 0
         self.memory = []
-        
+
         # آمار و مانیتورینگ
         self.performance_history = []
         self.health_checkpoints = []
-        
         self._build_network()
-    
+
     def _build_network(self):
         """ساخت شبکه عصبی با معماری بهینه"""
-        print("🧠 ساخت شبکه عصبی VortexAI با سیستم‌های ایمنی...")
-        
-        # لایه ورودی (400 نورون - کاهش یافته برای بهینه‌سازی)
-        input_features = [
-            'price', 'price_change_24h', 'price_change_1h', 'volume', 'market_cap',
-            'rsi', 'macd', 'bollinger_upper', 'bollinger_lower', 'volume_ratio',
+        print("ساخت شبکه عصبی VortexAI با سیستم‌های ایمنی...")
+
+        # لایه ورودی (کاهش یافته برای بهینه‌سازی - 400 نورون)
+        input_features = {
+            'price', 'price_change_24h', 'price_change_1h', 'volume', 'market_cap', 
+            'rsi', 'macd', 'bollinger_upper', 'bollinger_lower', 'volume_ratio', 
             'price_momentum', 'volatility', 'market_sentiment', 'trend_strength'
-        ]
-        
+        }
+
         self.input_layer = []
-        for i in range(400):  # کاهش از 500 به 400
+        for i in range(400):  # 400 نورون ورودی
             weights = {feature: random.uniform(-1, 1) for feature in input_features}
             neuron = Neuron(id=i, weights=weights, bias=random.uniform(-0.5, 0.5))
             self.neurons[i] = neuron
             self.input_layer.append(i)
-        
-        # لایه‌های پنهان (2000 نورون - کاهش یافته)
+
+        # لایه‌های پنهان (2000 نورون - کاهش یافتند)
         self.hidden_layers = []
         layer_sizes = [600, 500, 400, 300, 200]  # 5 لایه با نورون‌های کمتر
-        
         current_id = 400
+
         for layer_size in layer_sizes:
             layer = []
             for i in range(layer_size):
@@ -446,62 +438,62 @@ class VortexNeuralNetwork:
                 layer.append(current_id)
                 current_id += 1
             self.hidden_layers.append(layer)
-        
-        # لایه خروجی (400 نورون - کاهش یافته)
+
+        # لایه خروجی (400 نورون - کاهش یافتند)
         self.output_layer = []
         output_features = [
             'buy_signal', 'sell_signal', 'hold_signal', 'risk_score', 'confidence',
             'price_prediction_1h', 'price_prediction_24h', 'volatility_prediction'
         ]
-        
+
         for i in range(400):
             weights = {feature: random.uniform(-1, 1) for feature in output_features}
             neuron = Neuron(id=current_id, weights=weights, bias=random.uniform(-0.5, 0.5))
             self.neurons[current_id] = neuron
             self.output_layer.append(current_id)
             current_id += 1
-        
+
         # ایجاد سیناپس‌ها
         self._create_synapses()
-        
-        print(f"✅ شبکه عصبی ساخته شد: {len(self.neurons)} نورون, {len(self.synapses)} سیناپس")
-        print("🛡️ سیستم‌های ایمنی فعال شدند")
-    
+        print(f"☑ شبکه عصبی ساخته شد: {len(self.neurons)} نورون، {len(self.synapses)} سیناپس")
+        print("☑ سیستم‌های ایمنی فعال شدند")
+
     def _create_synapses(self):
         """ایجاد ارتباطات بین نورون‌ها با درنظرگیری بهینه‌سازی"""
+        
         # ارتباط لایه ورودی به اولین لایه پنهان
         for input_id in self.input_layer:
-            for hidden_id in self.hidden_layers[0][:100]:  # فقط 100 اتصال per neuron
+            for hidden_id in self.hidden_layers[0][:100]:  # اتصال 100 نورون per neuron
                 synapse = Synapse(input_id, hidden_id, random.uniform(-1, 1))
                 self.synapses.append(synapse)
-        
+
         # ارتباط بین لایه‌های پنهان
         for i in range(len(self.hidden_layers) - 1):
             for source_id in self.hidden_layers[i][:150]:  # محدودیت اتصال
                 for target_id in self.hidden_layers[i + 1][:100]:
                     synapse = Synapse(source_id, target_id, random.uniform(-1, 1))
                     self.synapses.append(synapse)
-        
+
         # ارتباط آخرین لایه پنهان به لایه خروجی
         for hidden_id in self.hidden_layers[-1][:200]:
             for output_id in self.output_layer[:100]:
                 synapse = Synapse(hidden_id, output_id, random.uniform(-1, 1))
                 self.synapses.append(synapse)
-    
+
     def feed_forward(self, inputs: Dict[str, float]) -> Dict[str, float]:
         """پیش‌بینی شبکه عصبی"""
         if not inputs:
             return self._get_default_output()
 
-        self.auto_memory_managment()
-        
+        self.auto_memory_management()
+
         # فعال‌سازی لایه ورودی
         input_activations = {}
         for neuron_id in self.input_layer:
             neuron = self.neurons[neuron_id]
             activation = neuron.activate(inputs)
             input_activations[neuron_id] = activation
-        
+
         # انتشار در لایه‌های پنهان
         current_activations = input_activations
         for layer in self.hidden_layers:
@@ -509,43 +501,39 @@ class VortexNeuralNetwork:
             for neuron_id in layer:
                 neuron = self.neurons[neuron_id]
                 neuron_inputs = {}
-                
                 for synapse in self.synapses:
                     if synapse.target_neuron_id == neuron_id:
                         if synapse.source_neuron_id in current_activations:
                             neuron_inputs[f"synapse_{synapse.source_neuron_id}"] = \
                                 current_activations[synapse.source_neuron_id] * synapse.weight
-                
                 activation = neuron.activate(neuron_inputs)
                 layer_activations[neuron_id] = activation
                 synapse.last_activated = activation
-            
             current_activations = layer_activations
-        
+
         # لایه خروجی
         outputs = {}
         for neuron_id in self.output_layer:
             neuron = self.neurons[neuron_id]
             neuron_inputs = {}
-            
             for synapse in self.synapses:
                 if synapse.target_neuron_id == neuron_id:
                     if synapse.source_neuron_id in current_activations:
                         neuron_inputs[f"synapse_{synapse.source_neuron_id}"] = \
                             current_activations[synapse.source_neuron_id] * synapse.weight
-            
             outputs[f"neuron_{neuron_id}"] = neuron.activate(neuron_inputs)
-        
+
         self.total_activations += 1
         return self._interpret_outputs(outputs)
-    
+
     def _interpret_outputs(self, raw_outputs: Dict[str, float]) -> Dict[str, float]:
         """تبدیل خروجی‌های خام به معنی‌دار"""
+        
         # گروه‌بندی خروجی‌ها
         buy_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and int(k.split('_')[1]) < 2800 + 100]
         sell_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and 2800 + 100 <= int(k.split('_')[1]) < 2800 + 200]
         confidence_signals = [v for k, v in raw_outputs.items() if 'neuron_' in k and int(k.split('_')[1]) >= 2800 + 200]
-        
+
         return {
             'buy_confidence': sum(buy_signals) / len(buy_signals) if buy_signals else 0.5,
             'sell_confidence': sum(sell_signals) / len(sell_signals) if sell_signals else 0.5,
@@ -554,7 +542,7 @@ class VortexNeuralNetwork:
             'neural_activity': self.total_activations,
             'network_maturity': min(1.0, self.total_activations / 1000)
         }
-    
+
     def _get_default_output(self):
         """خروجی پیش‌فرض در صورت خطا"""
         return {
@@ -565,27 +553,28 @@ class VortexNeuralNetwork:
             'neural_activity': self.total_activations,
             'network_maturity': min(1.0, self.total_activations / 1000)
         }
-    
+
     def learn_from_experience(self, inputs: Dict[str, float], expected_output: Dict[str, float], actual_profit: float = 0):
         """یادگیری از تجربیات با اعتبارسنجی داده"""
+        
         # بررسی سلامت داده‌های ورودی
         if not self.data_guard.validate_learning_data(inputs, expected_output):
-            logging.warning("❌ داده‌های یادگیری نامعتبر - یادگیری متوقف شد")
+            logging.warning("داده‌های یادگیری نامعتبر - یادگیری متوقف شد")
             return
-        
+
         if self.data_guard.detect_data_poisoning(inputs):
-            logging.warning("🚫 تشخیص داده‌های مخرب - یادگیری متوقف شد")
+            logging.warning("🔍 یادگیری متوقف شد - تشخیص داده‌های مخرب")
             return
-        
+
         # پیش‌بینی فعلی
         current_output = self.feed_forward(inputs)
-        
+
         # محاسبه خطا
         error = self._calculate_error(current_output, expected_output, actual_profit)
-        
+
         # انتشار خطا به عقب
         self._backward_propagate(error, inputs)
-        
+
         # ذخیره در حافظه
         experience = {
             'inputs': inputs,
@@ -596,48 +585,49 @@ class VortexNeuralNetwork:
             'timestamp': datetime.now().isoformat()
         }
         self.memory.append(experience)
-        
+
         # پاک‌سازی حافظه قدیمی
         if len(self.memory) > 800:  # کاهش از 1000 به 800
             self.memory = self.memory[-800:]
-    
+
     def _calculate_error(self, current: Dict, expected: Dict, profit: float) -> float:
         """محاسبه خطا"""
         error = 0
+
         for key in current:
             if key in expected:
                 error += abs(current[key] - expected[key])
-        
-        # اضافه کردن خطای سود/زیان
+
+        # اضافه کردن خطای مبتنی بر سود
         if profit != 0:
-            error += (1 - min(abs(profit), 1))  # خطای معکوس با سود
-        
+            error += (1 - min(abs(profit), 1))  # سود با خطای معکوس
+
         return error / len(current) if current else 1.0
-    
+
     def _backward_propagate(self, error: float, inputs: Dict[str, float]):
         """انتشار خطا به عقب"""
         learning_rate = self.learning_rate * (1 - min(1.0, self.total_activations / 10000))
-        
-        # به روز رسانی وزن‌ها در همه نورون‌ها
+
+        # به‌روزرسانی وزن‌ها در همه نورون‌ها
         for neuron in self.neurons.values():
             neuron.adjust_weights(inputs, error, learning_rate)
-        
+
         # جهش تصادفی برای کشف راه‌حل‌های جدید (با کنترل)
-        if random.random() < 0.005:  # کاهش از 1% به 0.5%
+        if random.random() < 0.005:  # 0.5% کاهش از 1%
             random_neuron = random.choice(list(self.neurons.values()))
             random_neuron.mutate()
-    
+
     def evolve(self):
         """تکامل شبکه - نسل جدید با کنترل رشد"""
         health_report = self.inflation_guard.check_neural_health(self.get_network_stats())
         
         if not all(health_report.values()):
-            logging.warning("⚠️ تکامل متوقف شد: سلامت شبکه در خطر")
+            logging.warning("تکامل متوقف شد: سلامت شبکه در خطر")
             return False
-        
+
         self.generation += 1
-        print(f"🧬 تکامل شبکه عصبی به نسل {self.generation}")
-        
+        print(f"تکامل شبکه عصبی به نسل {self.generation}")
+
         # جهش کنترل‌شده برای نسل جدید
         mutation_count = 0
         for neuron in self.neurons.values():
@@ -645,129 +635,134 @@ class VortexNeuralNetwork:
                 if random.random() < 0.1:  # کاهش نرخ جهش
                     neuron.mutate(mutation_rate=0.15)
                     mutation_count += 1
-        
+
         # تنظیم مجدد سیناپس‌ها
-        for synapse in random.sample(self.synapses, min(100, len(self.synapses))):  # فقط 100 سیناپس
+        for synapse in random.sample(self.synapses, min(100, len(self.synapses))):  # 100 سیناپس
             synapse.weight += random.uniform(-0.2, 0.2)
             synapse.strength = min(1.0, synapse.strength + random.uniform(-0.05, 0.05))
-        
-        print(f"✅ تکامل موفق: {mutation_count} جهش، نسل {self.generation}")
+
+        print(f"✔ تکامل مؤثر: {mutation_count} جهش، نسل {self.generation}")
         return True
-    
+
     def intelligent_growth(self, performance_metrics: Dict):
         """رشد هوشمند شبکه بر اساس نیاز واقعی"""
         if not self.inflation_guard.should_grow(self.get_network_stats(), performance_metrics):
             return False
-        
-        # رشد کنترل‌شده - اضافه کردن نورون‌های جدید فقط اگر لازم باشد
+
+        # رشد کنترل شده - اضافه کردن نورون‌های جدید فقط اگر لازم باشد
         if performance_metrics.get('new_patterns_detected', False):
             self._add_specialized_neurons(10)  # فقط 10 نورون جدید
             return True
-        
+
         return False
-    
+
     def _add_specialized_neurons(self, count: int):
         """اضافه کردن نورون‌های تخصصی جدید"""
         current_max_id = max(self.neurons.keys())
-        
+
         for i in range(count):
             new_id = current_max_id + i + 1
+
             # نورون‌های جدید با وزن‌های بهینه
             weights = {'prev_layer': random.uniform(-0.5, 0.5)}
             neuron = Neuron(
-                id=new_id, 
-                weights=weights, 
+                id=new_id,
+                weights=weights,
                 bias=random.uniform(-0.3, 0.3),
                 specialization_score=0.8  # نورون‌های جدید تخصصی‌تر
             )
             self.neurons[new_id] = neuron
-            
+
             # اضافه به آخرین لایه پنهان
             self.hidden_layers[-1].append(new_id)
-            
+
             # ایجاد اتصالات جدید
             self._connect_new_neuron(new_id)
-        
-        print(f"🌱 {count} نورون تخصصی جدید اضافه شد")
-    
+
+        print(f"نورون تخصصی جدید اضافه شد: {count}")
+
     def _connect_new_neuron(self, neuron_id: int):
         """ایجاد اتصالات برای نورون جدید"""
+        
         # اتصال به لایه قبلی
         prev_layer = self.hidden_layers[-2] if len(self.hidden_layers) > 1 else self.input_layer
         for source_id in random.sample(prev_layer, min(20, len(prev_layer))):
             synapse = Synapse(source_id, neuron_id, random.uniform(-0.5, 0.5))
             self.synapses.append(synapse)
-        
+
         # اتصال به لایه بعدی (خروجی)
         for target_id in random.sample(self.output_layer, min(15, len(self.output_layer))):
             synapse = Synapse(neuron_id, target_id, random.uniform(-0.5, 0.5))
             self.synapses.append(synapse)
-    
+
     def optimize_memory(self):
-        """بهینه‌سازی حافظه و حذف نورون‌های بی‌فایده - نسخه قوی"""
+        """بهینه‌سازی حافظه - هدف حذف نورون‌ها و سیناپس‌های بی‌فایده"""
         neurons_to_prune = []
-    
+        
         for neuron_id, neuron in self.neurons.items():
-        # معیارهای سخت‌گیرانه‌تر برای حذف
-            if (neuron.activation_count < 3 and 
+            # معیارهای سخت‌گیرانه‌تر برای حذف
+            if (neuron.activation_count < 5 and
                 not neuron.should_protect() and
-                neuron_id not in self.input_layer and 
+                neuron_id not in self.input_layer and
                 neuron_id not in self.output_layer and
-                max(neuron.weights.values()) < 0.05):  # وزن‌های بسیار کوچک
-            
+                max(neuron.weights.values(), default=0) < 0.1):  # وزن‌های بسیار کوچک
+                
                 neurons_to_prune.append(neuron_id)
-    
-        # حذف تا 20% نورون‌ها در صورت نیاز
-        prune_count = min(len(neurons_to_prune), len(self.neurons) // 5)
-    
+
+        # حذف حداکثر 25% از نورون‌ها در صورت نیاز
+        prune_count = min(len(neurons_to_prune), len(self.neurons) // 4)
+        
         for neuron_id in neurons_to_prune[:prune_count]:
             self._remove_neuron(neuron_id)
-    
+
         # بهینه‌سازی سیناپس‌ها
         self._optimize_synapses()
-    
+        
         print(f"🧹 بهینه‌سازی حافظه: {prune_count} نورون و {len(self.synapses)} سیناپس")
         return prune_count
-    
+
     def _remove_neuron(self, neuron_id: int):
         """حذف ایمن یک نورون"""
         if neuron_id in self.neurons:
-            # حذف از لایه‌ها
+            # حذف از لایه
             for layer in self.hidden_layers:
                 if neuron_id in layer:
                     layer.remove(neuron_id)
                     break
-            
+
             # حذف سیناپس‌های مرتبط
             self.synapses = [s for s in self.synapses 
                            if s.source_neuron_id != neuron_id and s.target_neuron_id != neuron_id]
-            
+
             # حذف نورون
             del self.neurons[neuron_id]
-    
+
     def _optimize_synapses(self):
         """بهینه‌سازی سیناپس‌ها"""
-        # حذف سیناپس‌های بسیار ضعیف
-        weak_synapses = [s for s in self.synapses if abs(s.weight) < 0.01]
-        self.synapses = [s for s in self.synapses if abs(s.weight) >= 0.01]
         
-        print(f"✂️ {len(weak_synapses)} سیناپس ضعیف حذف شد")
-    
+        # حذف سیناپس‌های بسیار ضعیف
+        weak_synapses = [s for s in self.synapses if abs(s.weight) < 0.05]
+        self.synapses = [s for s in self.synapses if abs(s.weight) >= 0.05]
+        
+        print(f"🧹 {len(weak_synapses)} سیناپس ضعیف حذف شد")
+
     def get_network_stats(self) -> Dict:
         """آمار شبکه عصبی با محاسبه حافظه REAL و پایدار"""
+        
         total_weights = sum(len(neuron.weights) for neuron in self.neurons.values())
         avg_activation = sum(neuron.activation_count for neuron in self.neurons.values()) / len(self.neurons)
-    
-        # محاسبه حافظه REALISTIC و پایدار
+
+        # محاسبه حافظه REALISTIC و پایدار - بهبود یافته
         base_memory = 50.0  # حافظه پایه ثابت
-        neuron_memory = len(self.neurons) * 0.08  # 0.08 MB per neuron
-        synapse_memory = len(self.synapses) * 0.012  # 0.012 MB per synapse
-    
-        memory_usage_mb = base_memory + neuron_memory + synapse_memory
-    
-        # محدود کردن حافظه گزارش شده به 350MB مطلق
+        neuron_memory = len(self.neurons) * 0.15  # افزایش به 0.15 MB per neuron
+        synapse_memory = len(self.synapses) * 0.025  # افزایش به 0.025 MB per synapse
+        memory_data_size = len(self.memory) * 0.002  # حدود 2KB per experience
+
+        memory_usage_mb = base_memory + neuron_memory + synapse_memory + memory_data_size
+
+        # محدود کردن حافظه گزارش شده به 350MB
         memory_usage_mb = min(memory_usage_mb, 350.0)
-    
+
         return {
             'total_neurons': len(self.neurons),
             'total_synapses': len(self.synapses),
@@ -778,45 +773,57 @@ class VortexNeuralNetwork:
             'learning_rate': self.learning_rate,
             'memory_size': len(self.memory),
             'network_maturity': min(1.0, self.total_activations / 1000),
-            'memory_usage': round(memory_usage_mb, 2),  # همیشه زیر 350MB
+            'memory_usage': round(memory_usage_mb, 2),  # حداکثر 350MB
             'cpu_usage': min(25.0, self.total_activations / 500),  # کاهش بیشتر
             'current_accuracy': self._calculate_current_accuracy(),
             'signal_quality': self._calculate_signal_quality()
         }
 
     def auto_memory_management(self):
-        """مدیریت خودکار حافظه - هر 50 فعال‌سازی چک می‌شود"""
-        if self.total_activations % 50 == 0:  # هر 50 فعال‌سازی
-            stats = self.get_network_stats()
+        """مدیریت خودکار حافظه - بهبود یافته"""
         
-            if stats['memory_usage'] > 250:  # اگر به 250MB رسید
-                print("🛡️ سیستم مدیریت حافظه خودکار فعال شد...")
-                pruned_count = self.optimize_memory()
-                print(f"🛡️ {pruned_count} نورون به صورت خودکار بهینه شد")
+        # چک کردن هر 20 فعال‌سازی به جای 50
+        if self.total_activations % 20 == 0:
+            stats = self.get_network_stats()
             
-            # پاک‌سازی حافظه اگر بیش از 1000 رکورد شد
-            if len(self.memory) > 1000:
-                self.memory = self.memory[-500:]  # نگه‌داری فقط 500 رکورد آخر
-                print("🛡️ حافظه تجربیات پاک‌سازی شد")
+            # آستانه‌های بهبود یافته
+            if stats['memory_usage'] > 200:  # کاهش آستانه به 200MB
+                print("🚨 سیستم مدیریت حافظه خودکار فعال شد")
                 
+                # بهینه‌سازی حافظه
+                pruned_count = self.optimize_memory()
+                
+                # پاک‌سازی قوی‌تر حافظه تجربیات
+                if len(self.memory) > 800:  # کاهش آستانه
+                    keep_count = min(400, len(self.memory) // 2)  # نگهداری نصف داده‌ها
+                    self.memory = self.memory[-keep_count:]
+                    print(f"🧹 حافظه تجربیات به {keep_count} رکورد کاهش یافت")
+                
+                print(f"✅ {pruned_count} نورون بهینه شد")
+
+            # پاک‌سازی حافظه اگر بیش از 1000 رکورد
+            if len(self.memory) > 1000:
+                self.memory = self.memory[-500:]  # فقط 500 رکورد آخر نگهداری
+                print("حافظه تجربیات پاک‌سازی شد")
+
     def _calculate_current_accuracy(self) -> float:
         """محاسبه دقت فعلی بر اساس حافظه"""
         if len(self.memory) < 10:
             return 0.5
-        
+
         recent_errors = [exp['error'] for exp in self.memory[-20:]]
         avg_error = sum(recent_errors) / len(recent_errors)
         return max(0.0, 1.0 - avg_error)
-    
+
     def _calculate_signal_quality(self) -> float:
         """محاسبه کیفیت سیگنال"""
         if len(self.memory) < 5:
             return 0.5
-        
+
         recent_profits = [exp['profit'] for exp in self.memory[-10:] if 'profit' in exp]
         if not recent_profits:
             return 0.5
-        
+
         avg_profit = sum(recent_profits) / len(recent_profits)
         return min(1.0, (avg_profit + 1) / 2)  # نرمال‌سازی به 0-1
 
@@ -835,14 +842,13 @@ class VortexAI:
             'complexity_increased': False,
             'user_satisfaction': 0.7
         }
-    
+
     def analyze_market_data(self, coins_data: List[Dict]) -> Dict:
         """تحلیل بازار با شبکه عصبی"""
         if self.emergency_system.can_proceed('ai_analysis'):
             return self._get_safe_fallback_analysis()
-        
+
         self.learning_sessions += 1
-        
         analysis = {
             "neural_analysis": [],
             "strong_signals": [],
@@ -852,8 +858,8 @@ class VortexAI:
             "network_stats": self.brain.get_network_stats(),
             "emergency_mode": self.emergency_system.emergency_stop_active
         }
-        
-        for coin in coins_data[:15]:  # کاهش از 20 به 15 برای بهینه‌سازی
+
+        for coin in coins_data[:15]:  # برای بهینه‌سازی 15 به 20 کاهش از
             # آماده‌سازی ورودی برای شبکه عصبی
             inputs = self._prepare_neural_inputs(coin)
             
@@ -870,49 +876,48 @@ class VortexAI:
                 "network_confidence": neural_output['overall_confidence'] * 100,
                 "recommendation": self._generate_recommendation(neural_output)
             }
-            
             analysis["neural_analysis"].append(coin_analysis)
-            
+
             if coin_analysis["signal_strength"] > 70:
                 analysis["strong_signals"].append(coin_analysis)
-            
+                
             if coin_analysis["risk_score"] > 60:
                 analysis["risk_warnings"].append(coin_analysis)
-        
+
         analysis["ai_confidence"] = self._calculate_confidence(coins_data)
         analysis["market_insights"] = self._generate_insights(analysis["neural_analysis"])
-        
+
         # یادگیری از تحلیل فعلی
         if not self.emergency_system.emergency_stop_active:
             self._learn_from_analysis(analysis)
-        
+
         self.analysis_history.append(analysis)
-        
+
         # رشد هوشمند اگر لازم باشد
         if (self.learning_sessions % 10 == 0 and 
             not self.emergency_system.emergency_stop_active):
             self.brain.intelligent_growth(self.performance_metrics)
-        
+
         # بهینه‌سازی دوره‌ای
         if self.learning_sessions % 20 == 0:
             pruned_count = self.brain.optimize_memory()
             if pruned_count > 0:
-                print(f"🔄 بهینه‌سازی حافظه: {pruned_count} نورون حذف شد")
-        
+                print(f"بهینه‌سازی حافظه: {pruned_count} نورون حذف شد")
+
         return analysis
-    
+
     def _get_safe_fallback_analysis(self) -> Dict:
         """تحلیل ایمن در حالت اضطراری"""
         return {
             "neural_analysis": [],
             "strong_signals": [],
             "risk_warnings": [],
-            "market_insights": ["🛑 سیستم در حالت ایمن فعال است"],
+            "market_insights": ["سیستم در حالت ایمن فعال است"],
             "ai_confidence": 30,
             "network_stats": self.brain.get_network_stats(),
             "emergency_mode": True
         }
-    
+
     def _prepare_neural_inputs(self, coin: Dict) -> Dict[str, float]:
         """آماده‌سازی ورودی‌های شبکه عصبی"""
         return {
@@ -926,12 +931,12 @@ class VortexAI:
             'volatility': min(abs(coin.get('priceChange24h', 0)) / 50, 1.0),
             'market_sentiment': random.uniform(0, 1)
         }
-    
+
     def _generate_recommendation(self, neural_output: Dict) -> str:
         """تولید پیشنهاد مبتنی بر شبکه عصبی"""
         buy_conf = neural_output['buy_confidence']
         sell_conf = neural_output['sell_confidence']
-        
+
         if buy_conf > 0.7 and buy_conf > sell_conf * 1.5:
             return "خرید قوی عصبی"
         elif sell_conf > 0.7 and sell_conf > buy_conf * 1.5:
@@ -942,94 +947,94 @@ class VortexAI:
             return "فروش محتاطانه عصبی"
         else:
             return "نظارت عصبی"
-    
+
     def _generate_insights(self, neural_analysis: List[Dict]) -> List[str]:
-        """تولید بینش‌های مبتنی بر شبکه عصبی"""
+        """تولید پیش‌بینی‌های مبتنی بر شبکه عصبی"""
         insights = []
-        
+
         if neural_analysis:
             avg_buy_confidence = sum(a['neural_buy_confidence'] for a in neural_analysis) / len(neural_analysis)
             avg_sell_confidence = sum(a['neural_sell_confidence'] for a in neural_analysis) / len(neural_analysis)
-            
+
             if avg_buy_confidence > 0.6:
                 insights.append("شبکه عصبی حالت صعودی قوی تشخیص می‌دهد")
             elif avg_sell_confidence > 0.6:
                 insights.append("شبکه عصبی حالت نزولی قوی تشخیص می‌دهد")
             else:
                 insights.append("شبکه عصبی بازار را متعادل ارزیابی می‌کند")
-        
-        insights.append(f"نسل شبکه: {self.brain.generation}")
-        insights.append(f"بلوغ شبکه: {self.brain.get_network_stats()['network_maturity']:.1%}")
-        
+
+            insights.append(f"نسل شبکه: {self.brain.generation}")
+            insights.append(f"بلوغ شبکه: {self.brain.get_network_stats()['network_maturity']:.1%}")
+
         if self.emergency_system.emergency_stop_active:
-            insights.append("🛑 حالت ایمن فعال است")
-        
+            insights.append("حالت ایمن فعال است")
+
         return insights
-    
+
     def _learn_from_analysis(self, analysis: Dict):
         """یادگیری از تحلیل انجام شده"""
-        # شبیه‌سازی پادگیری از نتایج
-        for coin_analysis in analysis['neural_analysis'][:5]:  # فقط 5 نمونه
+        # شبیه‌سازی یادگیری از نتایج
+        for coin_analysis in analysis['neural_analysis'][:5]:  # نمونه 5 فقط
             inputs = self._prepare_neural_inputs({
                 'price': random.uniform(1000, 50000),
                 'priceChange24h': random.uniform(-20, 20),
                 'priceChange1h': random.uniform(-5, 5),
                 'volume': random.uniform(1000000, 1000000000),
-                'marketCap': random.uniform(100000000, 100000000000)
+                'marketCap': random.uniform(10000000, 10000000000)
             })
-            
+
             # شبیه‌سازی خروجی مورد انتظار بر اساس عملکرد
             expected_output = {
                 'buy_confidence': random.uniform(0.3, 0.8),
                 'sell_confidence': random.uniform(0.3, 0.8),
                 'overall_confidence': random.uniform(0.5, 0.9)
             }
-            
+
             self.brain.learn_from_experience(inputs, expected_output, random.uniform(-0.1, 0.1))
-    
+
     def _calculate_confidence(self, coins_data: List[Dict]) -> float:
         """محاسبه اعتماد هوش مصنوعی"""
         if not coins_data:
             return 0.0
-        
+
         base_confidence = min(len(coins_data) / 50, 1.0) * 0.3
         neural_confidence = self.brain.get_network_stats()['network_maturity'] * 0.7
-        
+
         confidence = min(base_confidence + neural_confidence, 1.0) * 100
-        
+
         # کاهش اعتماد در حالت اضطراری
         if self.emergency_system.emergency_stop_active:
             confidence *= 0.5
-        
+
         return confidence
-    
+
     def force_evolution(self):
         """اجبار به تکامل شبکه"""
         if self.emergency_system.emergency_stop_active:
             return "تکامل متوقف شده: سیستم در حالت ایمن است"
-        
+
         if self.brain.evolve():
             return f"شبکه به نسل {self.brain.generation} تکامل یافت"
         else:
             return "تکامل ناموفق: سلامت شبکه در خطر است"
-    
+
     def emergency_stop(self, reason: str = "دستور کاربر"):
         """توقف اضطراری"""
         self.emergency_system.activate_emergency_stop(reason)
-        return f"🛑 توقف اضطراری فعال شد: {reason}"
-    
+        return f"توقف اضطراری فعال شد: {reason}"
+
     def resume_normal_operations(self):
         """بازگشت به حالت عادی"""
         if self.emergency_system.deactivate_emergency_stop():
-            return "🟢 سیستم به حالت عادی بازگشت"
+            return "سیستم به حالت عادی بازگشت"
         else:
-            return "⚠️ سیستم قبلاً در حالت عادی است"
-    
+            return "سیستم قبلاً در حالت عادی است"
+
     def get_health_report(self) -> Dict:
         """گزارش سلامت کامل"""
         network_stats = self.brain.get_network_stats()
         health_report = self.brain.inflation_guard.check_neural_health(network_stats)
-        
+
         return {
             'overall_health': self._calculate_overall_health(network_stats, health_report),
             'network_stats': network_stats,
@@ -1043,73 +1048,48 @@ class VortexAI:
             'learning_sessions': self.learning_sessions,
             'analysis_count': len(self.analysis_history)
         }
-        
+
     def _calculate_overall_health(self, network_stats: Dict, health_report: Dict) -> float:
         """محاسبه سلامت کلی"""
         try:
             health_score = 0.0
-            
+
             # سلامت فنی (40%)
             technical_health = sum(health_report.values()) / len(health_report) * 0.4
-            
+
             # سلامت عملکردی (30%)
             performance_health = (
                 network_stats.get('current_accuracy', 0.5) * 0.15 +
                 network_stats.get('signal_quality', 0.5) * 0.15
             )
-            
+
             # سلامت عملیاتی (30%)
             operational_health = (
                 (1 - min(network_stats.get('memory_usage', 0) / 450, 1)) * 0.1 +
                 (1 - min(network_stats.get('cpu_usage', 0) / 100, 1)) * 0.1 +
                 (0.0 if self.emergency_system.emergency_stop_active else 0.1)
             )
-            
+
             health_score = (technical_health + performance_health + operational_health) * 100
             return min(100, max(0, health_score))
-            
-        except Exception as e:
-            print(f"❌ خطا در محاسبه سلامت: {e}")
-            return 50.0  # مقدار پیش‌فرض   
-            
-    def _calculate_overall_health(self, network_stats: Dict, health_report: Dict) -> float:
-        """محاسبه سلامت کلی"""
-        health_score = 0.0
-        
-        # سلامت فنی (40%)
-        technical_health = sum(health_report.values()) / len(health_report) * 0.4
-        
-        # سلامت عملکردی (30%)
-        performance_health = (
-            network_stats['current_accuracy'] * 0.15 +
-            network_stats['signal_quality'] * 0.15
-        )
-        
-        # سلامت عملیاتی (30%)
-        operational_health = (
-            (1 - min(network_stats['memory_usage'] / 450, 1)) * 0.1 +
-            (1 - min(network_stats['cpu_usage'] / 100, 1)) * 0.1 +
-            (0.0 if self.emergency_system.emergency_stop_active else 0.1)
-        )
-        
-        health_score = (technical_health + performance_health + operational_health) * 100
-        return min(100, max(0, health_score))
 
-# ==================== تست سیستم ====================
+        except Exception as e:
+            print(f"خطا در محاسبه سلامت: {e}")
+            return 50.0  # مقدار پیش‌فرض
 
 if __name__ == "__main__":
     # تست سیستم
     ai = VortexAI()
-    print("🧠 VortexAI با سیستم‌های ایمنی راه‌اندازی شد")
-    
+    print("VortexAI با سیستم‌های ایمنی راه‌اندازی شد")
+
     # نمایش آمار اولیه
     stats = ai.brain.get_network_stats()
     print(f"نورون‌ها: {stats['total_neurons']}, سیناپس‌ها: {stats['total_synapses']}")
     print(f"مصرف RAM: {stats['memory_usage']}MB")
-    
+
     # تست سلامت
     health = ai.get_health_report()
-    print(f"سلامت کلی: {health['overall_health']:.1f}%")
+    print(f"سلامت کل: {health['overall_health']:.1f}%")
     
 # --- SECTION 5: CRYPTO SCANNER ---
 
@@ -1287,458 +1267,231 @@ class CryptoScanner:
             
 # -- SECTION 6: UI COMPONENTS WITH MONITORING --
 
-def display_market_results(results: Dict):
-    """Display market scan results"""
-    if not results or not results.get('success'):
-        st.error("❌ " + lang.t('error'))
-        return
+# – SECTION 6: UI COMPONENTS WITH MONITORING –
+import psutil
+import os
 
-    coins_data = results.get('coins', [])
-    if not coins_data:
-        st.warning("📭 هیچ داده‌ای برای نمایش وجود ندارد")
-        return
+def get_real_memory_usage():
+    """دریافت مصرف واقعی حافظه از سیستم"""
+    try:
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / 1024 / 1024  # MB
+    except:
+        return 0.0
 
-    # هدر با تعداد ارزها
-    st.header(f"{lang.t('results_title')} - {len(coins_data)} ارز")
-
-    # ایجاد دیتافریم برای نمایش
-    df_data = []
-    for coin in coins_data:
-        # بررسی وجود داده
-        price = coin.get('price', 0)
-        change_24h = coin.get('priceChange24h', 0)
-        change_1h = coin.get('priceChange1h', 0)
-        volume = coin.get('volume', 0)
-        market_cap = coin.get('marketCap', 0)
-
-        df_data.append((
-            coin.get('name', 'نامشخص'),
-            coin.get('symbol', 'N/A'),
-            f"${price:.2f}" if price > 0 else "$0.00",
-            f"{change_24h:+.2f}%" if change_24h != 0 else "0.00%",
-            f"{change_1h:+.2f}%" if change_1h != 0 else "0.00%",
-            f"${volume:,.0f}" if volume > 0 else "$0",
-            f"${market_cap:,.0f}" if market_cap > 0 else "$0"
-        ))
-
-    # ایجاد دیتافریم
-    df = pd.DataFrame(df_data, columns=[
-        lang.t('coin_name'),
-        'نماد',
-        lang.t('price'),
-        lang.t('change_24h'),
-        lang.t('change_1h'),
-        lang.t('volume'),
-        lang.t('market_cap')
-    ])
-
-    # تنظیم ایندکس از 1 شروع بشه
-    df.index = df.index + 1
-
-    # تنظیمات استایل برای دیتافریم
-    st.dataframe(
-        df,
-        use_container_width=True,
-        height=min(600, 35 * len(df) + 40),
-        hide_index=False
-    )
-
-    # متریک‌های کلی
-    st.subheader("📊 آمار کلی بازار")
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        total_coins = len(coins_data)
-        st.metric("تعداد ارزها", value=total_coins, delta=None)
-
-    with col2:
-        changes_24h = [c.get('priceChange24h', 0) for c in coins_data]
-        avg_change_24h = np.mean(changes_24h) if changes_24h else 0
-        st.metric("میانگین تغییرات", value=f"{avg_change_24h:+.2f}%", delta=None)
-
-    with col3:
-        total_volume = sum(c.get('volume', 0) for c in coins_data)
-        st.metric("حجم کل بازار", value=f"${total_volume:,.0f}", delta=None)
-
-    with col4:
-        bullish_count = sum(1 for c in coins_data if c.get('priceChange24h', 0) > 0)
-        bearish_count = total_coins - bullish_count
-        st.metric("روند بازار", value=f"{bullish_count}🟢 {bearish_count}🔴", delta=None)
-
-def display_ai_analysis(ai_analysis: Dict):
-    """Display AI analysis results"""
-    if not ai_analysis:
-        st.info("🤖 تحلیل هوش مصنوعی در دسترس نیست")
-        return
-
-    st.markdown("---")
-    st.header("🧠 " + lang.t('ai_analysis'))
+def display_real_memory_monitoring():
+    """نمایش مانیتورینگ حافظه واقعی"""
     
-    # اعتماد هوش مصنوعی
-    ai_confidence = ai_analysis.get('ai_confidence', 0)
-    confidence_color = "🟢" if ai_confidence > 70 else "🟡" if ai_confidence > 40 else "🔴"
-
+    real_memory = get_real_memory_usage()
+    st.subheader("📊 مانیتورینگ حافظه واقعی")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        st.metric(
-            label=lang.t('ai_confidence'),
-            value=f"{ai_confidence:.1f}%",
-            delta=None
-        )
-    
+        st.metric("مصرف واقعی RAM", f"{real_memory:.1f} MB")
+        
     with col2:
-        confidence_text = "عالی" if ai_confidence > 70 else "متوسط" if ai_confidence > 40 else "پایین"
-        st.write(f"{confidence_color} سطح اعتماد: {confidence_text}")
-
-    # سیگنال‌های قوی
-    strong_signals = ai_analysis.get('strong_signals', [])
-    if strong_signals:
-        st.subheader("🚀 " + lang.t('strong_signals'))
-        for i, signal in enumerate(strong_signals[:5], 1):
-            with st.container():
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+        if real_memory > 1000:  # 1GB
+            st.error("وضعیت: بحرانی 🔴")
+        elif real_memory > 500:  # 500MB
+            st.warning("وضعیت: هشدار 🟡")
+        else:
+            st.success("وضعیت: نرمال 🟢")
+    
+    # نمایش تفاوت بین محاسبات داخلی و واقعی
+    if 'scanner' in st.session_state and st.session_state.scanner:
+        if hasattr(st.session_state.scanner, 'vortex_ai'):
+            try:
+                network_stats = st.session_state.scanner.vortex_ai.brain.get_network_stats()
+                calculated_memory = network_stats.get('memory_usage', 0)
                 
-                with col1:
-                    st.write(f"**{i}. {signal['coin']}** ({signal['symbol']})")
-                
-                with col2:
-                    signal_strength = signal['signal_strength']
-                    strength_color = "🟢" if signal_strength > 70 else "🟡" if signal_strength > 50 else "🔴"
-                    st.write(f"{strength_color} {signal_strength:.1f}%")
-                
-                with col3:
-                    risk_level = signal['risk_score']
-                    risk_color = "🔴" if risk_level > 70 else "🟡" if risk_level > 40 else "🟢"
-                    st.write(f"{risk_color} ریسک: {risk_level:.1f}%")
-                
-                with col4:
-                    rec = signal['recommendation']
-                    st.write(f"**{rec}**")
-            
-            st.markdown("---")
+                st.info(f"""
+                **مقایسه مصرف حافظه:**
+                - محاسبه داخلی: {calculated_memory} MB
+                - مصرف واقعی: {real_memory:.1f} MB
+                - اختلاف: {abs(real_memory - calculated_memory):.1f} MB
+                """)
+            except Exception as e:
+                st.warning(f"خطا در محاسبه حافظه داخلی: {e}")
 
-    # هشدارهای ریسک
-    risk_warnings = ai_analysis.get('risk_warnings', [])
-    if risk_warnings:
-        st.subheader("⚠️ " + lang.t('risk_warnings'))
-        for warning in risk_warnings[:3]:
-            with st.expander(f"🔴 {warning['coin']} ({warning['symbol']}) - سطح ریسک: {warning['risk_score']:.1f}%", expanded=False):
-                st.error("**هشدار ریسک بالا**: این ارز دارای نوسانات شدید یا ریسک معاملاتی بالایی است.")
-                st.write(f"**پیشنهاد**: {warning['recommendation']}")
-
-    # بینش‌های بازار
-    market_insights = ai_analysis.get('market_insights', [])
-    if market_insights:
-        st.subheader("🔍 " + lang.t('market_insights'))
-        for insight in market_insights:
-            if "صعودی" in insight or "bullish" in insight:
-                st.success(insight)
-            elif "نزولی" in insight or "bearish" in insight:
-                st.warning(insight)
-            else:
-                st.info(insight)
-
-# ==================== کامپوننت‌های مانیتورینگ جدید ====================
-
-def display_ai_health_dashboard(vortex_ai, emergency_system):
-    """نمایش دشبورد سلامت هوش مصنوعی"""
-    st.header("🏥 دشبورد سلامت VortexAI")
+def force_memory_cleanup():
+    """پاک‌سازی اجباری حافظه"""
     
-    if not vortex_ai:
-        st.error("❌ سیستم هوش مصنوعی در دسترس نیست")
-        return
+    if 'scanner' not in st.session_state or not st.session_state.scanner:
+        return "اسکنر در دسترس نیست"
     
-    # دریافت گزارش سلامت
-    health_report = vortex_ai.get_health_report()
-    
-    # کارت‌های وضعیت فوری
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        overall_health = health_report['overall_health']
-        status_color = "🟢" if overall_health > 70 else "🟡" if overall_health > 40 else "🔴"
-        st.metric("🧠 سلامت کلی", f"{overall_health:.1f}%")
-        st.write(f"{status_color} {'عالی' if overall_health > 70 else 'متوسط' if overall_health > 40 else 'نیازمند توجه'}")
-    
-    with col2:
-        emergency_status = health_report['emergency_status']['active']
-        st.metric("🛑 وضعیت اضطراری", "فعال" if emergency_status else "غیرفعال")
-        st.write("🔴" if emergency_status else "🟢")
-    
-    with col3:
-        network_stats = health_report['network_stats']
-        st.metric("🧬 نسل شبکه", network_stats['generation'])
-        st.write(f"📊 {network_stats['total_activations']:,} فعال‌سازی")
-    
-    with col4:
-        st.metric("🎯 دقت فعلی", f"{network_stats['current_accuracy']*100:.1f}%")
-        st.metric("📈 کیفیت سیگنال", f"{network_stats['signal_quality']*100:.1f}%")
-
-def display_growth_monitoring(vortex_ai):
-    """نمایش مانیتورینگ رشد شبکه"""
-    st.header("🌱 مانیتورینگ رشد و توسعه")
-    
-    if not vortex_ai:
-        return
+    try:
+        vortex_ai = st.session_state.scanner.vortex_ai
         
-    health_report = vortex_ai.get_health_report()
-    network_stats = health_report['network_stats']
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.subheader("🧠 معماری شبکه")
-        st.write(f"**نورون‌ها**: {network_stats['total_neurons']} از ۴,۰۰۰")
-        st.write(f"**سیناپس‌ها**: {network_stats['total_synapses']} از ۱۵,۰۰۰")
-        st.write(f"**وزن‌ها**: {network_stats['total_weights']:,}")
+        # پاک‌سازی حافظه تجربیات
+        original_memory_size = len(vortex_ai.brain.memory)
+        vortex_ai.brain.memory = vortex_ai.brain.memory[-200:]  # فقط 200 رکورد آخر
         
-        # نمایش پیشرفت
-        neuron_progress = min(max(network_stats['total_neurons'] / 4000, 0.0), 1.0)
-        st.progress(neuron_progress)
-        st.caption(f"ظرفیت نورون‌ها: {neuron_progress:.1%}")
-    
-    with col2:
-        st.subheader("📊 عملکرد یادگیری")
-        st.write(f"**جلسات یادگیری**: {vortex_ai.learning_sessions}")
-        st.write(f"**تحلیل‌های انجام شده**: {len(vortex_ai.analysis_history)}")
-        st.write(f"**حجم حافظه یادگیری**: {len(vortex_ai.market_experiences)} تجربه")
+        # بهینه‌سازی شبکه
+        pruned_neurons = vortex_ai.brain.optimize_memory()
         
-        # نرخ یادگیری
-        learning_rate = network_stats['learning_rate']
-        st.metric("🎓 نرخ یادگیری", f"{learning_rate:.4f}")
-    
-    with col3:
-        st.subheader("💾 مصرف منابع")
-        st.write(f"**مصرف RAM**: {network_stats['memory_usage']}MB از ۴۵۰MB")
-        st.write(f"**مصرف CPU**: {network_stats['cpu_usage']:.1f}%")
-        st.write(f"**بلوغ شبکه**: {network_stats['network_maturity']:.1%}")
+        # پاک‌سازی تاریخچه تحلیل
+        original_analysis_count = len(vortex_ai.analysis_history)
+        vortex_ai.analysis_history = vortex_ai.analysis_history[-50:]  # 50 تحلیل آخر
         
-        # پیشرفت حافظه
-        memory_progress = min(max(network_stats['memory_usage'] / 450, 0.0), 1.0)
-        st.progress(memory_progress)
-        st.caption(f"مصرف حافظه: {memory_progress:.1%}")
-
-def display_real_health_metrics(vortex_ai):
-    """نمایش شاخص‌های سلامت واقعی"""
-    st.header("❤️ شاخص‌های حیاتی")
-    
-    if not vortex_ai:
-        return
+        # پاک‌سازی تجربیات بازار
+        vortex_ai.market_experiences = []
         
-    health_report = vortex_ai.get_health_report()
-    health_checks = health_report['health_checks']
-    
-    # نمایش وضعیت سلامت
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("✅ بررسی‌های فنی")
-        for check_name, check_status in health_checks.items():
-            status_icon = "✅" if check_status else "❌"
-            status_text = "خوب" if check_status else "نیازمند توجه"
-            st.write(f"{status_icon} {check_name}: {status_text}")
-    
-    with col2:
-        st.subheader("📈 معیارهای عملکرد")
-        metrics = health_report['performance_metrics']
-        st.write(f"**روند دقت**: {'📈 بهبود' if metrics.get('accuracy_trend', 0) > 0 else '📉 کاهش'}")
-        st.write(f"**الگوهای جدید**: {'✅ کشف شده' if metrics.get('new_patterns_detected', False) else '❌ ندارد'}")
-        st.write(f"**رضایت کاربر**: {metrics.get('user_satisfaction', 0)*100:.1f}%")
+        return f"""
+        ✅ پاک‌سازی کامل انجام شد:
+        - {pruned_neurons} نورون حذف شد
+        - حافظه تجربیات از {original_memory_size} به {len(vortex_ai.brain.memory)} کاهش یافت
+        - تاریخچه تحلیل از {original_analysis_count} به {len(vortex_ai.analysis_history)} کاهش یافت
+        """
+        
+    except Exception as e:
+        return f"خطا در پاک‌سازی: {e}"
 
 def display_emergency_controls(emergency_system):
     """نمایش کنترل‌های اضطراری با دسترسی به scanner"""
-    st.header("🎮 کنترل‌های مدیریتی")
+    
+    st.header("کنترل‌های مدیریتی")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.subheader("🛑 کنترل اضطراری")
-        if st.button("🔴 توقف فوری هوش مصنوعی", type="secondary", use_container_width=True):
+        st.subheader("کنترل اضطراری")
+        if st.button("توقف فوری هوش مصنوعی", type="secondary", use_container_width=True):
             emergency_system.activate_emergency_stop("دستور کاربر از UI")
-            st.error("✅ توقف اضطراری فعال شد")
+            st.error("توقف اضطراری فعال شد")
             st.rerun()
-        
-        if st.button("🟢 بازگشت به حالت عادی", type="primary", use_container_width=True):
+            
+        if st.button("بازگشت به حالت عادی", type="primary", use_container_width=True):
             emergency_system.deactivate_emergency_stop()
-            st.success("✅ سیستم به حالت عادی بازگشت")
+            st.success("سیستم به حالت عادی بازگشت")
             st.rerun()
     
     with col2:
-        st.subheader("🧬 کنترل رشد")
-        if st.button("⚡ اجبار به تکامل", use_container_width=True):
+        st.subheader("کنترل رشد")
+        if st.button("اجبار به تکامل", use_container_width=True):
             # دسترسی مستقیم به scanner از session_state
             if 'scanner' in st.session_state and st.session_state.scanner:
                 result = st.session_state.scanner.vortex_ai.force_evolution()
                 st.info(result)
                 st.rerun()
             else:
-                st.error("❌ اسکنر در دسترس نیست. لطفاً ابتدا اسکن انجام دهید.")
+                st.error("اسکنر در دسترس نیست. لطفا ابتدا اسکن انجام دهید")
     
     with col3:
-        st.subheader("🔧 بهینه‌سازی")
-        if st.button("🧹 پاک‌سازی اضطراری حافظه", use_container_width=True):
+        st.subheader("پاک‌سازی")
+        if st.button("پاک‌سازی اضطراری حافظه", use_container_width=True):
             # دسترسی مستقیم به scanner از session_state
             if 'scanner' in st.session_state and st.session_state.scanner:
                 try:
-                    pruned_count = st.session_state.scanner.vortex_ai.brain.optimize_memory()
-                    st.success(f"✅ {pruned_count} نورون پاک‌سازی شد")
+                    result = force_memory_cleanup()
+                    st.success(result)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ خطا در پاک‌سازی: {e}")
+                    st.error(f"خطا در پاک‌سازی: {e}")
             else:
-                st.error("❌ اسکنر در دسترس نیست. لطفاً ابتدا اسکن انجام دهید.")
-def display_performance_metrics(vortex_ai):
-    """نمایش معیارهای عملکرد دقیق"""
-    st.subheader("📊 تحلیل عملکرد دقیق")
-    
-    if not vortex_ai or not vortex_ai.analysis_history:
-        st.info("📝 داده‌های عملکردی هنوز جمع‌آوری نشده‌اند")
-        return
-    
-    # محاسبه آمار پیشرفت
-    recent_analyses = vortex_ai.analysis_history[-10:]  # 10 تحلیل اخیر
-    if recent_analyses:
-        confidences = [analysis.get('ai_confidence', 0) for analysis in recent_analyses]
-        avg_confidence = sum(confidences) / len(confidences)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("میانگین اعتماد اخیر", f"{avg_confidence:.1f}%")
-        with col2:
-            trend = "📈 بهبود" if len(confidences) > 1 and confidences[-1] > confidences[0] else "📉 کاهش"
-            st.metric("روند اعتماد", trend)
-        
-        # نمودار ساده اعتماد
-        st.line_chart(confidences)
+                st.error("اسکنر در دسترس نیست. لطفا ابتدا اسکن انجام دهید")
+                
+        # دکمه پاک‌سازی حافظه قدیمی
+        if st.button("پاک‌سازی تجربیات", use_container_width=True):
+            if 'scanner' in st.session_state and st.session_state.scanner:
+                try:
+                    vortex_ai = st.session_state.scanner.vortex_ai
+                    original_size = len(vortex_ai.brain.memory)
+                    vortex_ai.brain.memory = vortex_ai.brain.memory[-100:]  # فقط 100 رکورد آخر
+                    st.success(f"حافظه تجربیات از {original_size} به {len(vortex_ai.brain.memory)} کاهش یافت")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"خطا در پاک‌سازی تجربیات: {e}")
 
-def display_alerts_and_warnings(vortex_ai):
-    """نمایش هشدارها و اعلان‌ها"""
-    st.subheader("⚠️ هشدارها و اعلان‌ها")
+def display_monitoring_tab(scanner):
+    """نمایش تب مانیتورینگ با مدیریت حافظه بهبود یافته"""
     
-    if not vortex_ai:
-        return
-        
-    health_report = vortex_ai.get_health_report()
-    alerts = []
+    st.header("مانیتورینگ هوش مصنوعی VortexAI")
     
-    # بررسی شرایط هشدار
-    network_stats = health_report['network_stats']
-    if network_stats['memory_usage'] > 300:
-        alerts.append("🔴 مصرف حافظه به حد هشدار نزدیک است")
-    
-    if network_stats['current_accuracy'] < 0.6:
-        alerts.append("🟠 دقت تحلیل کمتر از ۶۰٪ است")
-    
-    if health_report['emergency_status']['active']:
-        alerts.append("🛑 سیستم در حالت توقف اضطراری است")
-    
-    if network_stats['total_neurons'] > 3500:
-        alerts.append("🟡 تعداد نورون‌ها به حد مجاز نزدیک است")
-    
-    # نمایش هشدارها
-    if alerts:
-        for alert in alerts:
-            if "🔴" in alert or "🛑" in alert:
-                st.error(alert)
-            elif "🟠" in alert:
-                st.warning(alert)
-            else:
-                st.info(alert)
-    else:
-        st.success("✅ همه سیستم‌ها در وضعیت نرمال هستند")
-
-def display_search_filter(coins_data: List[Dict]):
-    """Display search and filter controls"""
-    if not coins_data:
-        return
-
+    # نمایش مانیتورینگ حافظه واقعی در بالای صفحه
+    display_real_memory_monitoring()
     st.markdown("---")
-    st.subheader("🔍 جستجو و فیلتر")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        search_term = st.text_input(
-            lang.t('search_placeholder'),
-            placeholder="نام یا نماد ارز...",
-            key="search_input"
-        )
     
-    with col2:
-        min_volume = st.number_input(
-            "حداقل حجم (میلیون دلار)",
-            min_value=0,
-            value=10,
-            step=10,
-            key="min_volume"
-        )
-        # تبدیل به دلار * 1000000
-
-    with col3:
-        trend_filter = st.selectbox(
-            "فیلتر روند",
-            options=["همه", "صعودی", "نزولی"],
-            index=0,
-            key="trend_filter"
-        )
-
-    # اعمال فیلترها
-    filtered_coins = coins_data
-
-    if search_term:
-        filtered_coins = [
-            coin for coin in filtered_coins
-            if search_term.lower() in coin.get('name', "").lower()
-            or search_term.lower() in coin.get('symbol', "").lower()
-        ]
-
-    if min_volume > 0:
-        filtered_coins = [
-            coin for coin in filtered_coins
-            if coin.get('volume', 0) >= min_volume * 1000000
-        ]
-
-    if trend_filter == "صعودی":
-        filtered_coins = [
-            coin for coin in filtered_coins
-            if coin.get('priceChange24h', 0) > 0
-        ]
-    elif trend_filter == "نزولی":
-        filtered_coins = [
-            coin for coin in filtered_coins
-            if coin.get('priceChange24h', 0) < 0
-        ]
-
-    # نمایش نتایج فیلتر شده
-    if len(filtered_coins) != len(coins_data):
-        st.info(f"📋 نمایش {len(filtered_coins)} از {len(coins_data)} ارز (فیلتر شده)")
-
-    return filtered_coins
-
-def display_quick_actions():
-    """Display quick action buttons"""
-    st.markdown("---")
-    st.subheader("⚡ اقدامات سریع")
-    
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        if st.button("🔄 اسکن مجدد", use_container_width=True):
-            st.rerun()
-
-    with col2:
-        if st.button("💾 ذخیره گزارش", use_container_width=True):
-            st.success("✅ گزارش ذخیره شد")
-
-    with col3:
-        if st.button("📤 اشتراک‌گذاری", use_container_width=True):
-            st.info("📤 امکان اشتراک‌گذاری")
-
-    with col4:
-        if st.button("⚙️ تنظیمات پیشرفته", use_container_width=True):
-            st.session_state.show_settings = True
+    # هشدار حافظه
+    if scanner and hasattr(scanner, 'vortex_ai') and scanner.vortex_ai:
+        try:
+            health_report = scanner.vortex_ai.get_health_report()
+            memory_usage = health_report['network_stats'].get('memory_usage', 0)
+            real_memory = get_real_memory_usage()
             
+            if real_memory > 1000 or memory_usage > 300:
+                status = "بحرانی 🔴"
+                st.error(f"🚨 وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
+            elif real_memory > 500 or memory_usage > 200:
+                status = "هشدار 🟡"
+                st.warning(f"⚠ وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
+            else:
+                status = "نرمال 🟢"
+                st.success(f"✅ وضعیت حافظه: {status} - مصرف: {real_memory:.1f}MB / {memory_usage}MB (محاسبه داخلی)")
+                
+        except Exception as e:
+            st.warning(f"خطا در بررسی حافظه: {e}")
+    
+    # بررسی وضعیت vortex_ai
+    if not scanner:
+        st.error("اسکنر در دسترس نیست")
+        st.info("لطفا صبر کنید یا برنامه را مجدداً راه‌اندازی کنید")
+        return
+        
+    if not hasattr(scanner, 'vortex_ai'):
+        st.warning("VortexAI هنوز راه‌اندازی نشده است")
+        st.info("""
+        **برای فعال‌سازی مانیتورینگ:**
+        1. **اسکن با AI** را از نوار کناری بزنید
+        2. یا دکمه **تحلیل AI** در تب بازار را فشار دهید
+        """)
+        return
+        
+    if scanner.vortex_ai is None:
+        st.warning("⚠ VortexAI در حال راه‌اندازی...")
+        if st.button("🔁 راه‌اندازی مجدد VortexAI"):
+            try:
+                scanner.vortex_ai = VortexAI()
+                st.success("✅ VortexAI راه‌اندازی شد")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ خطا در راه‌اندازی: {e}")
+        return
+    
+    # نمایش دشپوردهای مانیتورینگ
+    try:
+        # بررسی سلامت پایه
+        health_report = scanner.vortex_ai.get_health_report()
+        
+        # نمایش دشپورد اصلی
+        display_ai_health_dashboard(scanner.vortex_ai, st.session_state.emergency_system)
+        st.markdown("---")
+        
+        # نمایش بخش‌های دیگر
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            display_growth_monitoring(scanner.vortex_ai)
+            st.markdown("---")
+            display_real_health_metrics(scanner.vortex_ai)
+            
+        with col2:
+            display_performance_metrics(scanner.vortex_ai)
+            st.markdown("---")
+            display_alerts_and_warnings(scanner.vortex_ai)
+            
+        st.markdown("---")
+        display_emergency_controls(st.session_state.emergency_system)
+        
+    except Exception as e:
+        st.error(f"❌ خطا در نمایش مانیتورینگ: {e}")
+        st.info("""
+        **راه‌حل‌های احتمالی:**
+        - صفحه را رفرش کنید
+        - اسکن با AI جدید انجام دهید
+        - برنامه را مجدداً راه‌اندازی کنید
+        """)
+        
 # -- SECTION 7: MAIN APPLICATION WITH MONITORING - REVISED --
 
 def main():
