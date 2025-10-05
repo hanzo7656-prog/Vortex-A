@@ -352,8 +352,6 @@ class VortexAI:
                 insights.append("⚠️ Majority of coins are bearish")
                 
         return insights
-
-# --- SECTION 5: CRYPTO SCANNER --- 
 # --- SECTION 5: CRYPTO SCANNER ---
 
 class CryptoScanner:
@@ -366,39 +364,58 @@ class CryptoScanner:
         """Scan cryptocurrency market"""
         try:
             url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
-            print(f"🔍 Calling API: {url}")
+            print(f"🔍 STEP 1 - Calling API: {url}")
             
             response = requests.get(url, timeout=15)
-            print(f"📡 Response status: {response.status_code}")
+            print(f"📡 STEP 2 - Status: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
-                print(f"✅ API Success: {data.get('success')}")
-                print(f"✅ Total coins from API: {data.get('total_coins', 0)}")
+                print(f"✅ STEP 3 - API Success: {data.get('success')}")
+                print(f"📊 STEP 4 - Response keys: {list(data.keys())}")
                 
-                if data.get('success') and data.get('coins'):
-                    raw_coins = data['coins']
-                    print(f"📦 Raw coins received: {len(raw_coins)}")
+                if data.get('success'):
+                    raw_coins = data.get('coins', [])
+                    print(f"📦 STEP 5 - Raw coins count: {len(raw_coins)}")
                     
-                    # پردازش داده‌ها
+                    if raw_coins:
+                        # نمایش ساختار اولین کوین برای دیباگ
+                        first_coin = raw_coins[0]
+                        print(f"🔍 STEP 6 - First coin keys: {list(first_coin.keys())}")
+                        print(f"🔍 STEP 7 - First coin data: {first_coin}")
+                    
+                    # پردازش داده‌ها - نسخه ایمن
                     coins = []
                     for i, coin in enumerate(raw_coins):
-                        processed_coin = {
-                            'name': coin.get('name', f'Coin_{i}'),
-                            'symbol': coin.get('symbol', 'UNKNOWN'),
-                            'price': float(coin.get('price', 0)),
-                            'priceChange24h': float(coin.get('priceChange1d', coin.get('priceChange24h', 0))),
-                            'priceChange1h': float(coin.get('priceChange1h', 0)),
-                            'volume': float(coin.get('volume', 0)),
-                            'marketCap': float(coin.get('marketCap', 0))
-                        }
-                        coins.append(processed_coin)
+                        try:
+                            # استفاده از فیلدهای مختلف برای پیدا کردن داده
+                            price = float(coin.get('price') or coin.get('realtime_price') or 0)
+                            change_24h = float(coin.get('priceChange24h') or coin.get('priceChange1d') or 0)
+                            change_1h = float(coin.get('priceChange1h') or 0)
+                            volume = float(coin.get('volume') or coin.get('realtime_volume') or 0)
+                            market_cap = float(coin.get('marketCap') or 0)
+                            
+                            processed_coin = {
+                                'name': str(coin.get('name', f'Coin_{i}')),
+                                'symbol': str(coin.get('symbol', 'UNKNOWN')),
+                                'price': price,
+                                'priceChange24h': change_24h,
+                                'priceChange1h': change_1h,
+                                'volume': volume,
+                                'marketCap': market_cap
+                            }
+                            coins.append(processed_coin)
+                            print(f"🔄 Coin {i}: {processed_coin['symbol']} - ${processed_coin['price']}")
+                            
+                        except Exception as e:
+                            print(f"⚠️ Error processing coin {i}: {e}")
+                            continue
                     
-                    print(f"🔄 Processed coins: {len(coins)}")
+                    print(f"✅ STEP 8 - Successfully processed: {len(coins)} coins")
                     
                     if coins:
                         self.db_manager.save_market_data(coins)
-                        print("💾 Data saved to database")
+                        print("💾 STEP 9 - Data saved to database")
                         
                         return {
                             'success': True,
@@ -406,26 +423,26 @@ class CryptoScanner:
                             'count': len(coins),
                             'timestamp': datetime.now().isoformat()
                         }
+                    else:
+                        print("❌ STEP 10 - No coins processed successfully")
+                else:
+                    print(f"❌ STEP 11 - API returned success: false - {data.get('error')}")
+            else:
+                print(f"❌ STEP 12 - HTTP Error: {response.status_code}")
+                print(f"❌ Response text: {response.text[:200]}...")
             
-            print("❌ No valid data from server, using fallback")
+            print("🔄 STEP 13 - Using fallback data")
             return self._get_fallback_data()
             
-        except requests.exceptions.Timeout:
-            print("⏰ Request timeout, using fallback")
-            return self._get_fallback_data()
-        except requests.exceptions.ConnectionError:
-            print("🌐 Connection error, using fallback")
-            return self._get_fallback_data()
-        except json.JSONDecodeError:
-            print("📄 JSON decode error, using fallback")
-            return self._get_fallback_data()
         except Exception as e:
-            print(f"💥 Unexpected error: {e}")
+            print(f"💥 STEP 14 - Unexpected error: {e}")
+            import traceback
+            print(f"📋 Traceback: {traceback.format_exc()}")
             return self._get_fallback_data()
 
     def _get_fallback_data(self):
         """Sample data as fallback when server is unavailable"""
-        print("🔄 Using fallback sample data")
+        print("🔄 Using comprehensive fallback data")
         sample_coins = [
             {
                 'name': 'Bitcoin',
@@ -447,7 +464,7 @@ class CryptoScanner:
             },
             {
                 'name': 'BNB',
-                'symbol': 'BNB',
+                'symbol': 'BNB', 
                 'price': 1171.38,
                 'priceChange24h': 1.38,
                 'priceChange1h': -0.58,
@@ -471,51 +488,6 @@ class CryptoScanner:
                 'priceChange1h': -0.45,
                 'volume': 3140519134,
                 'marketCap': 182571288194
-            },
-            {
-                'name': 'Dogecoin',
-                'symbol': 'DOGE',
-                'price': 0.264,
-                'priceChange24h': 4.76,
-                'priceChange1h': 0.14,
-                'volume': 3468278650,
-                'marketCap': 39972638068
-            },
-            {
-                'name': 'TRON',
-                'symbol': 'TRX',
-                'price': 0.343,
-                'priceChange24h': 0.92,
-                'priceChange1h': 0.03,
-                'volume': 276037631,
-                'marketCap': 32489215239
-            },
-            {
-                'name': 'Cardano',
-                'symbol': 'ADA',
-                'price': 0.48,
-                'priceChange24h': 1.25,
-                'priceChange1h': -0.15,
-                'volume': 3456789012,
-                'marketCap': 17123456789
-            },
-            {
-                'name': 'Polkadot',
-                'symbol': 'DOT',
-                'price': 7.25,
-                'priceChange24h': 0.89,
-                'priceChange1h': -0.22,
-                'volume': 2345678901,
-                'marketCap': 9123456789
-            },
-            {
-                'name': 'Litecoin',
-                'symbol': 'LTC',
-                'price': 75.60,
-                'priceChange24h': 0.45,
-                'priceChange1h': -0.08,
-                'volume': 1234567890,
-                'marketCap': 5678901234
             }
         ]
         
@@ -531,7 +503,6 @@ class CryptoScanner:
         try:
             print("🤖 Starting AI-enhanced scan...")
             
-            # دریافت داده از بازار
             market_result = self.scan_market(limit)
             
             if not market_result or not market_result.get('success'):
@@ -541,18 +512,14 @@ class CryptoScanner:
             coins = market_result['coins']
             print(f"🤖 Analyzing {len(coins)} coins with VortexAI...")
             
-            # تحلیل هوش مصنوعی
             ai_analysis = self.vortex_ai.analyze_market_data(coins)
-            print(f"🤖 AI analysis completed - {len(ai_analysis.get('strong_signals', []))} strong signals found")
+            print(f"🤖 AI analysis completed")
             
-            # ترکیب نتایج
-            result = {
+            return {
                 **market_result,
                 "ai_analysis": ai_analysis,
                 "scan_mode": "ai_enhanced"
             }
-            
-            return result
             
         except Exception as e:
             print(f"🤖 AI Scan Error: {e}")
