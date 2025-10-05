@@ -365,47 +365,54 @@ class CryptoScanner:
         """Scan cryptocurrency market"""
         try:
             url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
-            print(f"🔍 Calling: {url}")
+            print(f"🚀 STEP 1 - Calling API: {url}")
             
             response = requests.get(url, timeout=30)
-            print(f"📡 Status: {response.status_code}")
+            print(f"📡 STEP 2 - Response status: {response.status_code}")
             
             if response.status_code != 200:
                 print(f"❌ HTTP Error: {response.status_code}")
+                print(f"❌ Response text: {response.text}")
                 return self._get_fallback_data()
             
             data = response.json()
-            print(f"✅ Success: {data.get('success')}")
-            print(f"✅ Coins count from API: {data.get('total_coins', 0)}")
+            print(f"✅ STEP 3 - API Success: {data.get('success')}")
+            print(f"✅ STEP 4 - Total coins: {data.get('total_coins', 0)}")
             
-            if not data.get('success'):
-                print("❌ API returned success: false")
-                return self._get_fallback_data()
+            # بررسی ساختار داده
+            print(f"🔍 STEP 5 - Data keys: {list(data.keys())}")
             
-            # پردازش داده‌های دریافتی از سرور میانی
             raw_coins = data.get('coins', [])
-            print(f"📦 Raw coins count: {len(raw_coins)}")
+            print(f"📦 STEP 6 - Raw coins count: {len(raw_coins)}")
             
-            # تبدیل ساختار داده به فرمت مورد نیاز Streamlit
+            if raw_coins:
+                print(f"🔍 STEP 7 - First coin keys: {list(raw_coins[0].keys())}")
+                print(f"🔍 STEP 8 - First coin sample: {raw_coins[0]}")
+            
+            # تبدیل ساختار داده
             coins = []
-            for coin in raw_coins:
-                coins.append({
-                    'name': coin.get('name', ''),
-                    'symbol': coin.get('symbol', ''),
-                    'price': coin.get('price', 0),
-                    'priceChange24h': coin.get('priceChange1d', 0),  # از priceChange1d استفاده کن
-                    'priceChange1h': coin.get('priceChange1h', 0),
-                    'volume': coin.get('volume', 0),
-                    'marketCap': coin.get('marketCap', 0)
-                })
+            for i, coin in enumerate(raw_coins):
+                processed_coin = {
+                    'name': coin.get('name', f'Coin_{i}'),
+                    'symbol': coin.get('symbol', 'UNKNOWN'),
+                    'price': float(coin.get('price', 0)),
+                    'priceChange24h': float(coin.get('priceChange1d', 0)),
+                    'priceChange1h': float(coin.get('priceChange1h', 0)),
+                    'volume': float(coin.get('volume', 0)),
+                    'marketCap': float(coin.get('marketCap', 0))
+                }
+                coins.append(processed_coin)
+                print(f"🔄 Coin {i}: {processed_coin['symbol']} - ${processed_coin['price']}")
             
-            print(f"🔄 Processed coins: {len(coins)}")
+            print(f"✅ STEP 9 - Final processed coins: {len(coins)}")
             
             if not coins:
-                print("⚠️ No coins after processing, using fallback")
+                print("❌ STEP 10 - No coins after processing!")
                 return self._get_fallback_data()
                 
+            # ذخیره در دیتابیس
             self.db_manager.save_market_data(coins)
+            print("💾 STEP 11 - Data saved to database")
             
             return {
                 'success': True,
@@ -415,11 +422,14 @@ class CryptoScanner:
             }
             
         except Exception as e:
-            print(f"💥 Error: {e}")
+            print(f"💥 ERROR: {str(e)}")
+            import traceback
+            print(f"📋 Traceback: {traceback.format_exc()}")
             return self._get_fallback_data()
 
     def _get_fallback_data(self):
         """Sample data as fallback"""
+        print("🔄 Using fallback data")
         sample_coins = [
             {
                 'name': 'Bitcoin', 'symbol': 'BTC', 'price': 124619.36, 
@@ -442,12 +452,18 @@ class CryptoScanner:
     def scan_with_ai(self, limit: int = 100) -> Optional[Dict]:
         """Scan market with AI analysis"""
         try:
+            print("🤖 Starting AI scan...")
             market_result = self.scan_market(limit)
+            
             if not market_result or not market_result.get('success'):
+                print("❌ AI Scan: No market data")
                 return None
                 
             coins = market_result['coins']
+            print(f"🤖 AI analyzing {len(coins)} coins...")
+            
             ai_analysis = self.vortex_ai.analyze_market_data(coins)
+            print(f"🤖 AI analysis completed")
             
             return {
                 **market_result,
@@ -455,9 +471,9 @@ class CryptoScanner:
                 "scan_mode": "ai_enhanced"
             }
         except Exception as e:
+            print(f"🤖 AI Scan Error: {e}")
             logging.error(f"AI scan error: {e}")
-            return None
-            
+            return None        
 # --- SECTION 6: UI COMPONENTS ---
 
 def display_market_results(results: Dict):
