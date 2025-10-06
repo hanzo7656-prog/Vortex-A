@@ -64,7 +64,7 @@ class LightweightScanner:
                     'name': str(coin.get('name', f'Coin_{i}')),
                     'symbol': str(coin.get('symbol', f'UNK_{i}')),
                     'price': self._safe_float(coin.get('price')),
-                    'priceChange24h': self._safe_float(coin.get('priceChange24h')),
+                    'priceChange24h': self._safe_float(coin.get('priceChange1d')),
                     'priceChange1h': self._safe_float(coin.get('priceChange1h')),
                     'volume': self._safe_float(coin.get('volume')),
                     'marketCap': self._safe_float(coin.get('marketCap'))
