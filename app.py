@@ -12,7 +12,7 @@ def initialize_session_state():
     """Initialize تمام session state ها"""
     if 'scanner' not in st.session_state:
         st.session_state.scanner = LightweightScanner()
-        print("✅ اسکنر Initialize شد")
+        print("درحال راه اندازی سیستم 2.3")
     
     if 'advanced_ai' not in st.session_state:
         st.session_state.advanced_ai = AdvancedAI()
