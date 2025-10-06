@@ -1,15 +1,20 @@
-# app.py - نسخه اصلاح شده با مدیریت session state
+# app.py - نسخه پیشرفته با AI کامل و بدون محدودیت اسکن
 import streamlit as st
 import time
 import pandas as pd
 from multilingual import Multilanguage
 from market_scanner import LightweightScanner
+from advanced_ai import AdvancedAI
 
 def initialize_session_state():
     """Initialize تمام session state ها"""
     if 'scanner' not in st.session_state:
         st.session_state.scanner = LightweightScanner()
         print("✅ اسکنر Initialize شد")
+    
+    if 'advanced_ai' not in st.session_state:
+        st.session_state.advanced_ai = AdvancedAI()
+        print("✅ هوش مصنوعی پیشرفته Initialize شد")
     
     if 'scan_results' not in st.session_state:
         st.session_state.scan_results = None
@@ -100,7 +105,7 @@ def display_market_tab(lang):
         display_advanced_results(st.session_state.scan_results, lang)
         
         if st.session_state.ai_results:
-            display_ai_analysis(st.session_state.ai_results, lang)
+            display_advanced_ai_analysis(st.session_state.ai_results, lang)
     else:
         display_welcome_message(lang)
 
@@ -115,7 +120,8 @@ def handle_normal_scan(lang):
             if not st.session_state.scanner:
                 st.session_state.scanner = LightweightScanner()
             
-            results = st.session_state.scanner.scan_market(limit=20)
+            # 🔥 برداشتن محدودیت - اسکن تمام ارزها
+            results = st.session_state.scanner.scan_market(limit=200)
             
             if results and results.get('success'):
                 st.session_state.scan_results = results
@@ -139,16 +145,16 @@ def handle_ai_scan(lang):
             if not st.session_state.scanner:
                 st.session_state.scanner = LightweightScanner()
             
-            # اول داده بازار رو بگیر
-            market_results = st.session_state.scanner.scan_market(limit=15)
+            # 🔥 برداشتن محدودیت - اسکن تمام ارزها
+            market_results = st.session_state.scanner.scan_market(limit=200)
             
             if market_results and market_results.get('success'):
-                # تحلیل AI ساده
-                ai_analysis = analyze_with_simple_ai(market_results['coins'])
+                # تحلیل AI پیشرفته
+                ai_analysis = st.session_state.advanced_ai.analyze_market_trend(market_results['coins'])
                 
                 st.session_state.scan_results = market_results
                 st.session_state.ai_results = ai_analysis
-                st.success(f"✅ تحلیل AI موفق! {len(ai_analysis.get('strong_signals', []))} سیگنال قوی")
+                st.success(f"✅ تحلیل AI پیشرفته موفق! {len(market_results['coins'])} ارز تحلیل شد")
                 st.rerun()
             else:
                 st.error("❌ خطا در دریافت داده برای تحلیل AI")
@@ -162,7 +168,7 @@ def display_advanced_results(results, lang):
         coins = results['coins']
         
         # هدر با اطلاعات
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("تعداد ارزها", len(coins))
         with col2:
@@ -170,7 +176,10 @@ def display_advanced_results(results, lang):
             st.metric("منبع داده", source)
         with col3:
             bullish = sum(1 for c in coins if c['priceChange24h'] > 0)
-            st.metric("روند بازار", f"📈 {bullish}/{len(coins)}")
+            st.metric("ارزهای صعودی", f"📈 {bullish}")
+        with col4:
+            bearish = sum(1 for c in coins if c['priceChange24h'] < 0)
+            st.metric("ارزهای نزولی", f"📉 {bearish}")
         
         st.markdown("---")
         
@@ -179,17 +188,22 @@ def display_advanced_results(results, lang):
         
         # ایجاد دیتافریم
         df_data = []
-        for coin in coins:
+        for coin in coins[:50]:  # نمایش 50 ارز اول برای سرعت
             df_data.append({
                 'نام ارز': f"{coin['name']} ({coin['symbol']})",
                 'قیمت': f"${coin['price']:,.2f}",
                 'تغییر ۲۴h': f"{coin['priceChange24h']:+.2f}%",
                 'تغییر ۱h': f"{coin['priceChange1h']:+.2f}%", 
-                'حجم': f"${coin['volume']:,.0f}"
+                'حجم': f"${coin['volume']:,.0f}",
+                'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
             })
         
         df = pd.DataFrame(df_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, use_container_width=True, hide_index=True, height=600)
+        
+        # اطلاعات اضافی
+        if len(coins) > 50:
+            st.info(f"📊 نمایش 50 ارز از {len(coins)} ارز دریافت شده. برای مشاهده کامل از تحلیل AI استفاده کنید.")
         
         # دکمه اسکن مجدد
         col1, col2 = st.columns(2)
@@ -197,79 +211,153 @@ def display_advanced_results(results, lang):
             if st.button("🔄 اسکن مجدد", use_container_width=True, key='rescan_btn'):
                 st.session_state.normal_scan = True
                 st.rerun()
+        with col2:
+            if st.button("🤖 تحلیل پیشرفته AI", use_container_width=True, type="secondary", key='advanced_ai_btn'):
+                st.session_state.ai_scan = True
+                st.rerun()
 
-def display_ai_analysis(ai_results, lang):
-    """نمایش تحلیل AI"""
+def display_advanced_ai_analysis(ai_results, lang):
+    """نمایش تحلیل AI پیشرفته"""
     st.markdown("---")
-    st.header("🤖 " + lang.t('ai_analysis'))
+    st.header("🧠 تحلیل پیشرفته هوش مصنوعی")
+    
+    # خلاصه بازار
+    if 'market_summary' in ai_results:
+        display_market_summary(ai_results['market_summary'])
+    
+    # سیگنال‌های معاملاتی
+    if 'trading_signals' in ai_results:
+        display_trading_signals(ai_results['trading_signals'])
+    
+    # ارزیابی ریسک
+    if 'risk_assessment' in ai_results:
+        display_risk_assessment(ai_results['risk_assessment'])
+    
+    # احساسات بازار و پیشنهادات
+    if 'market_sentiment' in ai_results and 'recommended_actions' in ai_results:
+        display_market_sentiment(ai_results['market_sentiment'], ai_results['recommended_actions'])
+
+def display_market_summary(market_summary):
+    """نمایش خلاصه بازار"""
+    st.subheader("📊 خلاصه بازار")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("روند غالب", market_summary.get('dominant_trend', 'نامشخص'))
+    
+    with col2:
+        st.metric("صعودی", market_summary.get('bullish_percentage', '0%'))
+    
+    with col3:
+        st.metric("نزولی", market_summary.get('bearish_percentage', '0%'))
+    
+    with col4:
+        st.metric("قدرت بازار", market_summary.get('market_strength', 'نامشخص'))
+    
+    # اطلاعات اضافی
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("میانگین تغییرات", market_summary.get('average_change', '0%'))
+    with col2:
+        st.metric("حجم کل معاملات", market_summary.get('total_volume', '$0'))
+
+def display_trading_signals(trading_signals):
+    """نمایش سیگنال‌های معاملاتی"""
+    st.subheader("💡 سیگنال‌های معاملاتی")
+    
+    # ایجاد تب برای انواع سیگنال‌ها
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        f"🟢 خرید قوی ({len(trading_signals['strong_buy'])})",
+        f"🟡 خرید ({len(trading_signals['buy'])})", 
+        f"📊 نظارت ({len(trading_signals['hold'])})",
+        f"🟠 فروش ({len(trading_signals['sell'])})",
+        f"🔴 فروش قوی ({len(trading_signals['strong_sell'])})"
+    ])
+    
+    with tab1:
+        display_signal_list(trading_signals['strong_buy'], "خرید قوی")
+    
+    with tab2:
+        display_signal_list(trading_signals['buy'], "خرید")
+    
+    with tab3:
+        display_signal_list(trading_signals['hold'], "نظارت")
+    
+    with tab4:
+        display_signal_list(trading_signals['sell'], "فروش")
+    
+    with tab5:
+        display_signal_list(trading_signals['strong_sell'], "فروش قوی")
+
+def display_signal_list(signals, signal_type):
+    """نمایش لیست سیگنال‌ها"""
+    if not signals:
+        st.info(f"هیچ سیگنال {signal_type}ی شناسایی نشد")
+        return
+    
+    for signal in signals[:10]:  # حداکثر 10 سیگنال
+        with st.container():
+            col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 2])
+            
+            with col1:
+                st.write(f"**{signal['coin']}** ({signal['symbol']})")
+            
+            with col2:
+                st.write(f"${signal['price']:,.2f}")
+            
+            with col3:
+                change = signal['change_24h']
+                color = "green" if change > 0 else "red"
+                st.write(f":{color}[{change:+.1f}%]")
+            
+            with col4:
+                confidence = signal['confidence']
+                st.write(f"{confidence:.0f}%")
+            
+            with col5:
+                risk_color = signal['risk_level']['color']
+                st.write(f"{risk_color} {signal['recommendation']}")
+            
+            st.markdown("---")
+
+def display_risk_assessment(risk_assessment):
+    """نمایش ارزیابی ریسک"""
+    st.subheader("⚠️ ارزیابی ریسک بازار")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        confidence = ai_results.get('ai_confidence', 0)
-        st.metric(lang.t('ai_confidence'), f"{confidence}%")
+        risk_score = risk_assessment.get('score', 50)
+        risk_level = risk_assessment.get('overall_risk', 'medium')
+        risk_color = risk_assessment.get('risk_color', '🟡')
+        
+        st.metric("سطح ریسک کلی", f"{risk_color} {risk_level}")
+        st.metric("امتیاز ریسک", f"{risk_score:.1f}/100")
     
     with col2:
-        signals = len(ai_results.get('strong_signals', []))
-        st.metric(lang.t('strong_signals'), signals)
-    
-    # نمایش سیگنال‌های قوی
-    if 'strong_signals' in ai_results and ai_results['strong_signals']:
-        st.subheader("💪 " + lang.t('strong_signals'))
-        for signal in ai_results['strong_signals']:
-            with st.container():
-                col1, col2, col3 = st.columns([2, 1, 1])
-                with col1:
-                    st.write(f"**{signal['coin']}** ({signal.get('symbol', '')})")
-                with col2:
-                    st.write(f"قدرت: {signal['signal_strength']}%")
-                with col3:
-                    recommendation = signal.get('recommendation', '📊 نظارت')
-                    st.write(recommendation)
-            st.markdown("---")
-    else:
-        st.info("📊 هیچ سیگنال قوی‌ای شناسایی نشد")
-
-def analyze_with_simple_ai(coins):
-    """تحلیل ساده AI - نسخه سبک"""
-    strong_signals = []
-    
-    for coin in coins[:10]:
-        change_24h = coin['priceChange24h']
-        volume = coin['volume']
-        
-        signal_strength = 0
-        
-        if change_24h > 5 and volume > 1000000000:
-            signal_strength = 85
-            recommendation = "🟢 خرید قوی"
-        elif change_24h > 2:
-            signal_strength = 70  
-            recommendation = "🟡 خرید محتاطانه"
-        elif change_24h < -5:
-            signal_strength = 80
-            recommendation = "🔴 فروش قوی"
-        elif change_24h < -2:
-            signal_strength = 65
-            recommendation = "🟠 فروش محتاطانه"
+        # نمایش هشدارها
+        warnings = risk_assessment.get('warnings', [])
+        if warnings:
+            st.write("**هشدارها:**")
+            for warning in warnings:
+                st.error(warning)
         else:
-            signal_strength = 50
-            recommendation = "📊 نظارت"
-        
-        if signal_strength > 65:
-            strong_signals.append({
-                'coin': coin['name'],
-                'symbol': coin['symbol'],
-                'signal_strength': signal_strength,
-                'recommendation': recommendation
-            })
+            st.success("✅ هیچ هشدار مهمی شناسایی نشد")
+
+def display_market_sentiment(sentiment, recommended_actions):
+    """نمایش احساسات بازار و پیشنهادات"""
+    st.subheader("🎯 احساسات بازار")
     
-    return {
-        'ai_confidence': 75,
-        'strong_signals': strong_signals,
-        'risk_warnings': [],
-        'market_insights': ["تحلیل ساده AI انجام شد"]
-    }
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("احساسات بازار", sentiment)
+    
+    with col2:
+        st.write("**پیشنهادات اقدام:**")
+        for action in recommended_actions:
+            st.info(action)
 
 def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
@@ -279,6 +367,10 @@ def display_sidebar_status(lang):
     scanner_status = "🟢 فعال" if st.session_state.get('scanner') else "🔴 غیرفعال"
     st.metric("وضعیت اسکنر", scanner_status)
     
+    # وضعیت AI
+    ai_status = "🟢 فعال" if st.session_state.get('advanced_ai') else "🔴 غیرفعال"
+    st.metric("وضعیت AI", ai_status)
+    
     if st.session_state.scan_results:
         coins_count = len(st.session_state.scan_results.get('coins', []))
         source = "سرور" if st.session_state.scan_results.get('source') == 'api' else "نمونه"
@@ -287,15 +379,18 @@ def display_sidebar_status(lang):
         st.info("⚡ آماده اسکن")
     
     if st.session_state.ai_results:
-        st.info(f"🤖 AI فعال")
+        st.info(f"🧠 AI پیشرفته فعال")
     
     # دکمه راه‌اندازی اضطراری
-    if not st.session_state.get('scanner'):
+    if not st.session_state.get('scanner') or not st.session_state.get('advanced_ai'):
         st.markdown("---")
-        if st.button("🚀 راه‌اندازی اسکنر", use_container_width=True, key='init_scanner_btn'):
+        if st.button("🚀 راه‌اندازی سیستم", use_container_width=True, key='init_system_btn'):
             try:
-                st.session_state.scanner = LightweightScanner()
-                st.success("✅ اسکنر راه‌اندازی شد")
+                if not st.session_state.get('scanner'):
+                    st.session_state.scanner = LightweightScanner()
+                if not st.session_state.get('advanced_ai'):
+                    st.session_state.advanced_ai = AdvancedAI()
+                st.success("✅ سیستم راه‌اندازی شد")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ خطا: {str(e)}")
@@ -312,16 +407,16 @@ def display_monitoring_tab(lang):
         st.metric("وضعیت اسکنر", scanner_status)
     
     with col2:
-        lang_status = "فارسی" if lang.current_lang == 'fa' else "English"
-        st.metric("زبان سیستم", lang_status)
+        ai_status = "🟢 فعال" if st.session_state.get('advanced_ai') else "🔴 غیرفعال"
+        st.metric("وضعیت AI", ai_status)
     
     with col3:
         results_count = len(st.session_state.scan_results.get('coins', [])) if st.session_state.scan_results else 0
         st.metric("داده‌های ذخیره شده", results_count)
     
     with col4:
-        ai_status = "فعال" if st.session_state.ai_results else "غیرفعال"
-        st.metric("وضعیت AI", ai_status)
+        ai_analyses = len(st.session_state.advanced_ai.analysis_history) if st.session_state.get('advanced_ai') else 0
+        st.metric("تحلیل‌های AI", ai_analyses)
     
     st.markdown("---")
     
@@ -329,15 +424,31 @@ def display_monitoring_tab(lang):
     st.subheader("اطلاعات فنی")
     
     tech_info = {
-        "نسخه سیستم": "۱.۰ (سبک)",
+        "نسخه سیستم": "۲.۰ (پیشرفته)",
         "حالت اجرا": "بهینه‌شده برای وب", 
         "مدیریت حافظه": "فعال",
         "پشتیبانی API": "فعال با fallback",
-        "اسکنر Initialize شده": "✅ بله" if st.session_state.get('scanner') else "❌ خیر"
+        "محدودیت اسکن": "❌ بدون محدودیت",
+        "تحلیل AI": "✅ پیشرفته فعال"
     }
     
     for key, value in tech_info.items():
         st.write(f"**{key}:** {value}")
+    
+    # آمار AI
+    if st.session_state.get('advanced_ai'):
+        st.markdown("---")
+        st.subheader("📈 آمار هوش مصنوعی")
+        
+        ai_stats = st.session_state.advanced_ai.get_analysis_stats()
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("تعداد تحلیل‌ها", ai_stats['total_analyses'])
+        
+        with col2:
+            avg_coins = ai_stats['average_coins_analyzed']
+            st.metric("میانگین ارزهای تحلیل شده", f"{avg_coins:.0f}")
     
     # دکمه‌های مدیریت
     st.markdown("---")
@@ -345,10 +456,11 @@ def display_monitoring_tab(lang):
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 راه‌اندازی مجدد اسکنر", use_container_width=True, key='restart_scanner_btn'):
+        if st.button("🔄 راه‌اندازی مجدد سیستم", use_container_width=True, key='restart_system_btn'):
             try:
                 st.session_state.scanner = LightweightScanner()
-                st.success("✅ اسکنر با موفقیت راه‌اندازی شد")
+                st.session_state.advanced_ai = AdvancedAI()
+                st.success("✅ سیستم با موفقیت راه‌اندازی شد")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ خطا در راه‌اندازی: {str(e)}")
@@ -367,25 +479,38 @@ def display_help_tab(lang):
     st.write("""
     **🎯 مراحل شروع کار:**
     
-    ۱. **اسکن بازار** - از سایدبار دکمه اسکن بازار را بزنید
-    ۲. **دریافت داده** - سیستم به صورت خودکار از سرور دریافت می‌کند
-    ۳. **تحلیل پیشرفته** - برای تحلیل AI از دکمه مخصوص استفاده کنید
+    ۱. **اسکن بازار** - دریافت داده‌های کامل بازار (بدون محدودیت)
+    ۲. **تحلیل پیشرفته AI** - تحلیل حرفه‌ای با هوش مصنوعی
+    ۳. **مدیریت پرتفو** - بر اساس سیگنال‌های AI اقدام کنید
     
-    **🔧 اگر اسکنر غیرفعال بود:**
-    - از تب مانیتورینگ دکمه "راه‌اندازی اسکنر" را بزنید
-    - یا از سایدبار دکمه "راه‌اندازی اسکنر" را استفاده کنید
+    ---
+    
+    **⚡ قابلیت‌های جدید:**
+    - اسکن کامل بازار بدون محدودیت
+    - تحلیل پیشرفته روندهای بازار
+    - سیگنال‌های معاملاتی دقیق
+    - ارزیابی ریسک حرفه‌ای
+    - احساسات‌سنجی بازار
+    - پیشنهادات اقدام هوشمند
+    
+    **🔧 نکات فنی:**
+    - سیستم now بدون محدودیت اسکن میکند
+    - هوش مصنوعی پیشرفته تحلیل‌های دقیق ارائه می‌دهد
+    - مدیریت ریسک خودکار فعال است
     """)
 
 def display_welcome_message(lang):
     """نمایش پیام خوشامد"""
     st.info("""
-    **🌟 به VortexAI خوش آمدید!**
+    **🌟 به VortexAI پیشرفته خوش آمدید!**
     
-    برای شروع کار از دکمه‌های سایدبار استفاده کنید.
+    **قابلیت‌های جدید:**
+    - 🔄 اسکن کامل بازار (بدون محدودیت)
+    - 🧠 تحلیل پیشرفته هوش مصنوعی  
+    - 💡 سیگنال‌های معاملاتی دقیق
+    - ⚠️ ارزیابی ریسک حرفه‌ای
     
-    **اگر اسکنر غیرفعال است:**
-    - از سایدبار دکمه "راه‌اندازی اسکنر" را بزنید
-    - یا از تب مانیتورینگ اقدام کنید
+    برای شروع از دکمه‌های سایدبار استفاده کنید.
     """)
 
 if __name__ == "__main__":
