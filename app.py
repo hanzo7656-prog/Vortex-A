@@ -188,7 +188,7 @@ def display_advanced_results(results, lang):
         
         # ایجاد دیتافریم
         df_data = []
-        for coin in coins[:50]:  # نمایش 50 ارز اول برای سرعت
+        for coin in coins:  # نمایش 50 ارز اول برای سرعت
             df_data.append({
                 'نام ارز': f"{coin['name']} ({coin['symbol']})",
                 'قیمت': f"${coin['price']:,.2f}",
