@@ -12,7 +12,7 @@ import gc
 import random
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
-from dateclasses import dateclass
+from dataclasses import dataclass
 import json
 
 # -- SECTION 1: MULTI-LANGUAGE SYSTEM --
