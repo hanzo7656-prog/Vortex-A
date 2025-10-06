@@ -134,32 +134,45 @@ def handle_normal_scan(lang):
         except Exception as e:
             st.error(f"❌ خطا در اسکن: {str(e)}")
 
+
 def handle_ai_scan(lang):
     """مدیریت اسکن AI"""
-    # 🔥 اول ریست کن بعد اجرا کن
+    # 🔥 این خط باید حتماً اول باشه
     st.session_state.ai_scan = False
     
     with st.spinner(lang.t('analyzing')):
+        print("🤖 شروع تحلیل AI پیشرفته...")
+        
         try:
             # مطمئن شو اسکنر Initialize شده
             if not st.session_state.scanner:
                 st.session_state.scanner = LightweightScanner()
             
-            # 🔥 برداشتن محدودیت - اسکن تمام ارزها
+            # مطمئن شو AI Initialize شده  
+            if not st.session_state.advanced_ai:
+                st.session_state.advanced_ai = AdvancedAI()
+                print("✅ AI پیشرفته Initialize شد")
+            
+            # اول داده بازار رو بگیر
             market_results = st.session_state.scanner.scan_market(limit=100)
             
             if market_results and market_results.get('success'):
+                print(f"📊 داده‌های بازار دریافت شد: {len(market_results['coins'])} ارز")
+                
                 # تحلیل AI پیشرفته
                 ai_analysis = st.session_state.advanced_ai.analyze_market_trend(market_results['coins'])
+                print(f"✅ تحلیل AI کامل شد")
                 
                 st.session_state.scan_results = market_results
                 st.session_state.ai_results = ai_analysis
-                st.success(f"✅ تحلیل AI پیشرفته موفق! {len(market_results['coins'])} ارز تحلیل شد")
+                
+                st.success(f"✅ تحلیل AI موفق! {len(market_results['coins'])} ارز تحلیل شد")
                 st.rerun()
             else:
                 st.error("❌ خطا در دریافت داده برای تحلیل AI")
                 
         except Exception as e:
+            print(f"❌ خطا در تحلیل AI: {str(e)}")
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
 
 def display_advanced_results(results, lang):
