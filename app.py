@@ -1,14 +1,33 @@
-# app.py - نسخه اصلاح شده
+# app.py - نسخه اصلاح شده با مدیریت session state
 import streamlit as st
 import time
 import pandas as pd
 from multilingual import Multilanguage
-
-# ایمپورت مستقیم برای رفع مشکل لودینگ
 from market_scanner import LightweightScanner
+
+def initialize_session_state():
+    """Initialize تمام session state ها"""
+    if 'scanner' not in st.session_state:
+        st.session_state.scanner = LightweightScanner()
+        print("✅ اسکنر Initialize شد")
+    
+    if 'scan_results' not in st.session_state:
+        st.session_state.scan_results = None
+    
+    if 'ai_results' not in st.session_state:
+        st.session_state.ai_results = None
+    
+    if 'normal_scan' not in st.session_state:
+        st.session_state.normal_scan = False
+    
+    if 'ai_scan' not in st.session_state:
+        st.session_state.ai_scan = False
 
 def main():
     """تابع اصلی"""
+    # 🔥 اول session state ها رو initialize کن
+    initialize_session_state()
+    
     # سیستم چندزبانه
     lang = Multilanguage()
     
@@ -23,16 +42,6 @@ def main():
     # نمایش عنوان
     st.title(lang.t('app_title'))
     st.markdown("---")
-    
-    # وضعیت session state - مهم!
-    if 'scan_results' not in st.session_state:
-        st.session_state.scan_results = None
-    if 'ai_results' not in st.session_state:
-        st.session_state.ai_results = None
-    if 'scanner' not in st.session_state:
-        # 🔥 اینجا اسکنر رو مستقیم initialize کن
-        st.session_state.scanner = LightweightScanner()
-        st.session_state.scanner_initialized = True
     
     # سایدبار
     with st.sidebar:
@@ -79,13 +88,11 @@ def display_market_tab(lang):
     """نمایش تب بازار"""
     st.header("اسکن بازار")
     
-    # 🔥 هندل کردن اسکن - اینجا باید چک کنی
-    if st.session_state.get('normal_scan'):
-        st.session_state.normal_scan = False  # ریست کن تا دوباره اجرا نشه
+    # 🔥 هندل کردن اسکن
+    if st.session_state.normal_scan:
         handle_normal_scan(lang)
     
-    if st.session_state.get('ai_scan'):
-        st.session_state.ai_scan = False  # ریست کن
+    if st.session_state.ai_scan:
         handle_ai_scan(lang)
     
     # نمایش نتایج
@@ -99,43 +106,52 @@ def display_market_tab(lang):
 
 def handle_normal_scan(lang):
     """مدیریت اسکن معمولی"""
+    # 🔥 اول ریست کن بعد اجرا کن
+    st.session_state.normal_scan = False
+    
     with st.spinner(lang.t('scanning')):
         try:
-            # 🔥 مستقیماً از session state استفاده کن
-            if st.session_state.scanner:
-                results = st.session_state.scanner.scan_market(limit=20)
-                
-                if results and results.get('success'):
-                    st.session_state.scan_results = results
-                    st.session_state.ai_results = None
-                    st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز دریافت شد")
-                else:
-                    st.error("❌ خطا در دریافت داده از سرور")
+            # مطمئن شو اسکنر Initialize شده
+            if not st.session_state.scanner:
+                st.session_state.scanner = LightweightScanner()
+            
+            results = st.session_state.scanner.scan_market(limit=20)
+            
+            if results and results.get('success'):
+                st.session_state.scan_results = results
+                st.session_state.ai_results = None
+                st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز دریافت شد")
+                st.rerun()
             else:
-                st.error("❌ اسکنر Initialize نشده!")
+                st.error("❌ خطا در دریافت داده از سرور")
                 
         except Exception as e:
             st.error(f"❌ خطا در اسکن: {str(e)}")
 
 def handle_ai_scan(lang):
     """مدیریت اسکن AI"""
+    # 🔥 اول ریست کن بعد اجرا کن
+    st.session_state.ai_scan = False
+    
     with st.spinner(lang.t('analyzing')):
         try:
-            if st.session_state.scanner:
-                # اول داده بازار رو بگیر
-                market_results = st.session_state.scanner.scan_market(limit=15)
+            # مطمئن شو اسکنر Initialize شده
+            if not st.session_state.scanner:
+                st.session_state.scanner = LightweightScanner()
+            
+            # اول داده بازار رو بگیر
+            market_results = st.session_state.scanner.scan_market(limit=15)
+            
+            if market_results and market_results.get('success'):
+                # تحلیل AI ساده
+                ai_analysis = analyze_with_simple_ai(market_results['coins'])
                 
-                if market_results and market_results.get('success'):
-                    # تحلیل AI ساده
-                    ai_analysis = analyze_with_simple_ai(market_results['coins'])
-                    
-                    st.session_state.scan_results = market_results
-                    st.session_state.ai_results = ai_analysis
-                    st.success(f"✅ تحلیل AI موفق! {len(ai_analysis.get('strong_signals', []))} سیگنال قوی")
-                else:
-                    st.error("❌ خطا در دریافت داده برای تحلیل AI")
+                st.session_state.scan_results = market_results
+                st.session_state.ai_results = ai_analysis
+                st.success(f"✅ تحلیل AI موفق! {len(ai_analysis.get('strong_signals', []))} سیگنال قوی")
+                st.rerun()
             else:
-                st.error("❌ اسکنر Initialize نشده!")
+                st.error("❌ خطا در دریافت داده برای تحلیل AI")
                 
         except Exception as e:
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
@@ -178,7 +194,7 @@ def display_advanced_results(results, lang):
         # دکمه اسکن مجدد
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🔄 اسکن مجدد", use_container_width=True):
+            if st.button("🔄 اسکن مجدد", use_container_width=True, key='rescan_btn'):
                 st.session_state.normal_scan = True
                 st.rerun()
 
@@ -218,14 +234,12 @@ def analyze_with_simple_ai(coins):
     """تحلیل ساده AI - نسخه سبک"""
     strong_signals = []
     
-    for coin in coins[:10]:  # فقط 10 ارز اول
-        # منطق ساده تحلیل
+    for coin in coins[:10]:
         change_24h = coin['priceChange24h']
         volume = coin['volume']
         
         signal_strength = 0
         
-        # تحلیل بر اساس تغییرات قیمت و حجم
         if change_24h > 5 and volume > 1000000000:
             signal_strength = 85
             recommendation = "🟢 خرید قوی"
@@ -251,7 +265,7 @@ def analyze_with_simple_ai(coins):
             })
     
     return {
-        'ai_confidence': 75,  # اعتماد ثابت برای نسخه ساده
+        'ai_confidence': 75,
         'strong_signals': strong_signals,
         'risk_warnings': [],
         'market_insights': ["تحلیل ساده AI انجام شد"]
@@ -261,7 +275,7 @@ def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
     st.subheader("وضعیت سیستم")
     
-    # 🔥 وضعیت اسکنر رو درست چک کن
+    # 🔥 وضعیت اسکنر
     scanner_status = "🟢 فعال" if st.session_state.get('scanner') else "🔴 غیرفعال"
     st.metric("وضعیت اسکنر", scanner_status)
     
@@ -274,6 +288,17 @@ def display_sidebar_status(lang):
     
     if st.session_state.ai_results:
         st.info(f"🤖 AI فعال")
+    
+    # دکمه راه‌اندازی اضطراری
+    if not st.session_state.get('scanner'):
+        st.markdown("---")
+        if st.button("🚀 راه‌اندازی اسکنر", use_container_width=True, key='init_scanner_btn'):
+            try:
+                st.session_state.scanner = LightweightScanner()
+                st.success("✅ اسکنر راه‌اندازی شد")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ خطا: {str(e)}")
 
 def display_monitoring_tab(lang):
     """نمایش تب مانیتورینگ"""
@@ -320,17 +345,16 @@ def display_monitoring_tab(lang):
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 راه‌اندازی مجدد اسکنر", use_container_width=True):
+        if st.button("🔄 راه‌اندازی مجدد اسکنر", use_container_width=True, key='restart_scanner_btn'):
             try:
                 st.session_state.scanner = LightweightScanner()
-                st.session_state.scanner_initialized = True
                 st.success("✅ اسکنر با موفقیت راه‌اندازی شد")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ خطا در راه‌اندازی: {str(e)}")
     
     with col2:
-        if st.button("🧹 پاکسازی داده‌ها", use_container_width=True):
+        if st.button("🧹 پاکسازی داده‌ها", use_container_width=True, key='clear_data_btn'):
             st.session_state.scan_results = None
             st.session_state.ai_results = None
             st.success("✅ داده‌ها پاکسازی شدند")
@@ -346,21 +370,10 @@ def display_help_tab(lang):
     ۱. **اسکن بازار** - از سایدبار دکمه اسکن بازار را بزنید
     ۲. **دریافت داده** - سیستم به صورت خودکار از سرور دریافت می‌کند
     ۳. **تحلیل پیشرفته** - برای تحلیل AI از دکمه مخصوص استفاده کنید
-    ۴. **مانیتورینگ** - وضعیت سیستم را实时 مشاهده کنید
     
-    ---
-    
-    **⚡ قابلیت‌های فعلی:**
-    - دریافت داده‌های زنده از سرور
-    - تحلیل خودکار بازار با AI سبک  
-    - نمایش جدولی زیبا و خوانا
-    - مدیریت خطا و fallback خودکار
-    - سیستم چندزبانه
-    
-    **🔧 نکات فنی:**
-    - در صورت قطعی سرور، از داده‌های نمونه استفاده می‌شود
-    - تحلیل AI به صورت سبک انجام می‌شود
-    - سیستم بهینه‌شده برای اجرا در فضای ابری
+    **🔧 اگر اسکنر غیرفعال بود:**
+    - از تب مانیتورینگ دکمه "راه‌اندازی اسکنر" را بزنید
+    - یا از سایدبار دکمه "راه‌اندازی اسکنر" را استفاده کنید
     """)
 
 def display_welcome_message(lang):
@@ -368,12 +381,11 @@ def display_welcome_message(lang):
     st.info("""
     **🌟 به VortexAI خوش آمدید!**
     
-    برای شروع کار از دکمه‌های سایدبار استفاده کنید:
+    برای شروع کار از دکمه‌های سایدبار استفاده کنید.
     
-    - **🔄 اسکن بازار** - دریافت داده‌های زنده بازار
-    - **🤖 اسکن با VortexAI** - تحلیل پیشرفته با هوش مصنوعی
-    
-    *سیستم به صورت خودکار بهترین منبع داده را انتخاب می‌کند.*
+    **اگر اسکنر غیرفعال است:**
+    - از سایدبار دکمه "راه‌اندازی اسکنر" را بزنید
+    - یا از تب مانیتورینگ اقدام کنید
     """)
 
 if __name__ == "__main__":
