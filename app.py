@@ -3,7 +3,7 @@ import streamlit as st
 import time
 import pandas as pd
 from multilingual import Multilanguage
-from .market_scanner import LightweightScanner
+from market_scanner import LightweightScanner
 from advanced_ai import AdvancedAI
 
 def initialize_session_state():
