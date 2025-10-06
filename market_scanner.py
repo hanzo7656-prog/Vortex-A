@@ -55,82 +55,79 @@ class LightweightScanner:
 
 
     def _process_coins_with_debug(self, raw_coins):
-        """پردازش ارزها با دیباگ کامل"""
+        """پردازش ارزها با فیلدهای واقعی CoinGecko API"""
         processed_coins = []
     
-        print(f"🔧 شروع پردازش {len(raw_coins)} ارز...")
+        print(f"🔧 شروع پردازش {len(raw_coins)} ارز از CoinGecko API...")
     
         for i, coin in enumerate(raw_coins):
             try:
-                # 🔥 گرفتن تمام فیلدهای ممکن
-                price_change_1d = coin.get('priceChange1d')
-                price_change_1h = coin.get('priceChange1h')
-                price_change_24h = coin.get('priceChange24h')
-                price_change_1d_alt = coin.get('price_change_1d')
-                price_change_24h_alt = coin.get('price_change_24h')
-                daily_change = coin.get('daily_change')
-                change_24h = coin.get('change_24h')
+                # 🔥 گرفتن فیلدهای واقعی CoinGecko
+                current_price = coin.get('current_price')
+                price_change_24h = coin.get('price_change_percentage_24h')
+                price_change_1h = coin.get('price_change_percentage_1h_in_currency')
+                total_volume = coin.get('total_volume')
+                market_cap = coin.get('market_cap')
+                name = coin.get('name')
+                symbol = coin.get('symbol', '').upper()
             
-                # 🔥 دیباگ کامل تمام فیلدها
-                print(f"🔍 ارز {i} ({coin.get('name', 'Unknown')}):")
-                print(f"   - priceChange1d: {price_change_1d} (نوع: {type(price_change_1d)})")
-                print(f"   - priceChange1h: {price_change_1h} (نوع: {type(price_change_1h)})")
-                print(f"   - priceChange24h: {price_change_24h} (نوع: {type(price_change_24h)})")
-                print(f"   - price_change_1d: {price_change_1d_alt} (نوع: {type(price_change_1d_alt)})")
-                print(f"   - price_change_24h: {price_change_24h_alt} (نوع: {type(price_change_24h_alt)})")
-                print(f"   - daily_change: {daily_change} (نوع: {type(daily_change)})")
-                print(f"   - change_24h: {change_24h} (نوع: {type(change_24h)})")
+                # 🔥 دیباگ کامل برای ۳ ارز اول
+                if i < 3:
+                    print(f"🔍 ارز {i} ({name}):")
+                    print(f"   - current_price: {current_price}")
+                    print(f"   - price_change_percentage_24h: {price_change_24h}")
+                    print(f"   - price_change_percentage_1h_in_currency: {price_change_1h}")
+                    print(f"   - total_volume: {total_volume}")
+                    print(f"   - market_cap: {market_cap}")
+                    print(f"   - symbol: {symbol}")
             
-                # 🔥 انتخاب بهترین فیلد برای تغییرات 24 ساعته
-                final_24h_change = self._safe_float(
-                    price_change_1d or          # اولویت 1: priceChange1d
-                    price_change_24h or         # اولویت 2: priceChange24h  
-                    daily_change or             # اولویت 3: daily_change
-                    change_24h or               # اولویت 4: change_24h
-                    price_change_1d_alt or      # اولویت 5: price_change_1d
-                    price_change_24h_alt or     # اولویت 6: price_change_24h
-                    0.0                         # پیش‌فرض
-                )
-            
-                final_1h_change = self._safe_float(price_change_1h)
-            
-                print(f"   📊 نهایی: 24h={final_24h_change}, 1h={final_1h_change}")
-            
-                # فقط 3 ارز اول رو دیباگ کن
-                if i >= 3:
-                    break
-                
-            except Exception as e:
-                print(f"⚠️ خطا در ارز {i}: {e}")
-                continue
-    
-        # 🔥 حالا پردازش واقعی همه ارزها
-        for i, coin in enumerate(raw_coins):
-            try:
-                # استفاده از منطق مشابه برای همه ارزها
-                price_change_1d = coin.get('priceChange1d')
-                price_change_1h = coin.get('priceChange1h')
-            
-                final_24h_change = self._safe_float(price_change_1d or 0.0)
-                final_1h_change = self._safe_float(price_change_1h)
-            
+                # تبدیل به مقادیر عددی
                 processed_coin = {
-                    'name': str(coin.get('name', f'Coin_{i}')),
-                    'symbol': str(coin.get('symbol', f'UNK_{i}')),
-                    'price': self._safe_float(coin.get('price')),
-                    'priceChange24h': final_24h_change,
-                    'priceChange1h': final_1h_change,
-                    'volume': self._safe_float(coin.get('volume')),
-                    'marketCap': self._safe_float(coin.get('marketCap'))
+                    'name': str(name) if name else f'Coin_{i}',
+                    'symbol': str(symbol) if symbol else f'UNK_{i}',
+                    'price': self._safe_float(current_price),
+                    # 🔥 استفاده از فیلدهای واقعی CoinGecko
+                    'priceChange24h': self._safe_float(price_change_24h),
+                    'priceChange1h': self._safe_float(price_change_1h),
+                    'volume': self._safe_float(total_volume),
+                    'marketCap': self._safe_float(market_cap),
+                    # اضافه کردن فیلدهای اضافی برای تحلیل بهتر
+                    'rank': coin.get('market_cap_rank', 0),
+                    'high_24h': self._safe_float(coin.get('high_24h')),
+                    'low_24h': self._safe_float(coin.get('low_24h'))
                 }
+            
+                # 🔥 دیباگ مقادیر نهایی
+                if i < 3:
+                    print(f"   📊 پردازش شده:")
+                    print(f"      - قیمت: ${processed_coin['price']:,.2f}")
+                    print(f"      - تغییر 24h: {processed_coin['priceChange24h']:+.2f}%")
+                    print(f"      - تغییر 1h: {processed_coin['priceChange1h']:+.2f}%")
+                    print(f"      - حجم: ${processed_coin['volume']:,.0f}")
+                    print(f"      - بازار: ${processed_coin['marketCap']:,.0f}")
             
                 processed_coins.append(processed_coin)
             
             except Exception as e:
                 print(f"⚠️ خطا در پردازش ارز {i}: {e}")
+                print(f"   🗂️ داده ارز: {coin}")
                 continue
     
-        print(f"🏁 پردازش کامل: {len(processed_coins)} ارز")
+        print(f"🏁 پردازش کامل: {len(processed_coins)}/{len(raw_coins)} ارز")
+    
+        # 🔥 خلاصه آماری
+        if processed_coins:
+            changes_24h = [c['priceChange24h'] for c in processed_coins if c['priceChange24h'] != 0]
+            changes_1h = [c['priceChange1h'] for c in processed_coins if c['priceChange1h'] != 0]
+        
+            if changes_24h:
+                print(f"📈 آمار تغییرات 24h:")
+                print(f"   - میانگین: {sum(changes_24h)/len(changes_24h):.2f}%")
+                print(f"   - بیشترین: {max(changes_24h):.2f}%")
+                print(f"   - کمترین: {min(changes_24h):.2f}%")
+                print(f"   - صعودی: {sum(1 for c in changes_24h if c > 0)} ارز")
+                print(f"   - نزولی: {sum(1 for c in changes_24h if c < 0)} ارز")
+    
         return processed_coins
     
     def _safe_float(self, value):
