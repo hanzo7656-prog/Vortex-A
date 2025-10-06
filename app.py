@@ -121,7 +121,7 @@ def handle_normal_scan(lang):
                 st.session_state.scanner = LightweightScanner()
             
             # 🔥 برداشتن محدودیت - اسکن تمام ارزها
-            results = st.session_state.scanner.scan_market(limit=200)
+            results = st.session_state.scanner.scan_market(limit=100)
             
             if results and results.get('success'):
                 st.session_state.scan_results = results
@@ -146,7 +146,7 @@ def handle_ai_scan(lang):
                 st.session_state.scanner = LightweightScanner()
             
             # 🔥 برداشتن محدودیت - اسکن تمام ارزها
-            market_results = st.session_state.scanner.scan_market(limit=200)
+            market_results = st.session_state.scanner.scan_market(limit=100)
             
             if market_results and market_results.get('success'):
                 # تحلیل AI پیشرفته
