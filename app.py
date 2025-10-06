@@ -381,25 +381,93 @@ def display_market_sentiment(sentiment, recommended_actions):
         for action in recommended_actions:
             st.info(action)
 
+
+
 def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
     st.subheader("وضعیت سیستم")
     
+    # وضعیت اسکنر
     scanner_status = "🟢 فعال" if st.session_state.get('scanner') else "🔴 غیرفعال"
     st.metric("وضعیت اسکنر", scanner_status)
     
+    # وضعیت AI
     ai_status = "🟢 فعال" if st.session_state.get('advanced_ai') else "🔴 غیرفعال"
     st.metric("وضعیت AI", ai_status)
     
+    # 🔥 وضعیت اتصال به سرور میانی
     if st.session_state.scan_results:
         coins_count = len(st.session_state.scan_results.get('coins', []))
-        source = "سرور" if st.session_state.scan_results.get('source') == 'api' else "نمونه"
-        st.success(f"✅ {coins_count} ارز ({source})")
+        source = st.session_state.scan_results.get('source', 'unknown')
+        
+        if source == 'api':
+            server_status = "🟢 متصل"
+            server_message = f"✅ {coins_count} ارز (سرور)"
+            status_color = "success"
+        else:
+            server_status = "🟠 آفلاین" 
+            server_message = f"📱 {coins_count} ارز (دمو)"
+            status_color = "warning"
     else:
-        st.info("⚡ آماده اسکن")
+        server_status = "🔴 قطع"
+        server_message = "⚡ آماده اسکن"
+        status_color = "error"
+    
+    st.metric("وضعیت سرور", server_status)
+    
+    if status_color == "success":
+        st.success(server_message)
+    elif status_color == "warning":
+        st.warning(server_message)
+    else:
+        st.error(server_message)
+    
+    # 🔥 اطلاعات اضافی سرور
+    if st.session_state.scan_results:
+        with st.expander("🔧 اطلاعات فنی سرور", expanded=False):
+            st.write(f"**منبع داده:** {st.session_state.scan_results.get('source', 'unknown')}")
+            st.write(f"**تعداد ارزها:** {len(st.session_state.scan_results.get('coins', []))}")
+            
+            timestamp = st.session_state.scan_results.get('timestamp', '')
+            if timestamp:
+                # تبدیل timestamp به زمان خوانا
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    readable_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+                    st.write(f"**آخرین بروزرسانی:** {readable_time}")
+                except:
+                    st.write(f"**آخرین بروزرسانی:** {timestamp}")
+            
+            # تست اتصال سریع
+            if st.button("🔄 تست اتصال سرور", key='test_connection_btn', use_container_width=True):
+                with st.spinner("در حال تست اتصال..."):
+                    try:
+                        test_scanner = LightweightScanner()
+                        test_result = test_scanner.scan_market(limit=5)
+                        if test_result.get('source') == 'api':
+                            st.success("✅ اتصال سرور برقرار است")
+                        else:
+                            st.warning("⚠️ سرور در دسترس نیست - حالت دمو فعال شد")
+                    except Exception as e:
+                        st.error(f"❌ خطا در اتصال: {e}")
     
     if st.session_state.ai_results:
-        st.info(f"🧠 AI پیشرفته فعال")
+        st.info("🧠 تحلیل AI فعال")
+    
+    # دکمه راه‌اندازی اضطراری
+    if not st.session_state.get('scanner') or not st.session_state.get('advanced_ai'):
+        st.markdown("---")
+        if st.button("🚀 راه‌اندازی سیستم", use_container_width=True, key='init_system_btn'):
+            try:
+                if not st.session_state.get('scanner'):
+                    st.session_state.scanner = LightweightScanner()
+                if not st.session_state.get('advanced_ai'):
+                    st.session_state.advanced_ai = AdvancedAI()
+                st.success("✅ سیستم راه‌اندازی شد")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ خطا: {str(e)}")
 
 def display_monitoring_tab(lang):
     """نمایش تب مانیتورینگ"""
