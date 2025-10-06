@@ -8,7 +8,7 @@ class LightweightScanner:
         self.api_base = "https://server-test-ovta.onrender.com"
         self.timeout = 10
     
-    def scan_market(self, limit=50):
+    def scan_market(self, limit=200):
         """اسکن بازار - نسخه سبک با مدیریت خطا"""
         try:
             print(f"🔍 در حال اسکن بازار از {self.api_base}...")
@@ -44,7 +44,7 @@ class LightweightScanner:
         """پردازش امن داده‌های ارزها"""
         processed_coins = []
         
-        for coin in raw_coins[:20]:  # فقط 20 ارز اول برای سرعت
+        for coin in raw_coins:  # فقط 20 ارز اول برای سرعت
             try:
                 processed_coin = {
                     'name': str(coin.get('name', 'Unknown')),
