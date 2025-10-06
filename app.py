@@ -1,8 +1,6 @@
-# app.py - نسخه پیشرفته‌تر
+# app.py - نسخه بهینه‌شده
 import streamlit as st
 import time
-
-# ایمپورت سیستم چندزبانه
 from multilingual import Multilanguage
 
 def main():
@@ -27,10 +25,8 @@ def main():
         st.session_state.scan_results = None
     if 'ai_results' not in st.session_state:
         st.session_state.ai_results = None
-    if 'lang' not in st.session_state:
-        st.session_state.lang = lang
     
-    # سایدبار پیشرفته
+    # سایدبار
     with st.sidebar:
         st.header(lang.t('sidebar_title'))
         
@@ -38,8 +34,7 @@ def main():
         selected_lang = st.selectbox(
             lang.t('language_label'),
             ['fa', 'en'],
-            format_func=lambda x: 'فارسی' if x == 'fa' else 'English',
-            key='lang_selector'
+            format_func=lambda x: 'فارسی' if x == 'fa' else 'English'
         )
         lang.set_language(selected_lang)
         
@@ -58,8 +53,8 @@ def main():
         st.subheader("وضعیت سیستم")
         st.info("🟢 " + lang.t('completed'))
     
-    # تب‌های اصلی
-    tab1, tab2, tab3 = st.tabs(["💰 " + lang.t('results_title'), "📊 مانیتورینگ", "❓ راهنما"])
+    # تب‌های اصلی - عناوین همیشه فارسی
+    tab1, tab2, tab3 = st.tabs(["💰 اسکن بازار", "📊 مانیتورینگ", "❓ راهنما"])
     
     with tab1:
         display_market_tab(lang)
@@ -72,7 +67,7 @@ def main():
 
 def display_market_tab(lang):
     """نمایش تب بازار"""
-    st.header(lang.t('results_title'))
+    st.header("اسکن بازار")  # همیشه فارسی
     
     if st.session_state.get('normal_scan'):
         with st.spinner(lang.t('scanning')):
@@ -84,7 +79,13 @@ def display_market_tab(lang):
         with st.spinner(lang.t('analyzing')):
             time.sleep(3)
             st.session_state.scan_results = get_sample_data()
-            st.session_state.ai_results = {"ai_confidence": 75}
+            st.session_state.ai_results = {
+                "ai_confidence": 75,
+                "strong_signals": [
+                    {"coin": "Bitcoin", "signal_strength": 85},
+                    {"coin": "Ethereum", "signal_strength": 78}
+                ]
+            }
             st.rerun()
     
     # نمایش نتایج
@@ -94,47 +95,65 @@ def display_market_tab(lang):
         
         if st.session_state.ai_results:
             st.info(f"🤖 {lang.t('ai_analysis')}: {st.session_state.ai_results['ai_confidence']}%")
+            
+            # نمایش سیگنال‌های قوی
+            if 'strong_signals' in st.session_state.ai_results:
+                st.subheader(lang.t('strong_signals'))
+                for signal in st.session_state.ai_results['strong_signals']:
+                    st.write(f"• {signal['coin']} - قدرت: {signal['signal_strength']}%")
     else:
-        st.info(f"""
+        # مطالب راهنما - همیشه فارسی
+        st.info("""
         **برای شروع:**
-        - از دکمه **{lang.t('scan_button')}** برای دریافت داده‌های بازار استفاده کنید
-        - از دکمه **{lang.t('ai_scan_button')}** برای تحلیل پیشرفته استفاده کنید
+        - از دکمه **اسکن بازار** برای دریافت داده‌های بازار استفاده کنید
+        - از دکمه **اسکن با VortexAI** برای تحلیل پیشرفته استفاده کنید
         """)
 
 def display_monitoring_tab(lang):
     """نمایش تب مانیتورینگ"""
-    st.header("مانیتورینگ سیستم")
+    st.header("مانیتورینگ سیستم")  # همیشه فارسی
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("وضعیت", "🟢 " + lang.t('completed'))
+        st.metric("وضعیت سیستم", "🟢 فعال")  # همیشه فارسی
     
     with col2:
-        st.metric("زبان", "فارسی" if lang.current_lang == 'fa' else "English")
+        st.metric("زبان界面", "فارسی" if lang.current_lang == 'fa' else "English")
     
     with col3:
-        st.metric("سرعت", "⏱️ سریع")
+        st.metric("سرعت اجرا", "⏱️ سریع")  # همیشه فارسی
     
     st.markdown("---")
-    st.info("سیستم در حالت سبک اجرا می‌شود.")
+    st.info("سیستم در حالت سبک اجرا می‌شود.")  # همیشه فارسی
 
 def display_help_tab(lang):
     """نمایش تب راهنما"""
-    st.header("راهنمای استفاده")
+    st.header("راهنمای استفاده")  # همیشه فارسی
     
-    st.write(f"""
-    **مراحل شروع:**
-    1. از سایدبار **{lang.t('scan_button')}** را بزنید
-    2. منتظر دریافت داده‌ها بمانید  
-    3. برای تحلیل پیشرفته **{lang.t('ai_scan_button')}** را استفاده کنید
+    # مطالب راهنما - همیشه فارسی
+    st.write("""
+    **مراحل شروع کار:**
+    
+    1. **اسکن بازار** - از سایدبار دکمه اسکن بازار را بزنید
+    2. **دریافت داده** - منتظر دریافت داده‌های بازار بمانید  
+    3. **تحلیل پیشرفته** - برای تحلیل AI از دکمه اسکن با VortexAI استفاده کنید
+    4. **مانیتورینگ** - از تب مانیتورینگ وضعیت سیستم را مشاهده کنید
+    
+    ---
+    
+    **قابلیت‌های اصلی:**
+    - 🔄 اسکن بازار و دریافت داده‌های زنده
+    - 🤖 تحلیل پیشرفته با هوش مصنوعی
+    - 📊 مانیتورینگ وضعیت سیستم
+    - ⚠️ هشدارهای ریسک و مدیریت
     """)
 
 def display_simple_results(results, lang):
     """نمایش ساده نتایج"""
     if results and 'coins' in results:
         coins = results['coins']
-        st.subheader(f"{lang.t('results_title')} - {len(coins)} {lang.t('coin_name')}")
+        st.subheader(f"{lang.t('results_title')} - {len(coins)} ارز")  # "ارز" همیشه فارسی
         
         for coin in coins:
             col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
@@ -157,8 +176,6 @@ def get_sample_data():
             {'name': 'Bitcoin', 'symbol': 'BTC', 'price': 65432.10, 'priceChange24h': 2.15, 'volume': 39245678901},
             {'name': 'Ethereum', 'symbol': 'ETH', 'price': 3456.78, 'priceChange24h': 1.87, 'volume': 18765432987},
             {'name': 'BNB', 'symbol': 'BNB', 'price': 567.89, 'priceChange24h': 3.21, 'volume': 2987654321},
-            {'name': 'Solana', 'symbol': 'SOL', 'price': 123.45, 'priceChange24h': -1.23, 'volume': 1987654321},
-            {'name': 'XRP', 'symbol': 'XRP', 'price': 0.567, 'priceChange24h': 0.45, 'volume': 987654321},
         ]
     }
 
