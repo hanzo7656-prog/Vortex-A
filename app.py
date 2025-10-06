@@ -1,13 +1,11 @@
-# app.py - با اسکنر واقعی
+# app.py - نسخه اصلاح شده
 import streamlit as st
 import time
 import pandas as pd
 from multilingual import Multilanguage
 
-# ایمپورت سبک - فقط وقتی نیاز شد لود می‌شه
-def load_scanner():
-    from market_scanner import LightweightScanner
-    return LightweightScanner()
+# ایمپورت مستقیم برای رفع مشکل لودینگ
+from market_scanner import LightweightScanner
 
 def main():
     """تابع اصلی"""
@@ -26,13 +24,15 @@ def main():
     st.title(lang.t('app_title'))
     st.markdown("---")
     
-    # وضعیت session state
+    # وضعیت session state - مهم!
     if 'scan_results' not in st.session_state:
         st.session_state.scan_results = None
     if 'ai_results' not in st.session_state:
         st.session_state.ai_results = None
     if 'scanner' not in st.session_state:
-        st.session_state.scanner = None
+        # 🔥 اینجا اسکنر رو مستقیم initialize کن
+        st.session_state.scanner = LightweightScanner()
+        st.session_state.scanner_initialized = True
     
     # سایدبار
     with st.sidebar:
@@ -42,7 +42,8 @@ def main():
         selected_lang = st.selectbox(
             lang.t('language_label'),
             ['fa', 'en'],
-            format_func=lambda x: 'فارسی' if x == 'fa' else 'English'
+            format_func=lambda x: 'فارسی' if x == 'fa' else 'English',
+            key='lang_selector'
         )
         lang.set_language(selected_lang)
         
@@ -51,11 +52,13 @@ def main():
         # دکمه‌های اصلی
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(lang.t('scan_button'), use_container_width=True):
+            if st.button(lang.t('scan_button'), use_container_width=True, key='normal_scan_btn'):
                 st.session_state.normal_scan = True
+                st.rerun()
         with col2:
-            if st.button(lang.t('ai_scan_button'), use_container_width=True, type="secondary"):
+            if st.button(lang.t('ai_scan_button'), use_container_width=True, type="secondary", key='ai_scan_btn'):
                 st.session_state.ai_scan = True
+                st.rerun()
         
         st.markdown("---")
         display_sidebar_status(lang)
@@ -76,11 +79,13 @@ def display_market_tab(lang):
     """نمایش تب بازار"""
     st.header("اسکن بازار")
     
-    # هندل کردن اسکن
+    # 🔥 هندل کردن اسکن - اینجا باید چک کنی
     if st.session_state.get('normal_scan'):
+        st.session_state.normal_scan = False  # ریست کن تا دوباره اجرا نشه
         handle_normal_scan(lang)
     
     if st.session_state.get('ai_scan'):
+        st.session_state.ai_scan = False  # ریست کن
         handle_ai_scan(lang)
     
     # نمایش نتایج
@@ -95,37 +100,45 @@ def display_market_tab(lang):
 def handle_normal_scan(lang):
     """مدیریت اسکن معمولی"""
     with st.spinner(lang.t('scanning')):
-        # لود اسکنر فقط وقتی نیاز شد
-        if st.session_state.scanner is None:
-            st.session_state.scanner = load_scanner()
-        
-        results = st.session_state.scanner.scan_market(limit=20)
-        
-        if results and results.get('success'):
-            st.session_state.scan_results = results
-            st.session_state.ai_results = None
-            st.rerun()
-        else:
-            st.error("خطا در دریافت داده از سرور")
+        try:
+            # 🔥 مستقیماً از session state استفاده کن
+            if st.session_state.scanner:
+                results = st.session_state.scanner.scan_market(limit=20)
+                
+                if results and results.get('success'):
+                    st.session_state.scan_results = results
+                    st.session_state.ai_results = None
+                    st.success(f"✅ اسکن موفق! {len(results.get('coins', []))} ارز دریافت شد")
+                else:
+                    st.error("❌ خطا در دریافت داده از سرور")
+            else:
+                st.error("❌ اسکنر Initialize نشده!")
+                
+        except Exception as e:
+            st.error(f"❌ خطا در اسکن: {str(e)}")
 
 def handle_ai_scan(lang):
     """مدیریت اسکن AI"""
     with st.spinner(lang.t('analyzing')):
-        if st.session_state.scanner is None:
-            st.session_state.scanner = load_scanner()
-        
-        # اول داده بازار رو بگیر
-        market_results = st.session_state.scanner.scan_market(limit=15)
-        
-        if market_results and market_results.get('success'):
-            # تحلیل AI ساده
-            ai_analysis = analyze_with_simple_ai(market_results['coins'])
-            
-            st.session_state.scan_results = market_results
-            st.session_state.ai_results = ai_analysis
-            st.rerun()
-        else:
-            st.error("خطا در تحلیل AI")
+        try:
+            if st.session_state.scanner:
+                # اول داده بازار رو بگیر
+                market_results = st.session_state.scanner.scan_market(limit=15)
+                
+                if market_results and market_results.get('success'):
+                    # تحلیل AI ساده
+                    ai_analysis = analyze_with_simple_ai(market_results['coins'])
+                    
+                    st.session_state.scan_results = market_results
+                    st.session_state.ai_results = ai_analysis
+                    st.success(f"✅ تحلیل AI موفق! {len(ai_analysis.get('strong_signals', []))} سیگنال قوی")
+                else:
+                    st.error("❌ خطا در دریافت داده برای تحلیل AI")
+            else:
+                st.error("❌ اسکنر Initialize نشده!")
+                
+        except Exception as e:
+            st.error(f"❌ خطا در تحلیل AI: {str(e)}")
 
 def display_advanced_results(results, lang):
     """نمایش پیشرفته نتایج"""
@@ -161,6 +174,13 @@ def display_advanced_results(results, lang):
         
         df = pd.DataFrame(df_data)
         st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        # دکمه اسکن مجدد
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 اسکن مجدد", use_container_width=True):
+                st.session_state.normal_scan = True
+                st.rerun()
 
 def display_ai_analysis(ai_results, lang):
     """نمایش تحلیل AI"""
@@ -178,19 +198,21 @@ def display_ai_analysis(ai_results, lang):
         st.metric(lang.t('strong_signals'), signals)
     
     # نمایش سیگنال‌های قوی
-    if 'strong_signals' in ai_results:
+    if 'strong_signals' in ai_results and ai_results['strong_signals']:
         st.subheader("💪 " + lang.t('strong_signals'))
         for signal in ai_results['strong_signals']:
             with st.container():
                 col1, col2, col3 = st.columns([2, 1, 1])
                 with col1:
-                    st.write(f"**{signal['coin']}**")
+                    st.write(f"**{signal['coin']}** ({signal.get('symbol', '')})")
                 with col2:
                     st.write(f"قدرت: {signal['signal_strength']}%")
                 with col3:
                     recommendation = signal.get('recommendation', '📊 نظارت')
                     st.write(recommendation)
             st.markdown("---")
+    else:
+        st.info("📊 هیچ سیگنال قوی‌ای شناسایی نشد")
 
 def analyze_with_simple_ai(coins):
     """تحلیل ساده AI - نسخه سبک"""
@@ -239,6 +261,10 @@ def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
     st.subheader("وضعیت سیستم")
     
+    # 🔥 وضعیت اسکنر رو درست چک کن
+    scanner_status = "🟢 فعال" if st.session_state.get('scanner') else "🔴 غیرفعال"
+    st.metric("وضعیت اسکنر", scanner_status)
+    
     if st.session_state.scan_results:
         coins_count = len(st.session_state.scan_results.get('coins', []))
         source = "سرور" if st.session_state.scan_results.get('source') == 'api' else "نمونه"
@@ -257,8 +283,8 @@ def display_monitoring_tab(lang):
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        status = "🟢 فعال" if st.session_state.scanner else "⚪ غیرفعال"
-        st.metric("وضعیت اسکنر", status)
+        scanner_status = "🟢 فعال" if st.session_state.get('scanner') else "🔴 غیرفعال"
+        st.metric("وضعیت اسکنر", scanner_status)
     
     with col2:
         lang_status = "فارسی" if lang.current_lang == 'fa' else "English"
@@ -276,12 +302,39 @@ def display_monitoring_tab(lang):
     
     # اطلاعات فنی
     st.subheader("اطلاعات فنی")
-    st.write("""
-    - **نسخه سیستم:** ۱.۰ (سبک)
-    - **حالت اجرا:** بهینه‌شده برای وب
-    - **مدیریت حافظه:** فعال
-    - **پشتیبانی API:** فعال با fallback
-    """)
+    
+    tech_info = {
+        "نسخه سیستم": "۱.۰ (سبک)",
+        "حالت اجرا": "بهینه‌شده برای وب", 
+        "مدیریت حافظه": "فعال",
+        "پشتیبانی API": "فعال با fallback",
+        "اسکنر Initialize شده": "✅ بله" if st.session_state.get('scanner') else "❌ خیر"
+    }
+    
+    for key, value in tech_info.items():
+        st.write(f"**{key}:** {value}")
+    
+    # دکمه‌های مدیریت
+    st.markdown("---")
+    st.subheader("مدیریت سیستم")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 راه‌اندازی مجدد اسکنر", use_container_width=True):
+            try:
+                st.session_state.scanner = LightweightScanner()
+                st.session_state.scanner_initialized = True
+                st.success("✅ اسکنر با موفقیت راه‌اندازی شد")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ خطا در راه‌اندازی: {str(e)}")
+    
+    with col2:
+        if st.button("🧹 پاکسازی داده‌ها", use_container_width=True):
+            st.session_state.scan_results = None
+            st.session_state.ai_results = None
+            st.success("✅ داده‌ها پاکسازی شدند")
+            st.rerun()
 
 def display_help_tab(lang):
     """نمایش تب راهنما"""
@@ -299,7 +352,7 @@ def display_help_tab(lang):
     
     **⚡ قابلیت‌های فعلی:**
     - دریافت داده‌های زنده از سرور
-    - تحلیل خودکار بازار با AI سبک
+    - تحلیل خودکار بازار با AI سبک  
     - نمایش جدولی زیبا و خوانا
     - مدیریت خطا و fallback خودکار
     - سیستم چندزبانه
