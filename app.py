@@ -202,8 +202,8 @@ def display_advanced_results(results, lang):
         st.dataframe(df, use_container_width=True, hide_index=True, height=600)
         
         # اطلاعات اضافی
-        if len(coins) > 50:
-            st.info(f"📊 نمایش 50 ارز از {len(coins)} ارز دریافت شده. برای مشاهده کامل از تحلیل AI استفاده کنید.")
+        if len(coins) > 100:
+            st.info(f"📊 نمایش 100 ارز از {len(coins)} ارز دریافت شده. برای مشاهده کامل از تحلیل AI استفاده کنید.")
         
         # دکمه اسکن مجدد
         col1, col2 = st.columns(2)
