@@ -6,6 +6,7 @@ class LightweightScanner:
     def __init__(self):
         self.api_base = "https://server-test-ovta.onrender.com"
         self.timeout = 15
+        self.version = "2.3"
     
     def scan_market(self, limit=100):
         """اسکن بازار - با رفع مشکل فیلدها"""
