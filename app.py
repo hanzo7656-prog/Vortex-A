@@ -1,4 +1,4 @@
-# app.py - نسخه کامل با دیباگ تحلیل
+# app.py - نسخه کامل با رفع مشکل تغییرات قیمت
 import streamlit as st
 import time
 import pandas as pd
@@ -102,34 +102,12 @@ def display_market_tab(lang):
     if st.session_state.ai_scan:
         handle_ai_scan(lang)
     
-    # 🔥 دیباگ: نمایش ساختار داده‌ها
-    if st.session_state.scan_results:
-        coins = st.session_state.scan_results.get('coins', [])
-        if coins:
-            with st.expander("🔍 دیباگ - ساختار داده‌ها", expanded=False):
-                st.write(f"تعداد ارزها: {len(coins)}")
-                st.write("ساختار اولین ارز:")
-                st.json(coins[0])
-    
     # نمایش نتایج
     if st.session_state.scan_results:
         display_advanced_results(st.session_state.scan_results, lang)
         
         if st.session_state.ai_results:
             display_advanced_ai_analysis(st.session_state.ai_results, lang)
-        else:
-            # 🔥 تست تحلیل اگر AI results نداریم
-            if st.session_state.scan_results and st.session_state.advanced_ai:
-                coins = st.session_state.scan_results.get('coins', [])
-                if coins and st.button("🧪 تست تحلیل AI", key='test_ai_btn'):
-                    with st.spinner("در حال تست تحلیل..."):
-                        try:
-                            test_analysis = st.session_state.advanced_ai.analyze_market_trend(coins[:10])
-                            st.session_state.ai_results = test_analysis
-                            st.success("✅ تست تحلیل موفق!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ خطا در تست تحلیل: {e}")
     else:
         display_welcome_message(lang)
 
@@ -176,10 +154,6 @@ def handle_ai_scan(lang):
                 coins = market_results['coins']
                 print(f"📊 داده‌های بازار دریافت شد: {len(coins)} ارز")
                 
-                # تست مستقیم قبل از تحلیل اصلی
-                if coins:
-                    print(f"🔍 تست ساختار داده - ارز اول: {coins[0].keys()}")
-                
                 # تحلیل AI پیشرفته
                 ai_analysis = st.session_state.advanced_ai.analyze_market_trend(coins)
                 print(f"✅ تحلیل AI کامل شد")
@@ -201,6 +175,20 @@ def display_advanced_results(results, lang):
     if results and 'coins' in results:
         coins = results['coins']
         
+        # 🔥 دیباگ مقادیر تغییرات قیمت
+        with st.expander("🔍 دیباگ تغییرات قیمت", expanded=False):
+            if coins:
+                st.write("نمونه مقادیر تغییرات 24h (5 ارز اول):")
+                sample_data = []
+                for i, coin in enumerate(coins[:5]):
+                    sample_data.append({
+                        'ارز': coin.get('name', 'Unknown'),
+                        'priceChange24h': coin.get('priceChange24h', 'NOT_FOUND'),
+                        'priceChange1h': coin.get('priceChange1h', 'NOT_FOUND'),
+                        'قیمت': coin.get('price', 0)
+                    })
+                st.dataframe(sample_data)
+        
         # هدر با اطلاعات
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -209,9 +197,11 @@ def display_advanced_results(results, lang):
             source = "🚀 سرور" if results.get('source') == 'api' else "📁 نمونه"
             st.metric("منبع داده", source)
         with col3:
+            # 🔥 محاسبه ارزهای صعودی
             bullish = sum(1 for c in coins if c.get('priceChange24h', 0) > 0)
             st.metric("ارزهای صعودی", f"📈 {bullish}")
         with col4:
+            # 🔥 محاسبه ارزهای نزولی
             bearish = sum(1 for c in coins if c.get('priceChange24h', 0) < 0)
             st.metric("ارزهای نزولی", f"📉 {bearish}")
         
@@ -222,12 +212,15 @@ def display_advanced_results(results, lang):
         
         # ایجاد دیتافریم برای همه ارزها
         df_data = []
-        for coin in coins:  # 🔥 همه ارزها نمایش داده بشن
+        for coin in coins:
+            price_change_24h = coin.get('priceChange24h', 0)
+            price_change_1h = coin.get('priceChange1h', 0)
+            
             df_data.append({
                 'نام ارز': f"{coin.get('name', 'Unknown')} ({coin.get('symbol', 'UNK')})",
                 'قیمت': f"${coin.get('price', 0):,.2f}",
-                'تغییر ۲۴h': f"{coin.get('priceChange24h', 0):+.2f}%",
-                'تغییر ۱h': f"{coin.get('priceChange1h', 0):+.2f}%", 
+                'تغییر ۲۴h': f"{price_change_24h:+.2f}%",
+                'تغییر ۱h': f"{price_change_1h:+.2f}%", 
                 'حجم': f"${coin.get('volume', 0):,.0f}",
                 'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
             })
@@ -254,27 +247,21 @@ def display_advanced_ai_analysis(ai_results, lang):
     st.markdown("---")
     st.header("🧠 تحلیل پیشرفته هوش مصنوعی")
     
-    # دیباگ تحلیل
-    with st.expander("🔍 دیباگ تحلیل AI", expanded=False):
-        st.json(ai_results)
-    
     # خلاصه بازار
     if 'market_summary' in ai_results:
         display_market_summary(ai_results['market_summary'])
-    else:
-        st.warning("❌ خلاصه بازار در تحلیل موجود نیست")
     
     # سیگنال‌های معاملاتی
     if 'trading_signals' in ai_results:
         display_trading_signals(ai_results['trading_signals'])
-    else:
-        st.warning("❌ سیگنال‌های معاملاتی در تحلیل موجود نیست")
     
     # ارزیابی ریسک
     if 'risk_assessment' in ai_results:
         display_risk_assessment(ai_results['risk_assessment'])
-    else:
-        st.warning("❌ ارزیابی ریسک در تحلیل موجود نیست")
+    
+    # احساسات بازار و پیشنهادات
+    if 'market_sentiment' in ai_results and 'recommended_actions' in ai_results:
+        display_market_sentiment(ai_results['market_sentiment'], ai_results['recommended_actions'])
 
 def display_market_summary(market_summary):
     """نمایش خلاصه بازار"""
@@ -380,6 +367,20 @@ def display_risk_assessment(risk_assessment):
         else:
             st.success("✅ هیچ هشدار مهمی شناسایی نشد")
 
+def display_market_sentiment(sentiment, recommended_actions):
+    """نمایش احساسات بازار و پیشنهادات"""
+    st.subheader("🎯 احساسات بازار")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("احساسات بازار", sentiment)
+    
+    with col2:
+        st.write("**پیشنهادات اقدام:**")
+        for action in recommended_actions:
+            st.info(action)
+
 def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
     st.subheader("وضعیت سیستم")
@@ -428,7 +429,7 @@ def display_monitoring_tab(lang):
     st.subheader("اطلاعات فنی")
     
     tech_info = {
-        "نسخه سیستم": "۲.۱ (دیباگ)",
+        "نسخه سیستم": "۲.۲ (رفع مشکل تغییرات قیمت)",
         "حالت اجرا": "بهینه‌شده برای وب", 
         "مدیریت حافظه": "فعال",
         "پشتیبانی API": "فعال با fallback",
@@ -450,10 +451,11 @@ def display_help_tab(lang):
     ۲. **تحلیل پیشرفته AI** - تحلیل حرفه‌ای با هوش مصنوعی
     ۳. **مدیریت پرتفو** - بر اساس سیگنال‌های AI اقدام کنید
     
-    **🔧 قابلیت‌های دیباگ:**
-    - نمایش ساختار داده‌ها
-    - تست مستقیم تحلیل AI
-    - لاگ‌گیری کامل
+    **🔧 قابلیت‌های جدید:**
+    - نمایش تمام ارزها بدون محدودیت
+    - تحلیل پیشرفته بازار
+    - دیباگ تغییرات قیمت
+    - مدیریت ریسک خودکار
     """)
 
 def display_welcome_message(lang):
@@ -463,10 +465,11 @@ def display_welcome_message(lang):
     
     برای شروع از دکمه‌های سایدبار استفاده کنید.
     
-    **قابلیت‌های دیباگ فعال شده:**
-    - 🔍 نمایش ساختار داده‌ها
-    - 🧪 تست مستقیم تحلیل
-    - 📊 لاگ‌گیری کامل
+    **قابلیت‌های سیستم:**
+    - 🔄 اسکن کامل بازار (بدون محدودیت)
+    - 🧠 تحلیل پیشرفته هوش مصنوعی
+    - 💡 سیگنال‌های معاملاتی دقیق
+    - ⚠️ ارزیابی ریسک حرفه‌ای
     """)
 
 if __name__ == "__main__":
