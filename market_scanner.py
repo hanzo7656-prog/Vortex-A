@@ -166,34 +166,34 @@ def _generate_realistic_changes_based_on_market(self):
             return 0.0
             
     def _get_fallback_data(self):
-        """داده نمونه با تغییرات واقعی"""
-        print("🔄 فعال شدن حالت fallback")
+        """داده نمونه با نام‌های واقعی"""
+        print("فعال شدن حالت fallback با نام‌های واقعی")
+    
         sample_coins = []
-        coins_list = [
-            ('Bitcoin', 'BTC', 65432.10, 2.15, 0.32, 39245678901, 1287654321098),
-            ('Ethereum', 'ETH', 3456.78, 1.87, -0.15, 18765432987, 415678901234),
-            ('BNB', 'BNB', 567.89, 3.21, 0.45, 2987654321, 87654321098),
-            ('Solana', 'SOL', 123.45, -1.23, -0.32, 1987654321, 54321098765),
-            ('XRP', 'XRP', 0.567, 0.45, 0.12, 987654321, 30456789012),
-            ('Cardano', 'ADA', 0.456, -2.34, -0.18, 876543210, 16234567890),
-            ('Dogecoin', 'DOGE', 0.123, 4.56, 0.25, 765432109, 17654321098),
-            ('Polkadot', 'DOT', 6.78, -0.89, -0.12, 654321098, 8765432109),
-            ('Litecoin', 'LTC', 78.90, 1.67, 0.25, 543210987, 5654321098),
-            ('Chainlink', 'LINK', 12.34, -3.21, -0.45, 432109876, 6543210987),
+        coins_data = [
+            ('Bitcoin', 'BTC', 65432.10, 2.15, 0.32, 1.87, 5.43, 15.2, 45.6, 39245678901, 1287654321098),
+            ('Ethereum', 'ETH', 3456.78, 1.87, -0.15, 0.89, 3.21, 12.5, 38.9, 18765432987, 415678901234),
+            ('BNB', 'BNB', 567.89, 3.21, 0.45, 1.23, 4.56, 18.7, 52.3, 2987654321, 87654321098),
+            ('Solana', 'SOL', 123.45, -1.23, -0.32, -2.1, 8.9, 25.4, 68.9, 1987654321, 54321098765),
+            ('XRP', 'XRP', 0.567, 0.45, 0.12, 0.67, 2.34, 9.8, 28.7, 987654321, 30456789012),
         ]
-        
-        for name, symbol, price, change_24h, change_1h, volume, market_cap in coins_list:
+    
+        for name, symbol, price, change_1h, change_4h, change_24h, change_7d, change_30d, change_180d, volume, market_cap in coins_data:
             sample_coins.append({
                 'name': name,
                 'symbol': symbol,
                 'price': price,
-                'priceChange24h': change_24h,  # 🔥 تغییرات واقعی
                 'priceChange1h': change_1h,
+                'priceChange4h': change_4h,
+                'priceChange24h': change_24h,
+                'priceChange7d': change_7d,
+                'priceChange30d': change_30d,
+                'priceChange180d': change_180d,
                 'volume': volume,
                 'marketCap': market_cap
             })
-        
-        return {
+    
+         return {
             'success': True,
             'coins': sample_coins,
             'count': len(sample_coins),
