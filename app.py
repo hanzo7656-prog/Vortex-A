@@ -170,111 +170,143 @@ def handle_ai_scan(lang):
             print(f"❌ خطا در تحلیل AI: {str(e)}")
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
 
+
 def display_advanced_results(results, lang):
-    """نمایش پیشرفته نتایج با تمام بازه‌های زمانی"""
+    """نمایش پیشرفته نتایج با تمام امکانات"""
     if results and 'coins' in results:
         coins = results['coins']
 
-        # ديباك مقادير تغييرات قيمت
-        with st.expander("🔍 ديباك تغييرات قيمت - تمام بازه‌ها", expanded=False):
-            if coins:
-                st.write("نمونه مقادير تغييرات ۵ ارز اول:")
-                sample_data = []
-                for i, coin in enumerate(coins[:5]):
-                    sample_data.append({
-                        'ارز': coin.get('name','Unknown'),
-                        'قيمت': f"${coin.get('price', 0):.2f}",
-                        'تغییر 1h': f"{coin.get('priceChange1h', 0):+.2f}%",
-                        'تغییر 4h': f"{coin.get('priceChange4h', 0):+.2f}%", 
-                        'تغییر 24h': f"{coin.get('priceChange24h', 0):+.2f}%",
-                        'تغییر 7d': f"{coin.get('priceChange7d', 0):+.2f}%",
-                        'تغییر 30d': f"{coin.get('priceChange30d', 0):+.2f}%",
-                    })
-                st.dataframe(sample_data)
+        # بخش جستجو
+        st.subheader("🔍 جستجوی ارز")
+        search_col1, search_col2 = st.columns([3, 1])
+        
+        with search_col1:
+            search_query = st.text_input("نام یا نماد ارز را جستجو کنید:", placeholder="مثال: Bitcoin یا BTC")
+        
+        with search_col2:
+            show_only_positive = st.checkbox("نمایش صعودی‌ها", value=False)
 
-        # هدر با اطلاعات کلی
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        # فیلتر کردن بر اساس جستجو
+        filtered_coins = coins
+        if search_query:
+            filtered_coins = [
+                coin for coin in coins 
+                if search_query.lower() in coin.get('name', '').lower() 
+                or search_query.lower() in coin.get('symbol', '').lower()
+            ]
+        
+        # فیلتر نمایش فقط صعودی‌ها
+        if show_only_positive:
+            filtered_coins = [coin for coin in filtered_coins if coin.get('priceChange24h', 0) > 0]
 
+        # اطلاعات خلاصه
+        col1, col2, col3, col4 = st.columns(4)
+        
         with col1:
-            st.metric("تعداد ارزها", len(coins))
+            st.metric("تعداد کل", len(coins))
+            st.metric("نمایش شده", len(filtered_coins))
         
         with col2:
             source = "سرور" if results.get('source') == 'api' else "نمونه"
             st.metric("منبع داده", source)
         
         with col3:
-            # محاسبه ارزهای صعودی 24h
             bullish_24h = sum(1 for c in coins if c.get('priceChange24h', 0) > 0)
-            st.metric("صعودی 24h", f"{bullish_24h}")
+            st.metric("📈 صعودی 24h", f"{bullish_24h}/{len(coins)}")
         
         with col4:
-            # محاسبه ارزهای نزولی 24h
             bearish_24h = sum(1 for c in coins if c.get('priceChange24h', 0) < 0)
-            st.metric("نزولی 24h", f"{bearish_24h}")
-        
-        with col5:
-            # محاسبه ارزهای صعودی 7d
-            bullish_7d = sum(1 for c in coins if c.get('priceChange7d', 0) > 0)
-            st.metric("صعودی 7d", f"{bullish_7d}")
-        
-        with col6:
-            # محاسبه ارزهای نزولی 7d
-            bearish_7d = sum(1 for c in coins if c.get('priceChange7d', 0) < 0)
-            st.metric("نزولی 7d", f"{bearish_7d}")
+            st.metric("📉 نزولی 24h", f"{bearish_24h}/{len(coins)}")
 
         st.markdown("---")
 
-        # نمایش جدول زیبا - همه ارزها با تمام بازه‌ها
-        st.subheader(f"{lang.t('results_title')} - {len(coins)} ارز")
+        # نمایش جدول با تمام امکانات
+        if filtered_coins:
+            st.subheader(f"📊 نتایج بازار - {len(filtered_coins)} ارز")
+            
+            # ایجاد دیتافریم با شماره ردیف
+            df_data = []
+            for idx, coin in enumerate(filtered_coins, 1):
+                df_data.append({
+                    '#': idx,  # شماره ردیف
+                    'نام ارز': f"{coin.get('name', 'Unknown')}",
+                    'نماد': f"{coin.get('symbol', 'UNK')}",
+                    'قیمت': f"${coin.get('price', 0):.2f}",
+                    '1h': f"{coin.get('priceChange1h', 0):+.2f}%",
+                    '4h': f"{coin.get('priceChange4h', 0):+.2f}%",
+                    '24h': f"{coin.get('priceChange24h', 0):+.2f}%", 
+                    '7d': f"{coin.get('priceChange7d', 0):+.2f}%",
+                    '30d': f"{coin.get('priceChange30d', 0):+.2f}%",
+                    '180d': f"{coin.get('priceChange180d', 0):+.2f}%",
+                    'حجم': f"${coin.get('volume', 0):,.0f}",
+                    'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
+                })
 
-        # ایجاد دیتافریم برای همه ارزها با تمام بازه‌های زمانی
-        df_data = []
-        for coin in coins:
-            df_data.append({
-                'نام ارز': f"{coin.get('name', 'Unknown')} ({coin.get('symbol', 'UNK')})",
-                'قیمت': f"${coin.get('price', 0):.2f}",
-                '1h': f"{coin.get('priceChange1h', 0):+.2f}%",
-                '4h': f"{coin.get('priceChange4h', 0):+.2f}%",
-                '24h': f"{coin.get('priceChange24h', 0):+.2f}%", 
-                '7d': f"{coin.get('priceChange7d', 0):+.2f}%",
-                '30d': f"{coin.get('priceChange30d', 0):+.2f}%",
-                '180d': f"{coin.get('priceChange180d', 0):+.2f}%",
-                'حجم': f"${coin.get('volume', 0):,.0f}",
-                'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
-            })
+            # تبدیل به دیتافریم
+            df = pd.DataFrame(df_data)
+            
+            # تنظیم شماره ردیف به عنوان ایندکس
+            df.set_index('#', inplace=True)
+            
+            # استایل برای تغییرات قیمت
+            def style_percent(val):
+                if isinstance(val, str) and '%' in val:
+                    try:
+                        num = float(val.replace('%', '').replace('+', ''))
+                        if num > 0:
+                            return 'color: green; background-color: #e8f5e8; font-weight: bold;'
+                        elif num < 0:
+                            return 'color: red; background-color: #ffebee; font-weight: bold;'
+                        else:
+                            return 'color: gray;'
+                    except:
+                        return ''
+                return ''
 
-        # تبدیل به دیتافریم و نمایش
-        df = pd.DataFrame(df_data)
-        
-        # استایل برای تغییرات مثبت/منفی
-        def style_percent(val):
-            if isinstance(val, str) and '%' in val:
-                try:
-                    num = float(val.replace('%', '').replace('+', ''))
-                    color = 'color: green;' if num > 0 else 'color: red;' if num < 0 else 'color: gray;'
-                    return color
-                except:
-                    return ''
-            return ''
+            # اعمال استایل
+            styled_df = df.style.applymap(style_percent, subset=['1h', '4h', '24h', '7d', '30d', '180d'])
+            
+            # نمایش جدول
+            st.dataframe(
+                styled_df, 
+                use_container_width=True, 
+                height=600,
+                column_config={
+                    'نام ارز': st.column_config.TextColumn(width="large"),
+                    'نماد': st.column_config.TextColumn(width="small"),
+                    'قیمت': st.column_config.TextColumn(width="medium"),
+                    '1h': st.column_config.TextColumn(width="small"),
+                    '4h': st.column_config.TextColumn(width="small"),
+                    '24h': st.column_config.TextColumn(width="small"),
+                    '7d': st.column_config.TextColumn(width="small"),
+                    '30d': st.column_config.TextColumn(width="small"),
+                    '180d': st.column_config.TextColumn(width="small"),
+                }
+            )
 
-        # اعمال استایل به ستون‌های درصدی
-        styled_df = df.style.applymap(style_percent, subset=['1h', '4h', '24h', '7d', '30d', '180d'])
-        
-        st.dataframe(styled_df, use_container_width=True, hide_index=True, height=600)
+            # اطلاعات پایین جدول
+            st.info(f"🔍 **نتایج جستجو:** {len(filtered_coins)} ارز پیدا شد | **جستجو:** '{search_query}'" if search_query else f"📊 نمایش تمام {len(filtered_coins)} ارز")
 
-        # اطلاعات اضافي
-        st.success(f"✅ نمایش تمام {len(coins)} ارز دریافت شده با تمام بازه‌های زمانی")
+        else:
+            st.warning("❌ هیچ ارزی با مشخصات جستجو شده یافت نشد.")
 
-        # دکمه اسکن مجدد
-        col1, col2 = st.columns(2)
+        # دکمه‌های عمل
+        col1, col2, col3 = st.columns(3)
         with col1:
-            if st.button("🔄 اسکن مجدد", use_container_width=True, key='rescan_btn'):
+            if st.button("🔄 بروزرسانی داده", use_container_width=True, key='refresh_btn'):
                 st.session_state.normal_scan = True
                 st.rerun()
         with col2:
-            if st.button("🤖 تحلیل پیشرفته AI", use_container_width=True, type="secondary", key='advanced_ai_btn'):
+            if st.button("🤖 تحلیل AI", use_container_width=True, type="secondary", key='ai_btn'):
                 st.session_state.ai_scan = True
                 st.rerun()
+        with col3:
+            if st.button("📊 نمودارها", use_container_width=True, key='charts_btn'):
+                st.session_state.show_charts = True
+                st.rerun()
+
+    else:
+        st.error("❌ داده‌ای برای نمایش وجود ندارد.")
 
 def display_advanced_ai_analysis(ai_results, lang):
     """نمایش تحلیل AI پیشرفته"""
