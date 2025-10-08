@@ -15,32 +15,40 @@ class AdvancedAI:
             'extreme': {'min': 81, 'max': 100, 'color': '🔴', 'action': 'بسیار پرریسک'}
         }
     
-    def analyze_market_trend(self, coins_data):
-        """تحلیل پیشرفته روند بازار"""
-        if not coins_data:
-            return self._get_default_analysis()
+
+    def analyze_market_trend(self, coins):
+        """تحلیل بازار با تشخیص داده‌های واقعی"""
+        try:
+            # بررسی کیفیت داده‌ها
+            total_coins = len(coins)
+            real_historical_coins = sum(1 for coin in coins if coin.get('has_real_historical_data', False))
+            historical_quality = real_historical_coins / total_coins if total_coins > 0 else 0
         
-        # محاسبات پیشرفته
-        trends = self._calculate_market_trends(coins_data)
-        signals = self._generate_trading_signals(coins_data)
-        risks = self._assess_market_risks(coins_data)
+            print(f"📊 کیفیت داده‌های تاریخی: {historical_quality:.1%} ({real_historical_coins}/{total_coins})")
         
-        analysis = {
-            'market_summary': self._generate_market_summary(trends),
-            'trading_signals': signals,
-            'risk_assessment': risks,
-            'timestamp': datetime.now().isoformat(),
-            'coins_analyzed': len(coins_data),
-            'market_sentiment': self._calculate_sentiment(trends),
-            'recommended_actions': self._get_recommended_actions(signals, risks)
-        }
+            # اگر کیفیت داده پایین است، هشدار بده
+            if historical_quality < 0.5:
+                print("⚠️ هشدار: کیفیت داده‌های تاریخی پایین است")
         
-        # ذخیره در تاریخچه
-        self.analysis_history.append(analysis)
-        if len(self.analysis_history) > 50:
-            self.analysis_history = self.analysis_history[-50:]
+            # ادامه تحلیل معمول...
+            analysis_result = {
+                'market_summary': self._calculate_market_summary(coins),
+                'trading_signals': self._generate_trading_signals(coins),
+                'risk_assessment': self._assess_market_risk(coins),
+                'market_sentiment': self._determine_market_sentiment(coins),
+                'recommended_actions': self._generate_recommendations(coins),
+                'data_quality': {
+                    'total_coins': total_coins,
+                    'real_historical_coins': real_historical_coins,
+                    'historical_quality_percentage': historical_quality * 100
+                }
+            }
         
-        return analysis
+            return analysis_result
+        
+        except Exception as e:
+            print(f"❌ خطا در تحلیل AI: {e}")
+            return self._get_fallback_analysis()
     
     def _calculate_market_trends(self, coins_data):
         """محاسبه روندهای بازار"""
