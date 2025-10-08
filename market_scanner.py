@@ -81,17 +81,17 @@ class LightweightScanner:
         
         print("🔄 فعال کردن حالت fallback")
         return self._get_fallback_data()
-
-    def _process_coins_with_fallback(self, raw_coins):
-        """پردازش با fallback برای فیلدهای خالی"""
-        processed_coins = []
         
+    def _process_coins_with_fallback(self, raw_coins):
+        """پردازش بدون داده ساختگی"""
+        processed_coins = []
+
         for i, coin in enumerate(raw_coins):
             try:
                 name = coin.get('name', 'Unknown')
                 symbol = coin.get('symbol', 'UNK')
-                
-                # پردازش تغییرات قیمت
+
+                # ✅ فقط از داده‌های واقعی استفاده میشه
                 price_changes = {
                     '1h': self._safe_float(coin.get('change_1h', coin.get('priceChange1h'))),
                     '4h': self._safe_float(coin.get('change_4h')),
@@ -100,12 +100,8 @@ class LightweightScanner:
                     '30d': self._safe_float(coin.get('change_30d')),
                     '180d': self._safe_float(coin.get('change_180d'))
                 }
-                
-                # اگر فیلدهای تاریخی خالی بودن، از fallback استفاده کن
-                for timeframe in ['4h', '7d', '30d', '180d']:
-                    if price_changes[timeframe] == 0:
-                        price_changes[timeframe] = self._generate_realistic_change(timeframe)
-                
+
+                # ❌ هیچ داده ساختگی تولید نمیشه
                 processed_coin = {
                     'name': self._get_real_name(symbol, name),
                     'symbol': symbol,
@@ -119,19 +115,13 @@ class LightweightScanner:
                     'volume': self._safe_float(coin.get('volume')),
                     'marketCap': self._safe_float(coin.get('marketCap'))
                 }
-                
-                if i < 2:  # لاگ برای ۲ ارز اول
-                    print(f"✅ ارز پردازش شده: {processed_coin['name']}")
-                    for tf, value in price_changes.items():
-                        print(f"   - {tf}: {value}%")
-                
+
                 processed_coins.append(processed_coin)
-                
+
             except Exception as e:
-                print(f"⚠️ خطا در پردازش ارز {i}: {e}")
+                print(f'خطا در پردازش ارز {i}: {e}')
                 continue
-        
-        print(f"🎯 پردازش کامل: {len(processed_coins)} ارز")
+
         return processed_coins
 
     def _generate_realistic_change(self, timeframe):
