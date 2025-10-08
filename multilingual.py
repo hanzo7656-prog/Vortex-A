@@ -49,7 +49,13 @@ class Multilanguage:
             'rsi': "شاخص قدرت نسبی",
             'macd': "واگرایی همگرایی میانگین متحرک",
             'bollinger_bands': "باندهای بولینگر", 
-            'moving_average': "میانگین متحرک"
+            'moving_average': "میانگین متحرک",
+
+            'real_data': "داده واقعی",
+            'no_historical_data': "بدون داده تاریخی",
+            'data_quality': "کیفیت داده",
+            'server_connection': "اتصال سرور",
+            'historical_data_available': "داده تاریخی موجود",
         }
     
     def _english_dict(self):
@@ -94,8 +100,15 @@ class Multilanguage:
             'rsi': "Relative Strength Index", 
             'macd': "Moving Average Convergence Divergence",
             'bollinger_bands': "Bollinger Bands",
-            'moving_average': "Moving Average"
+            'moving_average': "Moving Average",
+
+            'real_data': "Real Data",
+            'no_historical_data': "No Historical Data", 
+            'data_quality': "Data Quality",
+            'server_connection': "Server Connection",
+            'historical_data_available': "Historical Data Available",
         }
+    }
     
     def t(self, key):
         """دریافت ترجمه"""
