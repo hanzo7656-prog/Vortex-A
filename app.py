@@ -170,11 +170,14 @@ def handle_ai_scan(lang):
             print(f"❌ خطا در تحلیل AI: {str(e)}")
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
 
+
+
+
 def display_advanced_results(results, lang):
-    """نمایش پیشرفته نتایج با جستجوی اصلاح شده"""
+    """نمایش پیشرفته نتایج با تشخیص داده‌های واقعی"""
     if results and 'coins' in results:
         coins = results['coins']
-
+        
         st.subheader("🔍 جستجوی پیشرفته")
         
         # ردیف اول: جستجو و فیلترها
@@ -182,78 +185,90 @@ def display_advanced_results(results, lang):
         
         with col1:
             search_query = st.text_input(
-                "جستجوی ارز:", 
-                placeholder="نام (Bitcoin) یا نماد (BTC) را وارد کنید...",
+                "جستجوی ارز:",
+                placeholder="نام (Bitcoin) یا نماد (BTC) را وارد کنید",
                 key='search_input'
             )
         
         with col2:
             filter_type = st.selectbox(
                 "فیلتر بر اساس:",
-                ["همه", "صعودی 24h", "نزولی 24h", "حجم بالا"],
+                ["همه", "صعودی 24h", "نزولی 24h", "حجم بالا", "داده تاریخی واقعی"],
                 key='filter_select'
             )
         
         with col3:
             sort_by = st.selectbox(
                 "مرتب سازی:",
-                ["حجم معاملات", "تغییر 24h", "تغییر 7d", "ارزش بازار"],
+                ["ارزش بازار", "تغییرات 24h", "حجم معاملات", "تغییرات 7d"],
                 key='sort_select'
             )
-
+        
         # فیلتر کردن داده‌ها
         filtered_coins = coins.copy()
         
-        # ۱. اعمال جستجو
+        # اعمال جستجو
         if search_query:
             search_lower = search_query.lower().strip()
             filtered_coins = [
-                coin for coin in filtered_coins 
-                if (search_lower in coin.get('name', '').lower() or 
-                    search_lower in coin.get('symbol', '').lower() or
-                    search_lower in coin.get('name', '').lower().replace(' ', '') or
-                    search_lower == coin.get('symbol', '').lower())
+                coin for coin in filtered_coins
+                if (search_lower in coin.get('name', '').lower()) or
+                (search_lower in coin.get('symbol', '').lower()) or
+                (search_lower in coin.get('name', '').lower().replace(' ', '')) or
+                (search_lower == coin.get('symbol', '').lower())
             ]
         
-        # ۲. اعمال فیلتر
+        # اعمال فیلتر
         if filter_type == "صعودی 24h":
             filtered_coins = [coin for coin in filtered_coins if coin.get('priceChange24h', 0) > 0]
         elif filter_type == "نزولی 24h":
             filtered_coins = [coin for coin in filtered_coins if coin.get('priceChange24h', 0) < 0]
         elif filter_type == "حجم بالا":
             filtered_coins = [coin for coin in filtered_coins if coin.get('volume', 0) > 1000000]
+        elif filter_type == "داده تاریخی واقعی":
+            filtered_coins = [coin for coin in filtered_coins if coin.get('has_real_historical_data', False)]
         
-        # ۳. اعمال مرتب‌سازی
+        # اعمال مرتب‌سازی
         if sort_by == "حجم معاملات":
             filtered_coins.sort(key=lambda x: x.get('volume', 0), reverse=True)
-        elif sort_by == "تغییر 24h":
+        elif sort_by == "تغییرات 24h":
             filtered_coins.sort(key=lambda x: x.get('priceChange24h', 0), reverse=True)
-        elif sort_by == "تغییر 7d":
+        elif sort_by == "تغییرات 7d":
             filtered_coins.sort(key=lambda x: x.get('priceChange7d', 0), reverse=True)
         elif sort_by == "ارزش بازار":
             filtered_coins.sort(key=lambda x: x.get('marketCap', 0), reverse=True)
-
+        
         # نمایش اطلاعات خلاصه
+        total_coins = len(coins)
+        real_historical_coins = sum(1 for coin in coins if coin.get('has_real_historical_data', False))
+        source = results.get('source', 'unknown')
+        
         st.info(f"""
-        **📊 اطلاعات جستجو:** 
-        - کل ارزها: {len(coins)} 
-        - نمایش: {len(filtered_coins)}
-        - جستجو: `{search_query if search_query else 'همه'}`
-        - فیلتر: {filter_type}
-        - مرتب‌سازی: {sort_by}
+        **📊 اطلاعات جستجو:**  
+        • کل ارزها: {total_coins}  
+        • نمایش: {len(filtered_coins)}  
+        • ارزهای با داده تاریخی واقعی: {real_historical_coins}  
+        • منبع داده: {source}  
+        • جستجو: {search_query if search_query else 'همه'}  
+        • فیلتر: {filter_type}  
+        • مرتب‌سازی: {sort_by}  
         """)
-
+        
         if filtered_coins:
             # ایجاد دیتافریم
             df_data = []
             for idx, coin in enumerate(filtered_coins, 1):
+                # تشخیص وضعیت داده تاریخی
+                historical_status = "✅" if coin.get('has_real_historical_data') else "⚠️"
+                
                 df_data.append({
                     '#': idx,
+                    'وضعیت': historical_status,
                     'نام ارز': coin.get('name', 'Unknown'),
                     'نماد': coin.get('symbol', 'UNK'),
                     'قیمت': f"${coin.get('price', 0):.2f}",
                     '1h': f"{coin.get('priceChange1h', 0):+.2f}%",
-                    '4h': f"{coin.get('priceChange4h', 0):+.2f}%", 
+                    '4h': f"{coin.get('priceChange4h', 0):+.2f}%",
                     '24h': f"{coin.get('priceChange24h', 0):+.2f}%",
                     '7d': f"{coin.get('priceChange7d', 0):+.2f}%",
                     '30d': f"{coin.get('priceChange30d', 0):+.2f}%",
@@ -261,10 +276,10 @@ def display_advanced_results(results, lang):
                     'حجم': f"${coin.get('volume', 0):,.0f}",
                     'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
                 })
-
+            
             df = pd.DataFrame(df_data)
             df.set_index('#', inplace=True)
-
+            
             # استایل برای تغییرات قیمت
             def style_percent(val):
                 if isinstance(val, str) and '%' in val:
@@ -276,36 +291,63 @@ def display_advanced_results(results, lang):
                             return 'color: red; background-color: #ffebee; font-weight: bold;'
                     except:
                         pass
-                return ''
-
+                return ""
+            
+            # استایل برای وضعیت داده تاریخی
+            def style_status(val):
+                if val == "✅":
+                    return 'color: green; font-weight: bold;'
+                elif val == "⚠️":
+                    return 'color: orange; font-weight: bold;'
+                return ""
+            
             styled_df = df.style.applymap(style_percent, subset=['1h', '4h', '24h', '7d', '30d', '180d'])
+            styled_df = styled_df.applymap(style_status, subset=['وضعیت'])
             
             st.dataframe(styled_df, use_container_width=True, height=600)
-
+            
+            # راهنمای وضعیت
+            st.caption("🎯 راهنمای وضعیت: ✅ = داده تاریخی واقعی | ⚠️ = بدون داده تاریخی")
+            
         else:
             st.warning("""
             **❌ هیچ ارزی یافت نشد!**
             
             راهنمایی:
-            - از نام کامل استفاده کنید (مثال: `Bitcoin`)
-            - یا از نماد استفاده کنید (مثال: `BTC`)  
-            - از فیلترهای مختلف استفاده کنید
+            • از نام کامل استفاده کنید (مثال: Bitcoin)
+            • از نماد استفاده کنید (مثال: BTC)  
+            • فیلترها را تغییر دهید
+            • جستجو را پاک کنید
             """)
-
+        
         # دکمه‌های عمل
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
+        
         with col1:
-            if st.button("🔄 بروزرسانی داده‌ها", use_container_width=True):
+            if st.button("🔄 بروزرسانی داده ها", use_container_width=True):
                 st.session_state.normal_scan = True
                 st.rerun()
+        
         with col2:
             if st.button("🤖 تحلیل AI", use_container_width=True, type="secondary"):
                 st.session_state.ai_scan = True
                 st.rerun()
-
+        
+        with col3:
+            if st.button("📊 تست اتصال سرور", use_container_width=True):
+                with st.spinner("در حال تست اتصال..."):
+                    try:
+                        test_scanner = LightweightScanner()
+                        test_result = test_scanner.scan_market(limit=5)
+                        if test_result.get('has_historical_data'):
+                            st.success("✅ اتصال سرور برقرار است - داده تاریخی واقعی موجود")
+                        else:
+                            st.warning("⚠️ اتصال برقرار است اما داده تاریخی واقعی موجود نیست")
+                    except Exception as e:
+                        st.error(f"❌ خطا در اتصال: {e}")
+    
     else:
-        st.error("❌ داده‌ای برای نمایش وجود ندارد. لطفاً ابتدا اسکن کنید.")            
-
+        st.error("❌ داده‌ای برای نمایش وجود ندارد. لطفاً ابتدا اسکن کنید.")
 
 
 def display_advanced_ai_analysis(ai_results, lang):
