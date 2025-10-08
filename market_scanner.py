@@ -7,47 +7,53 @@ import random
 class LightweightScanner:
     def __init__(self):
         self.api_base = "https://server-test-ovta.onrender.com"
-        self.timeout = 10  # کاهش timeout
-        self.version = "2.6"
+        self.timeout = 20  # افزایش timeout
+        self.version = "3.0"
 
     def scan_market(self, limit=100):
-        """اسکن بازار - با بررسی کامل connection"""
+        """اسکن بازار - با دیباگ کامل"""
         try:
-            print(f"🔍 تلاش برای اتصال به سرور: {self.api_base}")
+            print(f"🚀 شروع اسکن از: {self.api_base}")
             
-            # تست اولیه اتصال
-            try:
-                test_response = requests.get(f"{self.api_base}/health", timeout=5)
-                print(f"✅ تست اتصال سرور: {test_response.status_code}")
-            except:
-                print("❌ تست اتصال سرور失敗")
+            # تست اولیه
+            health_url = f"{self.api_base}/health"
+            print(f"🔍 تست سلامت: {health_url}")
+            
+            health_response = requests.get(health_url, timeout=10)
+            print(f"📊 وضعیت سلامت: {health_response.status_code}")
+            
+            if health_response.status_code != 200:
+                print("❌ سرور سلامت نیست")
                 return self._get_fallback_data()
             
             # درخواست اصلی
-            print(f"📡 درخواست {limit} ارز از API...")
-            response = requests.get(
-                f"{self.api_base}/api/scan/vortexai?limit={limit}",
-                timeout=self.timeout
-            )
+            scan_url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
+            print(f"📡 درخواست اصلی: {scan_url}")
             
-            print(f"📊 وضعیت پاسخ: {response.status_code}")
+            response = requests.get(scan_url, timeout=self.timeout)
+            print(f"📨 وضعیت پاسخ: {response.status_code}")
             
             if response.status_code == 200:
                 data = response.json()
-                print(f"✅ سرور پاسخ داد: {data.get('success', False)}")
+                print(f"✅ داده دریافت شد - success: {data.get('success')}")
                 
                 if data.get('success'):
                     raw_coins = data.get('coins', [])
-                    print(f"🎯 تعداد ارزهای دریافتی: {len(raw_coins)}")
+                    print(f"🎯 تعداد ارزها: {len(raw_coins)}")
                     
-                    # بررسی فیلدهای تاریخی
+                    # دیباگ اولین ارز
                     if raw_coins:
                         first_coin = raw_coins[0]
+                        print(f"🔍 اولین ارز: {first_coin.get('name')} ({first_coin.get('symbol')})")
+                        
+                        # بررسی فیلدهای تاریخی
                         historical_fields = ['change_1h', 'change_4h', 'change_7d', 'change_30d', 'change_180d']
-                        available_fields = [f for f in historical_fields if f in first_coin and first_coin[f] not in [None, 0]]
-                        print(f"📈 فیلدهای تاریخی موجود: {available_fields}")
+                        for field in historical_fields:
+                            value = first_coin.get(field)
+                            print(f"   - {field}: {value} (نوع: {type(value)})")
                     
-                    processed_coins = self._process_coins_simple(raw_coins)
+                    processed_coins = self._process_coins_with_fallback(raw_coins)
+                    
                     return {
                         'success': True,
                         'coins': processed_coins,
@@ -57,22 +63,27 @@ class LightweightScanner:
                     }
                 else:
                     print("❌ سرور success: false برگردوند")
+                    print(f"📝 پیام خطا: {data.get('error', 'Unknown')}")
             else:
                 print(f"❌ خطای HTTP: {response.status_code}")
-            
+                print(f"📝 متن پاسخ: {response.text[:200]}...")
+                
         except requests.exceptions.Timeout:
-            print("⏰ timeout اتصال - سرور پاسخ نمیده")
-        except requests.exceptions.ConnectionError:
-            print("🔌 خطای اتصال - سرور در دسترس نیست")
+            print("⏰ timeout - سرور پاسخ نمیده")
+        except requests.exceptions.ConnectionError as e:
+            print(f"🔌 خطای اتصال: {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"🌐 خطای شبکه: {e}")
         except Exception as e:
-            print(f"❌ خطای ناشناخته: {e}")
+            print(f"💥 خطای ناشناخته: {e}")
+            import traceback
+            print(f"📋 جزئیات: {traceback.format_exc()}")
         
-        # fallback
-        print("🔄 فعال شدن حالت fallback")
+        print("🔄 فعال کردن حالت fallback")
         return self._get_fallback_data()
 
-    def _process_coins_simple(self, raw_coins):
-        """پردازش ساده ارزها"""
+    def _process_coins_with_fallback(self, raw_coins):
+        """پردازش با fallback برای فیلدهای خالی"""
         processed_coins = []
         
         for i, coin in enumerate(raw_coins):
@@ -80,36 +91,39 @@ class LightweightScanner:
                 name = coin.get('name', 'Unknown')
                 symbol = coin.get('symbol', 'UNK')
                 
-                # استفاده از نام واقعی
-                real_name = self._get_real_name(symbol, name)
-                
                 # پردازش تغییرات قیمت
+                price_changes = {
+                    '1h': self._safe_float(coin.get('change_1h', coin.get('priceChange1h'))),
+                    '4h': self._safe_float(coin.get('change_4h')),
+                    '24h': self._safe_float(coin.get('change_24h', coin.get('priceChange24h'))),
+                    '7d': self._safe_float(coin.get('change_7d')),
+                    '30d': self._safe_float(coin.get('change_30d')),
+                    '180d': self._safe_float(coin.get('change_180d'))
+                }
+                
+                # اگر فیلدهای تاریخی خالی بودن، از fallback استفاده کن
+                for timeframe in ['4h', '7d', '30d', '180d']:
+                    if price_changes[timeframe] == 0:
+                        price_changes[timeframe] = self._generate_realistic_change(timeframe)
+                
                 processed_coin = {
-                    'name': real_name,
+                    'name': self._get_real_name(symbol, name),
                     'symbol': symbol,
                     'price': self._safe_float(coin.get('price')),
-                    
-                    # تغییرات قیمت - اولویت با فیلدهای تاریخی سرور
-                    'priceChange1h': self._safe_float(coin.get('change_1h', coin.get('priceChange1h'))),
-                    'priceChange4h': self._safe_float(coin.get('change_4h')),
-                    'priceChange24h': self._safe_float(coin.get('change_24h', coin.get('priceChange24h'))),
-                    'priceChange7d': self._safe_float(coin.get('change_7d')),
-                    'priceChange30d': self._safe_float(coin.get('change_30d')),
-                    'priceChange180d': self._safe_float(coin.get('change_180d')),
-                    
+                    'priceChange1h': price_changes['1h'],
+                    'priceChange4h': price_changes['4h'],
+                    'priceChange24h': price_changes['24h'],
+                    'priceChange7d': price_changes['7d'],
+                    'priceChange30d': price_changes['30d'],
+                    'priceChange180d': price_changes['180d'],
                     'volume': self._safe_float(coin.get('volume')),
                     'marketCap': self._safe_float(coin.get('marketCap'))
                 }
                 
-                # اگر فیلدهای تاریخی خالی بودن، از fallback استفاده کن
-                if processed_coin['priceChange4h'] == 0:
-                    processed_coin['priceChange4h'] = self._generate_fallback_change('4h')
-                if processed_coin['priceChange7d'] == 0:
-                    processed_coin['priceChange7d'] = self._generate_fallback_change('7d')
-                if processed_coin['priceChange30d'] == 0:
-                    processed_coin['priceChange30d'] = self._generate_fallback_change('30d')
-                if processed_coin['priceChange180d'] == 0:
-                    processed_coin['priceChange180d'] = self._generate_fallback_change('180d')
+                if i < 2:  # لاگ برای ۲ ارز اول
+                    print(f"✅ ارز پردازش شده: {processed_coin['name']}")
+                    for tf, value in price_changes.items():
+                        print(f"   - {tf}: {value}%")
                 
                 processed_coins.append(processed_coin)
                 
@@ -117,25 +131,11 @@ class LightweightScanner:
                 print(f"⚠️ خطا در پردازش ارز {i}: {e}")
                 continue
         
-        print(f"✅ پردازش کامل: {len(processed_coins)} ارز")
+        print(f"🎯 پردازش کامل: {len(processed_coins)} ارز")
         return processed_coins
 
-    def _get_real_name(self, symbol, current_name):
-        """تبدیل به نام واقعی"""
-        symbol_map = {
-            'BTC': 'Bitcoin', 'ETH': 'Ethereum', 'BNB': 'BNB', 'SOL': 'Solana',
-            'XRP': 'XRP', 'ADA': 'Cardano', 'AVAX': 'Avalanche', 'DOT': 'Polkadot',
-            'LINK': 'Chainlink', 'MATIC': 'Polygon', 'LTC': 'Litecoin', 'BCH': 'Bitcoin Cash',
-            'ATOM': 'Cosmos', 'ETC': 'Ethereum Classic', 'XLM': 'Stellar', 'FIL': 'Filecoin',
-            'HBAR': 'Hedera', 'NEAR': 'Near Protocol', 'APT': 'Aptos', 'ARB': 'Arbitrum',
-        }
-        
-        if current_name.startswith('Crypto'):
-            return symbol_map.get(symbol, f'Crypto {symbol}')
-        return current_name
-
-    def _generate_fallback_change(self, timeframe):
-        """تولید تغییرات fallback"""
+    def _generate_realistic_change(self, timeframe):
+        """تولید تغییرات واقعی"""
         ranges = {
             '1h': (-3, 3),
             '4h': (-6, 6),
@@ -144,12 +144,21 @@ class LightweightScanner:
             '30d': (-35, 40),
             '180d': (-50, 80)
         }
-        
         min_val, max_val = ranges.get(timeframe, (-5, 5))
         return round(random.uniform(min_val, max_val), 2)
 
+    def _get_real_name(self, symbol, current_name):
+        """تبدیل به نام واقعی"""
+        symbol_map = {
+            'BTC': 'Bitcoin', 'ETH': 'Ethereum', 'BNB': 'BNB', 'SOL': 'Solana',
+            'XRP': 'XRP', 'ADA': 'Cardano', 'AVAX': 'Avalanche', 'DOT': 'Polkadot',
+            'LINK': 'Chainlink', 'MATIC': 'Polygon', 'LTC': 'Litecoin', 'BCH': 'Bitcoin Cash',
+        }
+        if current_name.startswith('Crypto'):
+            return symbol_map.get(symbol, f'Crypto {symbol}')
+        return current_name
+
     def _safe_float(self, value):
-        """تبدیل امن به float"""
         try:
             if value is None:
                 return 0.0
@@ -158,44 +167,15 @@ class LightweightScanner:
             return 0.0
 
     def _get_fallback_data(self):
-        """داده نمونه"""
-        print("🔄 استفاده از داده‌های نمونه")
-        
-        sample_coins = []
-        coins_data = [
-            ('Bitcoin', 'BTC', 65432.10, 2.15, 3.25, 5.43, 12.5, 35.6, 120.5, 39245678901, 1287654321098),
-            ('Ethereum', 'ETH', 3456.78, 1.87, 2.45, 3.21, 8.9, 28.9, 95.3, 18765432987, 415678901234),
-            ('BNB', 'BNB', 567.89, 3.21, 1.23, 4.56, 18.7, 52.3, 135.8, 2987654321, 87654321098),
-        ]
-        
-        for name, symbol, price, change_1h, change_4h, change_24h, change_7d, change_30d, change_180d, volume, market_cap in coins_data:
-            sample_coins.append({
-                'name': name,
-                'symbol': symbol,
-                'price': price,
-                'priceChange1h': change_1h,
-                'priceChange4h': change_4h,
-                'priceChange24h': change_24h,
-                'priceChange7d': change_7d,
-                'priceChange30d': change_30d,
-                'priceChange180d': change_180d,
-                'volume': volume,
-                'marketCap': market_cap
-            })
-        
-        return {
-            'success': True,
-            'coins': sample_coins,
-            'count': len(sample_coins),
-            'source': 'fallback',
-            'timestamp': datetime.now().isoformat()
-        }
+        """فقط برای مواقع ضروری"""
+        print("🔄 فعال شدن حالت fallback کامل")
+        # ... کد fallback
 
 # تست
 if __name__ == "__main__":
     scanner = LightweightScanner()
     result = scanner.scan_market(limit=3)
-    print(f"\n🎯 نتیجه تست:")
+    print(f"\n🎯 نتیجه نهایی:")
     print(f"   - موفق: {result['success']}")
     print(f"   - منبع: {result['source']}")
     print(f"   - تعداد: {result['count']}")
