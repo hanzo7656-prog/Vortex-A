@@ -7,13 +7,14 @@ def render_metric_card(title, value, change, theme):
         change_color = theme['success'] if change.startswith('+') else theme['error']
         change_html = f"""<div style="color: {change_color}; font-size: 0.9rem; margin-top: 0.5rem;">{change}</div>"""
     
-    st.markdown(f"""
+    html_content = f"""
     <div style="background: {theme['surface']}; padding: 1.5rem; border-radius: 12px; border-left: 4px solid {theme['primary']}; margin: 0.5rem 0;">
         <div style="color: {theme['text_secondary']}; font-size: 0.9rem;">{title}</div>
         <div style="color: {theme['text_primary']}; font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;">{value}</div>
         {change_html}
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.html(html_content)
 
 def render_coin_card(coin, theme):
     """کارت نمایش کوین"""
@@ -28,7 +29,7 @@ def render_coin_card(coin, theme):
         </div>
         """
     
-    st.markdown(f"""
+    html_content = f"""
     <div style="background: {theme['surface']}; padding: 1rem; border-radius: 10px; border: 1px solid {theme['border']}; margin: 0.5rem 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 1rem;">
@@ -68,7 +69,8 @@ def render_coin_card(coin, theme):
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.html(html_content)
 
 def render_alert_card(alert, theme):
     """کارت هشدار"""
@@ -78,7 +80,7 @@ def render_alert_card(alert, theme):
         "signal": theme['success']
     }
     
-    st.markdown(f"""
+    html_content = f"""
     <div style="background: {theme['surface']}; padding: 1rem; border-radius: 10px; border-left: 4px solid {alert_colors[alert['type']]}; margin: 0.5rem 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
@@ -91,4 +93,5 @@ def render_alert_card(alert, theme):
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.html(html_content)
