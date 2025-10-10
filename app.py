@@ -98,13 +98,43 @@ def apply_glass_design():
     }
     
     .timeframe-selector {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 16px;
+        padding: 1.2rem;
+        margin: 1rem 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+    
+    .timeframe-btn {
         background: rgba(255, 255, 255, 0.25);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.4);
         border-radius: 12px;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        padding: 0.8rem 0.5rem;
+        margin: 0.2rem;
+        color: #FFFFFF;
+        font-family: 'Times New Roman', serif;
+        font-size: 1rem;
+        font-weight: bold;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        width: 100%;
+    }
+    
+    .timeframe-btn:hover {
+        background: rgba(255, 255, 255, 0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .timeframe-btn.selected {
+        background: rgba(255, 255, 255, 0.4);
+        border: 2px solid #2563EB;
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
     }
     
     .value-badge {
@@ -169,37 +199,48 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم"""
+    """نمایش انتخاب تایم‌فریم به صورت افقی و شیک"""
     st.markdown("""
     <div class="timeframe-selector">
-        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0;">📊 Select Timeframe</h3>
+        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0; font-family: 'Times New Roman', serif;">📊 SELECT TIMEFRAME</h3>
     </div>
     """, unsafe_allow_html=True)
     
+    # دکمه‌های تایم‌فریم به صورت افقی
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     
-    with col1:
-        if st.button("1H", use_container_width=True):
-            st.session_state.selected_timeframe = "1h"
-    with col2:
-        if st.button("4H", use_container_width=True):
-            st.session_state.selected_timeframe = "4h"
-    with col3:
-        if st.button("24H", use_container_width=True):
-            st.session_state.selected_timeframe = "24h"
-    with col4:
-        if st.button("7D", use_container_width=True):
-            st.session_state.selected_timeframe = "7d"
-    with col5:
-        if st.button("30D", use_container_width=True):
-            st.session_state.selected_timeframe = "30d"
-    with col6:
-        if st.button("180D", use_container_width=True):
-            st.session_state.selected_timeframe = "180d"
+    timeframe_config = [
+        ("1H", "1h"), ("4H", "4h"), ("1D", "24h"), 
+        ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
+    ]
+    
+    for i, (display_text, timeframe_value) in enumerate(timeframe_config):
+        with [col1, col2, col3, col4, col5, col6][i]:
+            is_selected = st.session_state.selected_timeframe == timeframe_value
+            
+            if st.button(
+                display_text, 
+                key=f"timeframe_{timeframe_value}",
+                use_container_width=True
+            ):
+                st.session_state.selected_timeframe = timeframe_value
+                st.rerun()
+            
+            # هایلایت دکمه انتخاب شده
+            if is_selected:
+                st.markdown(
+                    f"<div style='text-align: center; color: #2563EB; font-size: 0.8rem; margin-top: 0.2rem;'>✓</div>", 
+                    unsafe_allow_html=True
+                )
     
     # نمایش تایم‌فریم انتخاب شده
     if 'selected_timeframe' in st.session_state:
-        st.info(f"Selected timeframe: {st.session_state.selected_timeframe}")
+        current_tf = st.session_state.selected_timeframe
+        display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
+        st.markdown(
+            f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; font-family: Times New Roman; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
+            unsafe_allow_html=True
+        )
 
 def render_metric_card(title, value, change=None):
     """کارت متریک شیشه‌ای"""
