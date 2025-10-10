@@ -13,15 +13,15 @@ class VortexAIApp:
     def apply_theme(self, dark_mode):
         """اعمال تم انتخاب شده"""
         self.current_theme = DARK_THEME if dark_mode else LIGHT_THEME
-        
+    
         st.markdown(f"""
         <style>
             .main {{
                 background-color: {self.current_theme['background']};
             }}
+            /* حذف استایل‌های اضافی */
         </style>
         """, unsafe_allow_html=True)
-    
     def render_header(self):
         """هدر اصلی"""
         col1, col2, col3 = st.columns([2, 1, 1])
