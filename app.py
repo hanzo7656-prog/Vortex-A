@@ -38,7 +38,7 @@ class VortexAPIClient:
         self.base_url = base_url
         self.session = requests.Session()
         self.timeout = 30
-        self.request_count = 0
+        self.request_count = 0  # این خط رو اضافه کردم
     
     def get_health_status(self):
         """دریافت وضعیت سلامت سرور"""
@@ -85,25 +85,6 @@ class VortexAPIClient:
                 
         except Exception as e:
             st.error(f"🚨 API Error: {str(e)}")
-            return None
-    
-    def get_coin_technical(self, symbol):
-        """
-        دریافت تحلیل تکنیکال واقعی
-        /api/coin/{symbol}/technical
-        """
-        try:
-            response = self.session.get(
-                f"{self.base_url}/coin/{symbol}/technical",
-                timeout=self.timeout
-            )
-            self.request_count += 1
-            
-            data = response.json()
-            return data if data.get("success") else None
-            
-        except Exception as e:
-            st.error(f"Technical analysis error: {str(e)}")
             return None
 
 # ==================== MAIN APP ====================
@@ -162,7 +143,7 @@ class VortexAIApp:
             page = st.radio(
                 "Navigation",
                 ["📊 Dashboard", "🔍 Market Scanner", "⚡ Top Movers", "🔔 Alerts", "📈 Technical Data", "⚙️ Settings"],
-                index=1  # شروع از صفحه اسکنر
+                index=1
             )
             
             st.divider()
@@ -194,26 +175,6 @@ class VortexAIApp:
                 self.render_coin_card(coin)
         else:
             st.warning("⚠️ No market data available. Click 'Scan Market' to get real-time data.")
-            
-            # نمایش نمونه برای تست
-            st.info("💡 For testing, here's sample data structure:")
-            sample_coins = [
-                {
-                    "symbol": "BTC", 
-                    "name": "Bitcoin", 
-                    "price": 45000, 
-                    "change_1h": 2.5, 
-                    "change_24h": 5.2,
-                    "volume": 25000000000,
-                    "VortexAI_analysis": {
-                        "signal_strength": 8.5,
-                        "volume_anomaly": True,
-                        "trend": "up"
-                    }
-                }
-            ]
-            for coin in sample_coins:
-                self.render_coin_card(coin)
     
     def render_coin_card(self, coin):
         """کارت نمایش کوین با داده‌های واقعی"""
@@ -233,7 +194,7 @@ class VortexAIApp:
             with col2:
                 # قیمت و تغییرات
                 price = coin.get('price', 0)
-                change_24h = coin.get('change_24h', coin.get('change_24h', 0))
+                change_24h = coin.get('change_24h', 0)
                 st.metric(
                     label="Price",
                     value=f"${price:,.2f}" if price else "N/A",
@@ -291,27 +252,22 @@ class VortexAIApp:
             st.warning("Scan market first to see dashboard data")
     
     def render_top_movers(self):
-        """صفحه Top Movers"""
         st.header("⚡ Top Movers")
-        st.info("This page will show top gainers and losers from real server data")
-        
+        st.info("Top movers page")
+    
     def render_alerts_page(self):
-        """صفحه هشدارها"""
         st.header("🔔 Alert System")
-        st.info("This page will show real-time alerts from server")
-        
+        st.info("Alerts page")
+    
     def render_technical_data(self):
-        """صفحه داده‌های تکنیکال"""
         st.header("📈 Technical Data")
-        st.info("This page will show detailed technical analysis from server")
-        
+        st.info("Technical data page")
+    
     def render_settings(self):
-        """صفحه تنظیمات"""
         st.header("⚙️ Settings")
-        st.info("Application settings page")
+        st.info("Settings page")
 
     def run(self):
-        """اجرای برنامه"""
         self.initialize_session_state()
         self.render_header()
         
