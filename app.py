@@ -234,7 +234,34 @@ def display_advanced_results(results, lang):
     """نمایش پیشرفته نتایج با تشخیص داده‌های واقعی"""
     if results and 'coins' in results:
         coins = results['coins']
-        
+
+        # 🔥 نمایش دیباگ پیشرفته
+        with st.expander("🔧 دیباگ کامل سرور", expanded=True):
+            st.write("### اطلاعات سرور")
+            st.write(f"**منبع:** {results.get('source', 'unknown')}")
+            st.write(f"**وضعیت:** {results.get('server_status', 'unknown')}")
+            st.write(f"**تعداد ارزها:** {len(coins)}")
+            st.write(f"**داده تاریخی:** {results.get('has_historical_data', False)}")
+            
+            if coins:
+                st.write("### نمونه داده اول")
+                first_coin = coins[0]
+                
+                # نمایش داده خام اگر موجود باشد
+                if 'raw_coin' in first_coin:
+                    st.write("**داده خام از سرور:**")
+                    st.json(first_coin['raw_coin'])
+                
+                st.write("**داده پردازش شده:**")
+                debug_data = {
+                    'name': first_coin.get('name'),
+                    'symbol': first_coin.get('symbol'),
+                    'price': first_coin.get('price'),
+                    'priceChange24h': first_coin.get('priceChange24h'),
+                    'has_real_historical_data': first_coin.get('has_real_historical_data'),
+                    'data_source': first_coin.get('data_source')
+                }
+                st.json(debug_data)
         # 🔥 تشخیص وضعیت واقعی
         source = results.get('source', 'unknown')
         server_status = results.get('server_status', 'unknown')
