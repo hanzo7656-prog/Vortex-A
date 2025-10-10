@@ -12,7 +12,7 @@ def initialize_session_state():
     """Initialize تمام session state ها"""
     if 'scanner' not in st.session_state:
         st.session_state.scanner = LightweightScanner()
-        print("درحال راه اندازی سیستم 2.3")
+        print("✅ اسکنر Initialize شد")
     
     if 'advanced_ai' not in st.session_state:
         st.session_state.advanced_ai = AdvancedAI()
@@ -70,10 +70,12 @@ def main():
         with col1:
             if st.button(lang.t('scan_button'), use_container_width=True, key='normal_scan_btn'):
                 st.session_state.normal_scan = True
+                st.session_state.ai_scan = False
                 st.rerun()
         with col2:
             if st.button(lang.t('ai_scan_button'), use_container_width=True, type="secondary", key='ai_scan_btn'):
                 st.session_state.ai_scan = True
+                st.session_state.normal_scan = False
                 st.rerun()
         
         st.markdown("---")
@@ -170,9 +172,6 @@ def handle_ai_scan(lang):
             print(f"❌ خطا در تحلیل AI: {str(e)}")
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
 
-
-
-
 def display_advanced_results(results, lang):
     """نمایش پیشرفته نتایج با تشخیص داده‌های واقعی"""
     if results and 'coins' in results:
@@ -261,6 +260,9 @@ def display_advanced_results(results, lang):
                 # تشخیص وضعیت داده تاریخی
                 historical_status = "✅" if coin.get('has_real_historical_data') else "⚠️"
                 
+                # استفاده از تحلیل VortexAI اگر موجود باشد
+                vortex_analysis = coin.get('VortexAI_analysis', {})
+                
                 df_data.append({
                     '#': idx,
                     'وضعیت': historical_status,
@@ -274,7 +276,8 @@ def display_advanced_results(results, lang):
                     '30d': f"{coin.get('priceChange30d', 0):+.2f}%",
                     '180d': f"{coin.get('priceChange180d', 0):+.2f}%",
                     'حجم': f"${coin.get('volume', 0):,.0f}",
-                    'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}"
+                    'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}",
+                    'سیگنال AI': f"{vortex_analysis.get('signal_strength', 0):.1f}" if vortex_analysis else "N/A"
                 })
             
             df = pd.DataFrame(df_data)
@@ -348,7 +351,6 @@ def display_advanced_results(results, lang):
     
     else:
         st.error("❌ داده‌ای برای نمایش وجود ندارد. لطفاً ابتدا اسکن کنید.")
-
 
 def display_advanced_ai_analysis(ai_results, lang):
     """نمایش تحلیل AI پیشرفته"""
@@ -489,8 +491,6 @@ def display_market_sentiment(sentiment, recommended_actions):
         for action in recommended_actions:
             st.info(action)
 
-
-
 def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
     st.subheader("وضعیت سیستم")
@@ -538,9 +538,7 @@ def display_sidebar_status(lang):
             
             timestamp = st.session_state.scan_results.get('timestamp', '')
             if timestamp:
-                # تبدیل timestamp به زمان خوانا
                 try:
-                    from datetime import datetime
                     dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                     readable_time = dt.strftime("%Y-%m-%d %H:%M:%S")
                     st.write(f"**آخرین بروزرسانی:** {readable_time}")
