@@ -104,12 +104,6 @@ def apply_glass_design():
         border-radius: 12px;
         padding: 1rem;
         margin: 0.5rem 0;
-        transition: all 0.3s ease;
-    }
-    
-    .glass-coin:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     }
     
     .anomaly-badge {
@@ -146,10 +140,40 @@ def apply_glass_design():
         color: #EF4444;
     }
     
-    /* سایدبار */
-    .css-1d391kg {
-        background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(10px) !important;
+    /* جدول‌بندی ساده */
+    .coin-grid {
+        display: block;
+        width: 100%;
+    }
+    
+    .coin-row {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .coin-section {
+        display: inline-block;
+        vertical-align: top;
+        padding: 0 10px;
+    }
+    
+    .coin-symbol {
+        width: 25%;
+    }
+    
+    .coin-price {
+        width: 20%;
+        text-align: center;
+    }
+    
+    .coin-signal {
+        width: 20%;
+        text-align: center;
+    }
+    
+    .coin-volume {
+        width: 20%;
+        text-align: center;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -179,8 +203,8 @@ def render_metric_card(title, value, change=None):
     </div>
     """, unsafe_allow_html=True)
 
-def render_coin_card(coin):
-    """کارت کوین شیشه‌ای"""
+def render_coin_card_simple(coin):
+    """کارت کوین ساده و مطمئن"""
     change_color = "text-success" if coin.get('change_24h', 0) >= 0 else "text-error"
     change_icon = "📈" if coin.get('change_24h', 0) >= 0 else "📉"
     
@@ -189,47 +213,59 @@ def render_coin_card(coin):
     if vortex_data.get('volume_anomaly'):
         anomaly_badge = '<span class="anomaly-badge">⚠️ Anomaly</span>'
     
-    st.markdown(f"""
-    <div class="glass-coin">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 1rem; flex: 2;">
-                <div style="font-size: 1.5rem;">🪙</div>
-                <div>
-                    <div style="display: flex; align-items: center;">
-                        <div class="text-primary" style="font-size: 1.1rem;">
-                            {coin.get('symbol', 'N/A')}
-                        </div>
-                        {anomaly_badge}
+    # استفاده از ستون‌های Streamlit به جای CSS flex
+    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+    
+    with col1:
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 1.5rem;">🪙</div>
+            <div>
+                <div style="display: flex; align-items: center;">
+                    <div class="text-primary" style="font-size: 1.1rem;">
+                        {coin.get('symbol', 'N/A')}
                     </div>
-                    <div class="text-secondary" style="font-size: 0.8rem;">{coin.get('name', 'Unknown')}</div>
+                    {anomaly_badge}
                 </div>
-            </div>
-            
-            <div style="text-align: center; flex: 1;">
-                <div class="text-primary" style="font-size: 1.1rem; font-weight: bold;">
-                    ${coin.get('price', 0):,.2f}
-                </div>
-                <div class="{change_color}" style="font-size: 0.9rem;">
-                    {change_icon} {coin.get('change_24h', 0):+.2f}%
-                </div>
-            </div>
-            
-            <div style="text-align: center; flex: 1;">
-                <div class="text-secondary" style="font-size: 0.8rem;">Signal</div>
-                <div style="color: #2563EB; font-weight: bold; font-size: 1.1rem;">
-                    {vortex_data.get('signal_strength', 0):.1f}/10
-                </div>
-            </div>
-            
-            <div style="text-align: center; flex: 1;">
-                <div class="text-secondary" style="font-size: 0.8rem;">Volume</div>
-                <div class="text-primary" style="font-size: 0.9rem;">
-                    ${coin.get('volume', 0)/1000000:.1f}M
-                </div>
+                <div class="text-secondary" style="font-size: 0.8rem;">{coin.get('name', 'Unknown')}</div>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div style="text-align: center;">
+            <div class="text-primary" style="font-size: 1.1rem; font-weight: bold;">
+                ${coin.get('price', 0):,.2f}
+            </div>
+            <div class="{change_color}" style="font-size: 0.9rem;">
+                {change_icon} {coin.get('change_24h', 0):+.2f}%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div style="text-align: center;">
+            <div class="text-secondary" style="font-size: 0.8rem;">Signal</div>
+            <div style="color: #2563EB; font-weight: bold; font-size: 1.1rem;">
+                {vortex_data.get('signal_strength', 0):.1f}/10
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div style="text-align: center;">
+            <div class="text-secondary" style="font-size: 0.8rem;">Volume</div>
+            <div class="text-primary" style="font-size: 0.9rem;">
+                ${coin.get('volume', 0)/1000000:.1f}M
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # خط جداکننده
+    st.markdown("<hr style='margin: 0.5rem 0; border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
 
 # ==================== MAIN APP ====================
 class VortexAIApp:
@@ -334,9 +370,11 @@ class VortexAIApp:
             coins = st.session_state.scan_data.get("coins", [])
             st.success(f"📊 Displaying {len(coins)} coins from real server")
             
-            # نمایش کوین‌ها
+            # نمایش کوین‌ها با طراحی شیشه‌ای
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             for coin in coins:
-                render_coin_card(coin)
+                render_coin_card_simple(coin)
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning("⚠️ No market data available. Click 'Scan Market' to get real-time data.")
     
