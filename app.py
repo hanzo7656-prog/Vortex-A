@@ -190,6 +190,232 @@ class VortexAIApp:
         for coin in coins_data:
             self.render_coin_card(coin, self.current_theme)
     
+    def render_top_movers(self):
+        """صفحه Top Movers - بدون نمودار"""
+        st.markdown(f"""
+        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+            ⚡ Top Movers
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # فیلترهای Top Movers
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            timeframe = st.selectbox("Timeframe", ["1H", "4H", "24H", "7D"], key="movers_timeframe")
+        
+        with col2:
+            mover_type = st.selectbox("Type", ["Gainers", "Losers", "Both"], key="movers_type")
+        
+        with col3:
+            min_volume = st.slider("Min Volume ($M)", 1, 100, 10)
+        
+        # داده‌های نمونه Top Movers
+        top_movers = [
+            {"symbol": "BTC", "name": "Bitcoin", "price": 45000, "change": 8.5, "volume": 45.2, "signal": 9.1},
+            {"symbol": "SOL", "name": "Solana", "price": 125.60, "change": 12.3, "volume": 8.9, "signal": 8.7},
+            {"symbol": "AVAX", "name": "Avalanche", "price": 42.30, "change": 9.8, "volume": 3.2, "signal": 8.2},
+            {"symbol": "ETH", "name": "Ethereum", "price": 2480.50, "change": 5.6, "volume": 18.7, "signal": 7.8},
+            {"symbol": "ADA", "name": "Cardano", "price": 0.58, "change": -3.2, "volume": 2.1, "signal": 6.5},
+            {"symbol": "DOT", "name": "Polkadot", "price": 7.25, "change": -5.7, "volume": 1.8, "signal": 5.9},
+        ]
+        
+        # نمایش Top Movers
+        for coin in top_movers:
+            self.render_mover_card(coin, self.current_theme)
+    
+    def render_alerts_page(self):
+        """صفحه هشدارها - بدون نمودار"""
+        st.markdown(f"""
+        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+            🔔 Alert System
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # آمار هشدارها
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            self.render_metric_card("Active Alerts", "12", "+3", self.current_theme)
+        
+        with col2:
+            self.render_metric_card("Volume Alerts", "5", "+1", self.current_theme)
+        
+        with col3:
+            self.render_metric_card("Price Alerts", "4", "+2", self.current_theme)
+        
+        with col4:
+            self.render_metric_card("Signal Alerts", "3", "0", self.current_theme)
+        
+        # فیلتر هشدارها
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            alert_filter = st.selectbox("Filter Alerts", [
+                "All Alerts", 
+                "Volume Anomalies", 
+                "Price Movements", 
+                "Strong Signals",
+                "System Alerts"
+            ])
+        
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 Refresh Alerts", use_container_width=True):
+                st.rerun()
+        
+        # لیست هشدارها
+        alerts_data = [
+            {"type": "volume", "coin": "BTC", "message": "Unusual volume spike detected", "time": "2 min ago", "priority": "high"},
+            {"type": "price", "coin": "ETH", "message": "Rapid price increase +8.5%", "time": "5 min ago", "priority": "medium"},
+            {"type": "signal", "coin": "SOL", "message": "Strong buy signal detected", "time": "8 min ago", "priority": "high"},
+            {"type": "volume", "coin": "AVAX", "message": "Volume anomaly - potential pump", "time": "12 min ago", "priority": "high"},
+            {"type": "system", "coin": "System", "message": "API connection unstable", "time": "15 min ago", "priority": "medium"},
+        ]
+        
+        for alert in alerts_data:
+            self.render_detailed_alert_card(alert, self.current_theme)
+    
+    def render_technical_data(self):
+        """صفحه داده‌های تکنیکال - بدون نمودار"""
+        st.markdown(f"""
+        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+            📈 Technical Data
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # انتخاب کوین
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            selected_coin = st.selectbox(
+                "Select Coin", 
+                ["BTC", "ETH", "SOL", "AVAX", "ADA", "DOT", "XRP", "MATIC"],
+                key="tech_coin"
+            )
+        
+        with col2:
+            timeframe = st.selectbox("Timeframe", ["1H", "4H", "24H", "7D"], key="tech_timeframe")
+        
+        # داده‌های تکنیکال نمونه
+        tech_data = {
+            "BTC": {
+                "rsi": 65.2,
+                "macd": 2.45,
+                "bollinger_upper": 46200,
+                "bollinger_lower": 43800,
+                "moving_avg_20": 44800,
+                "volume": 45.2,
+                "support": 44200,
+                "resistance": 46000,
+                "signal_strength": 8.5
+            }
+        }
+        
+        data = tech_data.get(selected_coin, tech_data["BTC"])
+        
+        # نمایش اندیکاتورهای تکنیکال
+        st.markdown(f"""
+        <div style="color: {self.current_theme['text_primary']}; font-size: 1.2rem; font-weight: bold; margin: 1.5rem 0 1rem 0;">
+            📊 Technical Indicators for {selected_coin}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # ردیف اول اندیکاتورها
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            self.render_tech_indicator("RSI", f"{data['rsi']}", "Momentum", data['rsi'] > 70, self.current_theme)
+        
+        with col2:
+            self.render_tech_indicator("MACD", f"{data['macd']}", "Trend", data['macd'] > 0, self.current_theme)
+        
+        with col3:
+            self.render_tech_indicator("Signal Strength", f"{data['signal_strength']}/10", "AI Analysis", data['signal_strength'] > 7, self.current_theme)
+        
+        with col4:
+            self.render_tech_indicator("Volume", f"${data['volume']}M", "Activity", data['volume'] > 20, self.current_theme)
+        
+        # ردیف دوم اندیکاتورها
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            self.render_tech_indicator("Bollinger Upper", f"${data['bollinger_upper']:,.0f}", "Resistance", False, self.current_theme)
+        
+        with col2:
+            self.render_tech_indicator("Bollinger Lower", f"${data['bollinger_lower']:,.0f}", "Support", False, self.current_theme)
+        
+        with col3:
+            self.render_tech_indicator("MA 20", f"${data['moving_avg_20']:,.0f}", "Trend", False, self.current_theme)
+        
+        with col4:
+            self.render_tech_indicator("Support", f"${data['support']:,.0f}", "Key Level", False, self.current_theme)
+    
+    def render_settings(self):
+        """صفحه تنظیمات"""
+        st.markdown(f"""
+        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+            ⚙️ Settings
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # تنظیمات اسکن
+        with st.expander("🔍 Scanner Settings", expanded=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                scan_interval = st.slider("Scan Interval (minutes)", 1, 60, 5)
+                min_volume = st.number_input("Minimum Volume ($M)", value=1.0)
+                signal_threshold = st.slider("Signal Threshold", 1, 10, 7)
+            
+            with col2:
+                max_results = st.slider("Max Results", 10, 200, 50)
+                auto_refresh = st.toggle("Auto Refresh", value=True)
+                alert_sound = st.toggle("Alert Sound", value=True)
+        
+        # تنظیمات اعلان‌ها
+        with st.expander("🔔 Alert Settings"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                volume_alert = st.toggle("Volume Anomaly Alerts", value=True)
+                price_alert = st.toggle("Price Movement Alerts", value=True)
+                signal_alert = st.toggle("Strong Signal Alerts", value=True)
+            
+            with col2:
+                volume_threshold = st.slider("Volume Threshold (%)", 50, 500, 200)
+                price_threshold = st.slider("Price Change Threshold (%)", 1, 50, 10)
+        
+        # تنظیمات API
+        with st.expander("🔗 API Settings"):
+            api_url = st.text_input("API Base URL", value=API_BASE_URL)
+            api_timeout = st.slider("API Timeout (seconds)", 5, 60, 30)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Test Connection", use_container_width=True):
+                    st.success("✅ Connection successful!")
+            
+            with col2:
+                if st.button("Save Settings", use_container_width=True):
+                    st.success("✅ Settings saved successfully!")
+        
+        # اطلاعات سیستم
+        with st.expander("📊 System Information"):
+            health_data = self.api_client.get_health_status()
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**WebSocket Status:**", health_data.get('websocket_status', {}).get('connected', False))
+                st.write("**Active Coins:**", health_data.get('websocket_status', {}).get('active_coins', 0))
+                st.write("**API Requests:**", health_data.get('api_status', {}).get('requests_count', 0))
+            
+            with col2:
+                st.write("**Storage Coins:**", health_data.get('gist_status', {}).get('total_coins', 0))
+                st.write("**Uptime:**", "Online")
+                st.write("**Version:**", "v6.0.0")
+    
     def render_metric_card(self, title, value, change, theme):
         """کارت متریک"""
         change_html = ""
@@ -260,6 +486,67 @@ class VortexAIApp:
         </div>
         """, unsafe_allow_html=True)
     
+    def render_mover_card(self, coin, theme):
+        """کارت Top Mover"""
+        change_color = theme['success'] if coin['change'] >= 0 else theme['error']
+        change_icon = "🚀" if coin['change'] >= 0 else "🔻"
+        change_prefix = "+" if coin['change'] >= 0 else ""
+        
+        st.markdown(f"""
+        <div class="coin-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem; flex: 2;">
+                    <div style="font-size: 1.8rem;">{'🪙' if coin['change'] >= 0 else '📉'}</div>
+                    <div>
+                        <div style="font-weight: bold; color: {theme['text_primary']}; font-size: 1.2rem;">
+                            {coin['symbol']}
+                        </div>
+                        <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">{coin['name']}</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; flex: 1;">
+                    <div style="font-weight: bold; color: {theme['text_primary']}; font-size: 1.1rem;">
+                        ${coin['price']:,.2f}
+                    </div>
+                </div>
+                
+                <div style="text-align: center; flex: 1;">
+                    <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Change</div>
+                    <div style="color: {change_color}; font-weight: bold; font-size: 1.1rem;">
+                        {change_icon} {change_prefix}{coin['change']}%
+                    </div>
+                </div>
+                
+                <div style="text-align: center; flex: 1;">
+                    <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Volume</div>
+                    <div style="color: {theme['text_primary']}; font-size: 0.9rem;">
+                        ${coin['volume']}M
+                    </div>
+                </div>
+                
+                <div style="text-align: center; flex: 1;">
+                    <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Signal</div>
+                    <div style="color: {theme['primary']}; font-weight: bold; font-size: 1.1rem;">
+                        {coin['signal']}/10
+                    </div>
+                </div>
+                
+                <div style="flex: 0.5; text-align: center;">
+                    <button style="
+                        background: {theme['primary']}; 
+                        color: white; 
+                        border: none; 
+                        padding: 0.5rem 1rem; 
+                        border-radius: 8px; 
+                        cursor: pointer;
+                        font-size: 0.8rem;
+                    ">View</button>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
     def render_alert_card(self, alert, theme):
         """کارت هشدار"""
         alert_colors = {
@@ -280,6 +567,94 @@ class VortexAIApp:
                     {alert['time']}
                 </div>
             </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    def render_detailed_alert_card(self, alert, theme):
+        """کارت هشدار دقیق"""
+        priority_colors = {
+            "high": theme['error'],
+            "medium": theme['warning'],
+            "low": theme['success']
+        }
+        
+        alert_icons = {
+            "volume": "📊",
+            "price": "💰", 
+            "signal": "🎯",
+            "system": "⚙️"
+        }
+        
+        st.markdown(f"""
+        <div class="alert-card" style="border-left-color: {priority_colors[alert['priority']]} !important;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="display: flex; align-items: start; gap: 1rem; flex: 3;">
+                    <div style="font-size: 1.5rem;">{alert_icons[alert['type']]}</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                            <div style="font-weight: bold; color: {theme['text_primary']}; font-size: 1.1rem;">
+                                {alert['coin']}
+                            </div>
+                            <div style="
+                                background: {priority_colors[alert['priority']]}; 
+                                color: white; 
+                                padding: 0.1rem 0.5rem; 
+                                border-radius: 8px; 
+                                font-size: 0.7rem;
+                                text-transform: uppercase;
+                            ">
+                                {alert['priority']}
+                            </div>
+                        </div>
+                        <div style="color: {theme['text_primary']};">
+                            {alert['message']}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: right; flex: 1;">
+                    <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">
+                        {alert['time']}
+                    </div>
+                    <button style="
+                        background: transparent; 
+                        color: {theme['primary']}; 
+                        border: 1px solid {theme['primary']}; 
+                        padding: 0.3rem 0.8rem; 
+                        border-radius: 6px; 
+                        cursor: pointer;
+                        font-size: 0.7rem;
+                        margin-top: 0.5rem;
+                    ">Dismiss</button>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    def render_tech_indicator(self, title, value, description, is_alert, theme):
+        """کارت اندیکاتور تکنیکال"""
+        alert_badge = ""
+        if is_alert:
+            alert_badge = f"""
+            <div style="
+                background: {theme['warning']}; 
+                color: white; 
+                padding: 0.1rem 0.4rem; 
+                border-radius: 8px; 
+                font-size: 0.6rem;
+                display: inline-block;
+                margin-left: 0.3rem;
+            ">Alert</div>
+            """
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                <div style="color: {theme['text_secondary']}; font-size: 0.9rem; flex: 1;">{title}</div>
+                {alert_badge}
+            </div>
+            <div style="color: {theme['text_primary']}; font-size: 1.4rem; font-weight: bold; margin: 0.5rem 0;">{value}</div>
+            <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">{description}</div>
         </div>
         """, unsafe_allow_html=True)
     
