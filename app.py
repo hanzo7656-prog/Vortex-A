@@ -5,11 +5,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# import constants به صورت مستقیم
+
 try:
     from constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
 except ImportError:
-    # اگر import نشد، مقادیر رو مستقیماً تعریف کن
+    
     API_BASE_URL = "http://localhost:3000/api"
     LIGHT_THEME = {
         "primary": "#2563EB",
@@ -36,11 +36,11 @@ except ImportError:
         "border": "#334155"
     }
     
-# import api_client به صورت مستقیم
+
 try:
     from api_client import VortexAPIClient
 except ImportError:
-    # اگر import نشد، کلاس رو مستقیماً تعریف کن
+    
     import requests
     class VortexAPIClient:
         def __init__(self, base_url):
