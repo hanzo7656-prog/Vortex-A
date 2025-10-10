@@ -90,8 +90,8 @@ class VortexAPIClient:
             return None
 
 # ==================== COMPONENTS ====================
-def render_glass_card(theme):
-    """استایل شیشه‌ای برای کارت‌ها"""
+def render_glass_style(theme):
+    """استایل شیشه‌ای"""
     st.markdown(f"""
     <style>
         .glass-card {{
@@ -139,13 +139,14 @@ def render_metric_card(title, value, change, theme):
         change_color = theme['success'] if change.startswith('+') else theme['error']
         change_html = f"""<div style="color: {change_color}; font-size: 0.9rem; margin-top: 0.5rem;">{change}</div>"""
     
-    st.markdown(f"""
+    html_content = f"""
     <div class="metric-card">
         <div style="color: {theme['text_secondary']}; font-size: 0.9rem;">{title}</div>
         <div style="color: {theme['text_primary']}; font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;">{value}</div>
         {change_html}
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(html_content, unsafe_allow_html=True)
 
 def render_coin_card(coin, theme):
     """کارت کوین شیشه‌ای"""
@@ -161,7 +162,7 @@ def render_coin_card(coin, theme):
         </div>
         """
     
-    st.markdown(f"""
+    html_content = f"""
     <div class="coin-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 1rem;">
@@ -201,7 +202,8 @@ def render_coin_card(coin, theme):
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(html_content, unsafe_allow_html=True)
 
 # ==================== MAIN APP ====================
 class VortexAIApp:
@@ -221,7 +223,7 @@ class VortexAIApp:
     def apply_theme(self, dark_mode):
         """اعمال تم"""
         self.current_theme = DARK_THEME if dark_mode else LIGHT_THEME
-        render_glass_card(self.current_theme)
+        render_glass_style(self.current_theme)
     
     def render_header(self):
         """هدر اصلی با طراحی شیشه‌ای"""
