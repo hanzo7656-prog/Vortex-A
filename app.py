@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
+from .constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
 from api_client import VortexAPIClient
 from components.cards import render_metric_card, render_coin_card, render_alert_card
 
