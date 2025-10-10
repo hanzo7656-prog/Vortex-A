@@ -97,6 +97,16 @@ def apply_glass_design():
         text-align: center;
     }
     
+    .timeframe-selector {
+        background: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+    
     .value-badge {
         background: rgba(255, 255, 255, 0.9);
         backdrop-filter: blur(5px);
@@ -158,6 +168,39 @@ def render_glass_header():
     </div>
     """, unsafe_allow_html=True)
 
+def render_timeframe_selector():
+    """نمایش انتخاب تایم‌فریم"""
+    st.markdown("""
+    <div class="timeframe-selector">
+        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0;">📊 Select Timeframe</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    
+    with col1:
+        if st.button("1H", use_container_width=True):
+            st.session_state.selected_timeframe = "1h"
+    with col2:
+        if st.button("4H", use_container_width=True):
+            st.session_state.selected_timeframe = "4h"
+    with col3:
+        if st.button("24H", use_container_width=True):
+            st.session_state.selected_timeframe = "24h"
+    with col4:
+        if st.button("7D", use_container_width=True):
+            st.session_state.selected_timeframe = "7d"
+    with col5:
+        if st.button("30D", use_container_width=True):
+            st.session_state.selected_timeframe = "30d"
+    with col6:
+        if st.button("180D", use_container_width=True):
+            st.session_state.selected_timeframe = "180d"
+    
+    # نمایش تایم‌فریم انتخاب شده
+    if 'selected_timeframe' in st.session_state:
+        st.info(f"Selected timeframe: {st.session_state.selected_timeframe}")
+
 def render_metric_card(title, value, change=None):
     """کارت متریک شیشه‌ای"""
     change_html = ""
@@ -175,8 +218,10 @@ def render_metric_card(title, value, change=None):
 
 def render_coin_card_clean(coin):
     """کارت کوین کاملاً تمیز و بدون مشکل HTML"""
-    change_color = "text-success" if coin.get('change_24h', 0) >= 0 else "text-error"
-    change_icon = "📈" if coin.get('change_24h', 0) >= 0 else "📉"
+    # بررسی تغییرات از فیلدهای مختلف
+    change_24h = coin.get('change_24h') or coin.get('priceChange24h') or 0
+    change_color = "text-success" if change_24h >= 0 else "text-error"
+    change_icon = "📈" if change_24h >= 0 else "📉"
     
     vortex_data = coin.get('VortexAI_analysis', {})
     
@@ -195,13 +240,14 @@ def render_coin_card_clean(coin):
         
         with col2:
             # قیمت
-            st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${coin.get('price', 0):,.2f}</div>", unsafe_allow_html=True)
+            price = coin.get('price') or coin.get('realtime_price') or 0
+            st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${price:,.2f}</div>", unsafe_allow_html=True)
             
             # درصد تغییرات در دکمه سفید
             st.markdown(f"""
             <div class='value-badge'>
                 <div class='{change_color}' style='font-size: 0.9rem;'>
-                    {change_icon} {coin.get('change_24h', 0):+.2f}%
+                    {change_icon} {change_24h:+.2f}%
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -219,8 +265,9 @@ def render_coin_card_clean(coin):
         
         with col4:
             # حجم
+            volume = coin.get('volume') or 0
             st.markdown("<div class='text-secondary' style='font-size: 0.8rem; text-align: center;'>Volume</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${coin.get('volume', 0)/1000000:.1f}M</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${volume/1000000:.1f}M</div>", unsafe_allow_html=True)
         
         # خط جداکننده
         st.markdown("---")
@@ -238,6 +285,8 @@ class VortexAIApp:
             st.session_state.selected_coin = None
         if 'last_scan_time' not in st.session_state:
             st.session_state.last_scan_time = None
+        if 'selected_timeframe' not in st.session_state:
+            st.session_state.selected_timeframe = "24h"
     
     def render_status_cards(self):
         """کارت‌های وضعیت"""
@@ -327,6 +376,9 @@ class VortexAIApp:
         if st.session_state.scan_data:
             coins = st.session_state.scan_data.get("coins", [])
             st.success(f"📊 Displaying {len(coins)} coins from real server")
+            
+            # نمایش انتخاب تایم‌فریم
+            render_timeframe_selector()
             
             # نمایش کوین‌ها در یک کارت شیشه‌ای
             st.markdown('<div class="glass-card">', unsafe_allow_html=True)
