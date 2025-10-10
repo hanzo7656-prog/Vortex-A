@@ -107,8 +107,7 @@ class Multilanguage:
             'data_quality': "Data Quality",
             'server_connection': "Server Connection",
             'historical_data_available': "Historical Data Available",
-        }
-    }
+        }  # ← فقط این } رو نگه دارید
     
     def t(self, key):
         """دریافت ترجمه"""
