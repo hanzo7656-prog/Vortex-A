@@ -229,19 +229,20 @@ def handle_ai_scan(lang):
         except Exception as e:
             print(f"❌ خطا در تحلیل AI: {str(e)}")
             st.error(f"❌ خطا در تحلیل AI: {str(e)}")
-
+            
 def display_advanced_results(results, lang):
     """نمایش پیشرفته نتایج با تشخیص داده‌های واقعی"""
     if results and 'coins' in results:
         coins = results['coins']
-
-        # 🔥 نمایش دیباگ پیشرفته
+        
+        # 🔥 نمایش دیباگ کامل
         with st.expander("🔧 دیباگ کامل سرور", expanded=True):
             st.write("### اطلاعات سرور")
             st.write(f"**منبع:** {results.get('source', 'unknown')}")
-            st.write(f"**وضعیت:** {results.get('server_status', 'unknown')}")
+            st.write(f"**وضعیت سرور:** {results.get('server_status', 'unknown')}")
             st.write(f"**تعداد ارزها:** {len(coins)}")
             st.write(f"**داده تاریخی:** {results.get('has_historical_data', False)}")
+            st.write(f"**زمان پردازش:** {results.get('processing_time', 'N/A')}")
             
             if coins:
                 st.write("### نمونه داده اول")
@@ -257,11 +258,15 @@ def display_advanced_results(results, lang):
                     'name': first_coin.get('name'),
                     'symbol': first_coin.get('symbol'),
                     'price': first_coin.get('price'),
+                    'priceChange1h': first_coin.get('priceChange1h'),
                     'priceChange24h': first_coin.get('priceChange24h'),
+                    'volume': first_coin.get('volume'),
+                    'marketCap': first_coin.get('marketCap'),
                     'has_real_historical_data': first_coin.get('has_real_historical_data'),
                     'data_source': first_coin.get('data_source')
                 }
                 st.json(debug_data)
+        
         # 🔥 تشخیص وضعیت واقعی
         source = results.get('source', 'unknown')
         server_status = results.get('server_status', 'unknown')
@@ -272,46 +277,14 @@ def display_advanced_results(results, lang):
             status_color = "🟢"
             status_text = f"متصل به سرور ({coins_count} ارز)"
             st.success(f"✅ {status_text}")
-        else:
+        elif source == 'api' and coins_count <= 5:
             status_color = "🟠"
-            status_text = f"حالت دمو ({coins_count} ارز)"
+            status_text = f"اتصال محدود ({coins_count} ارز)"
             st.warning(f"⚠️ {status_text}")
-        
-        # 🔥 دیباگ: نمایش ساختار داده‌ها
-        if coins and st.checkbox("🔧 نمایش دیباگ داده‌ها", key='debug_data'):
-            first_coin = coins[0]
-            st.write("🔍 ساختار داده‌های اولین ارز:")
-            
-            # فقط کلیدهای مرتبط با قیمت و تغییرات
-            relevant_keys = [
-                'name', 'symbol', 'price', 'volume', 'marketCap',
-                'change_1h', 'change_4h', 'change_24h', 'change_7d', 'change_30d', 'change_180d',
-                'priceChange1h', 'priceChange4h', 'priceChange24h', 'priceChange7d', 'priceChange30d', 'priceChange180d',
-                'has_real_historical_data', 'data_source'
-            ]
-            
-            debug_data = {}
-            for key in relevant_keys:
-                if key in first_coin:
-                    debug_data[key] = first_coin[key]
-            
-            st.json(debug_data)
-            
-            # آمار داده‌های تاریخی
-            coins_with_1h = sum(1 for coin in coins if coin.get('change_1h') not in [None, 0, '0', ''] or coin.get('priceChange1h') not in [None, 0, '0', ''])
-            coins_with_24h = sum(1 for coin in coins if coin.get('change_24h') not in [None, 0, '0', ''] or coin.get('priceChange24h') not in [None, 0, '0', ''])
-            coins_with_real_data = sum(1 for coin in coins if coin.get('has_real_historical_data', False))
-            
-            st.write(f"📊 آمار داده‌های تاریخی:")
-            st.write(f"- ارزهای با داده 1h: {coins_with_1h}/{len(coins)}")
-            st.write(f"- ارزهای با داده 24h: {coins_with_24h}/{len(coins)}")
-            st.write(f"- ارزهای با داده واقعی: {coins_with_real_data}/{len(coins)}")
-            
-            # اطلاعات سرور
-            st.write(f"🔧 اطلاعات سرور:")
-            st.write(f"- منبع: {source}")
-            st.write(f"- وضعیت: {server_status}")
-            st.write(f"- تعداد ارزها: {coins_count}")
+        else:
+            status_color = "🔴"
+            status_text = f"حالت دمو ({coins_count} ارز)"
+            st.error(f"❌ {status_text}")
         
         st.subheader("🔍 جستجوی پیشرفته")
         
@@ -328,14 +301,14 @@ def display_advanced_results(results, lang):
         with col2:
             filter_type = st.selectbox(
                 "فیلتر بر اساس:",
-                ["همه", "صعودی 24h", "نزولی 24h", "حجم بالا", "داده تاریخی واقعی"],
+                ["همه", "صعودی 24h", "نزولی 24h", "حجم بالا", "داده تاریخی واقعی", "سیگنال قوی AI"],
                 key='filter_select'
             )
         
         with col3:
             sort_by = st.selectbox(
                 "مرتب سازی:",
-                ["ارزش بازار", "تغییرات 24h", "حجم معاملات", "تغییرات 7d"],
+                ["ارزش بازار", "تغییرات 24h", "حجم معاملات", "تغییرات 7d", "سیگنال AI"],
                 key='sort_select'
             )
         
@@ -362,20 +335,26 @@ def display_advanced_results(results, lang):
             filtered_coins = [coin for coin in filtered_coins if coin.get('volume', 0) > 1000000]
         elif filter_type == "داده تاریخی واقعی":
             filtered_coins = [coin for coin in filtered_coins if coin.get('has_real_historical_data', False)]
+        elif filter_type == "سیگنال قوی AI":
+            filtered_coins = [coin for coin in filtered_coins 
+                            if coin.get('VortexAI_analysis', {}).get('signal_strength', 0) > 7]
         
         # اعمال مرتب‌سازی
         if sort_by == "حجم معاملات":
             filtered_coins.sort(key=lambda x: x.get('volume', 0), reverse=True)
         elif sort_by == "تغییرات 24h":
-            filtered_coins.sort(key=lambda x: get_coin_change_24h(x), reverse=True)
+            filtered_coins.sort(key=lambda x: abs(get_coin_change_24h(x)), reverse=True)
         elif sort_by == "تغییرات 7d":
-            filtered_coins.sort(key=lambda x: get_coin_change_7d(x), reverse=True)
+            filtered_coins.sort(key=lambda x: abs(get_coin_change_7d(x)), reverse=True)
+        elif sort_by == "سیگنال AI":
+            filtered_coins.sort(key=lambda x: x.get('VortexAI_analysis', {}).get('signal_strength', 0), reverse=True)
         elif sort_by == "ارزش بازار":
             filtered_coins.sort(key=lambda x: x.get('marketCap', 0), reverse=True)
         
         # نمایش اطلاعات خلاصه
         total_coins = len(coins)
         real_historical_coins = sum(1 for coin in coins if coin.get('has_real_historical_data', False))
+        strong_ai_signals = sum(1 for coin in coins if coin.get('VortexAI_analysis', {}).get('signal_strength', 0) > 7)
         
         st.info(f"""
         **📊 اطلاعات جستجو:**  
@@ -383,6 +362,7 @@ def display_advanced_results(results, lang):
         • کل ارزها: {total_coins}  
         • نمایش: {len(filtered_coins)}  
         • ارزهای با داده تاریخی واقعی: {real_historical_coins}  
+        • ارزهای با سیگنال AI قوی: {strong_ai_signals}  
         • منبع داده: {source}  
         • جستجو: {search_query if search_query else 'همه'}  
         • فیلتر: {filter_type}  
@@ -393,7 +373,7 @@ def display_advanced_results(results, lang):
             # ایجاد دیتافریم
             df_data = []
             for idx, coin in enumerate(filtered_coins, 1):
-                # 🔥 استفاده از تابع کمکی برای دریافت مقادیر تاریخی
+                # استفاده از توابع کمکی برای دریافت مقادیر تاریخی
                 change_1h = get_coin_change_1h(coin)
                 change_4h = get_coin_change_4h(coin)
                 change_24h = get_coin_change_24h(coin)
@@ -404,8 +384,10 @@ def display_advanced_results(results, lang):
                 # تشخیص وضعیت داده تاریخی
                 historical_status = "✅" if coin.get('has_real_historical_data') else "⚠️"
                 
-                # استفاده از تحلیل VortexAI اگر موجود باشد
+                # استفاده از تحلیل VortexAI
                 vortex_analysis = coin.get('VortexAI_analysis', {}) or coin.get('vortexai_analysis', {})
+                ai_signal = vortex_analysis.get('signal_strength', 0)
+                ai_trend = vortex_analysis.get('trend', 'unknown')
                 
                 df_data.append({
                     '#': idx,
@@ -421,7 +403,8 @@ def display_advanced_results(results, lang):
                     '180d': f"{change_180d:+.2f}%",
                     'حجم': f"${coin.get('volume', 0):,.0f}",
                     'ارزش بازار': f"${coin.get('marketCap', 0):,.0f}",
-                    'سیگنال AI': f"{vortex_analysis.get('signal_strength', 0):.1f}" if vortex_analysis else "N/A"
+                    'سیگنال AI': f"{ai_signal:.1f}",
+                    'روند AI': ai_trend
                 })
             
             df = pd.DataFrame(df_data)
@@ -448,19 +431,37 @@ def display_advanced_results(results, lang):
                     return 'color: orange; font-weight: bold;'
                 return ""
             
-            styled_df = df.style.applymap(style_percent, subset=['1h', '4h', '24h', '7d', '30d', '180d'])
-            styled_df = styled_df.applymap(style_status, subset=['وضعیت'])
+            # استایل برای سیگنال AI
+            def style_ai_signal(val):
+                try:
+                    signal_strength = float(val)
+                    if signal_strength > 7:
+                        return 'color: green; font-weight: bold; background-color: #e8f5e8;'
+                    elif signal_strength > 5:
+                        return 'color: orange; font-weight: bold; background-color: #fff3cd;'
+                    else:
+                        return 'color: gray;'
+                except:
+                    return ""
+            
+            styled_df = df.style.map(style_percent, subset=['1h', '4h', '24h', '7d', '30d', '180d'])
+            styled_df = styled_df.map(style_status, subset=['وضعیت'])
+            styled_df = styled_df.map(style_ai_signal, subset=['سیگنال AI'])
             
             st.dataframe(styled_df, use_container_width=True, height=600)
             
             # راهنمای وضعیت
-            st.caption("🎯 راهنمای وضعیت: ✅ = داده تاریخی واقعی | ⚠️ = بدون داده تاریخی")
+            st.caption("""
+            🎯 **راهنمای وضعیت:**  
+            ✅ = داده تاریخی واقعی | ⚠️ = بدون داده تاریخی  
+            🟢 سیگنال AI قوی (>7) | 🟠 سیگنال AI متوسط (5-7) | ⚪ سیگنال AI ضعیف (<5)
+            """)
             
         else:
             st.warning("""
             **❌ هیچ ارزی یافت نشد!**
             
-            راهنمایی:
+            **راهنمایی:**
             • از نام کامل استفاده کنید (مثال: Bitcoin)
             • از نماد استفاده کنید (مثال: BTC)  
             • فیلترها را تغییر دهید
@@ -468,10 +469,10 @@ def display_advanced_results(results, lang):
             """)
         
         # دکمه‌های عمل
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            if st.button("🔄 بروزرسانی داده ها", use_container_width=True):
+            if st.button("🔄 بروزرسانی داده ها", use_container_width=True, type="primary"):
                 st.session_state.normal_scan = True
                 st.rerun()
         
@@ -481,7 +482,7 @@ def display_advanced_results(results, lang):
                 st.rerun()
         
         with col3:
-            if st.button("📊 تست اتصال سرور", use_container_width=True):
+            if st.button("📊 تست اتصال", use_container_width=True):
                 with st.spinner("در حال تست اتصال..."):
                     try:
                         test_scanner = LightweightScanner()
@@ -491,13 +492,37 @@ def display_advanced_results(results, lang):
                         
                         if source == 'api' and coins_count > 5:
                             st.success(f"✅ اتصال سرور برقرار است - {coins_count} ارز دریافت شد")
+                        elif source == 'api':
+                            st.warning(f"⚠️ اتصال برقرار اما داده محدود - {coins_count} ارز")
                         else:
-                            st.warning(f"⚠️ اتصال برقرار است اما داده واقعی دریافت نشد - {coins_count} ارز")
+                            st.error(f"❌ سرور در دسترس نیست - حالت دمو فعال")
                     except Exception as e:
                         st.error(f"❌ خطا در اتصال: {e}")
+        
+        with col4:
+            if st.button("🔧 دیباگ API", use_container_width=True):
+                with st.spinner("در حال دیباگ..."):
+                    try:
+                        test_scanner = LightweightScanner()
+                        test_result = test_scanner.scan_market(limit=3)
+                        st.json(test_result)
+                    except Exception as e:
+                        st.error(f"❌ خطا در دیباگ: {e}")
     
     else:
-        st.error("❌ داده‌ای برای نمایش وجود ندارد. لطفاً ابتدا اسکن کنید.")
+        st.error("""
+        **❌ داده‌ای برای نمایش وجود ندارد!**
+        
+        **علل احتمالی:**
+        • سرور در دسترس نیست
+        • خطا در اتصال به API
+        • مشکل در دریافت داده
+        
+        **راه حل:**
+        • دکمه "بروزرسانی داده ها" را بزنید
+        • وضعیت اتصال را بررسی کنید
+        • چند دقیقه صبر کنید و مجدد تلاش کنید
+        """)
 
 def display_sidebar_status(lang):
     """نمایش وضعیت در سایدبار"""
