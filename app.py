@@ -435,7 +435,7 @@ class VortexAIApp:
         """کارت نمایش کوین"""
         change_color = theme['success'] if coin['change_24h'] >= 0 else theme['error']
         change_icon = "📈" if coin['change_24h'] >= 0 else "📉"
-        
+    
         anomaly_badge = ""
         if coin['anomaly']:
             anomaly_badge = f"""
@@ -443,7 +443,8 @@ class VortexAIApp:
                 ⚠️ Anomaly
             </div>
             """
-        
+    
+        # استفاده از st.markdown با unsafe_allow_html=True
         st.markdown(f"""
         <div class="coin-card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -459,7 +460,7 @@ class VortexAIApp:
                         <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">{coin['name']}</div>
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center;">
                     <div style="font-weight: bold; color: {theme['text_primary']}; font-size: 1.1rem;">
                         ${coin['price']:,.2f}
@@ -468,14 +469,14 @@ class VortexAIApp:
                         {change_icon} {coin['change_24h']:+.2f}%
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center;">
                     <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Signal</div>
                     <div style="color: {theme['primary']}; font-weight: bold; font-size: 1.1rem;">
                         {coin['signal']}/10
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center;">
                     <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Volume</div>
                     <div style="color: {theme['text_primary']}; font-size: 0.9rem;">
@@ -491,7 +492,7 @@ class VortexAIApp:
         change_color = theme['success'] if coin['change'] >= 0 else theme['error']
         change_icon = "🚀" if coin['change'] >= 0 else "🔻"
         change_prefix = "+" if coin['change'] >= 0 else ""
-        
+    
         st.markdown(f"""
         <div class="coin-card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -504,44 +505,32 @@ class VortexAIApp:
                         <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">{coin['name']}</div>
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center; flex: 1;">
                     <div style="font-weight: bold; color: {theme['text_primary']}; font-size: 1.1rem;">
                         ${coin['price']:,.2f}
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center; flex: 1;">
                     <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Change</div>
                     <div style="color: {change_color}; font-weight: bold; font-size: 1.1rem;">
                         {change_icon} {change_prefix}{coin['change']}%
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center; flex: 1;">
                     <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Volume</div>
                     <div style="color: {theme['text_primary']}; font-size: 0.9rem;">
                         ${coin['volume']}M
                     </div>
                 </div>
-                
+            
                 <div style="text-align: center; flex: 1;">
                     <div style="color: {theme['text_secondary']}; font-size: 0.8rem;">Signal</div>
                     <div style="color: {theme['primary']}; font-weight: bold; font-size: 1.1rem;">
                         {coin['signal']}/10
                     </div>
-                </div>
-                
-                <div style="flex: 0.5; text-align: center;">
-                    <button style="
-                        background: {theme['primary']}; 
-                        color: white; 
-                        border: none; 
-                        padding: 0.5rem 1rem; 
-                        border-radius: 8px; 
-                        cursor: pointer;
-                        font-size: 0.8rem;
-                    ">View</button>
                 </div>
             </div>
         </div>
@@ -554,7 +543,7 @@ class VortexAIApp:
             "price": theme['error'],
             "signal": theme['success']
         }
-        
+    
         st.markdown(f"""
         <div class="alert-card" style="border-left-color: {alert_colors[alert['type']]} !important;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
