@@ -1,337 +1,223 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import streamlit as st
-import pandas as pd
-from datetime import datetime
 
+# import constants
+from constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
 
-try:
-    from constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
-except ImportError:
-    
-    API_BASE_URL = "http://localhost:3000/api"
-    LIGHT_THEME = {
-        "primary": "#2563EB",
-        "secondary": "#6366F1", 
-        "background": "#FFFFFF",
-        "surface": "#F8FAFC",
-        "text_primary": "#1E293B",
-        "text_secondary": "#64748B",
-        "success": "#10B981",
-        "warning": "#F59E0B",
-        "error": "#EF4444",
-        "border": "#E2E8F0"
-    }
-    DARK_THEME = {
-        "primary": "#3B82F6",
-        "secondary": "#818CF8",
-        "background": "#0F172A",
-        "surface": "#1E293B",
-        "text_primary": "#F1F5F9", 
-        "text_secondary": "#94A3B8",
-        "success": "#34D399",
-        "warning": "#FBBF24",
-        "error": "#F87171",
-        "border": "#334155"
-    }
-    
-
+# import api_client
 try:
     from api_client import VortexAPIClient
 except ImportError:
-    
+    # اگر import نشد، از فایل اصلی استفاده می‌کنیم
     import requests
-    class VortexAPIClient:
-        def __init__(self, base_url):
-            self.base_url = base_url
-            self.session = requests.Session()
-            self.timeout = 30
-        
-        def get_health_status(self):
-            """دریافت وضعیت سلامت سرور"""
-            try:
-                response = self.session.get(f"{self.base_url}/health-combined", timeout=self.timeout)
-                return response.json()
-            except Exception as e:
-                return {
-                    "status": "offline",
-                    "websocket_status": {"connected": False, "active_coins": 0},
-                    "api_status": {"requests_count": 0},
-                    "gist_status": {"total_coins": 0}
-                }
-from components.cards import render_metric_card, render_coin_card, render_alert_card
+    # محتوای کلاس VortexAPIClient رو اینجا کپی کنید
+    pass
 
 class VortexAIApp:
     def __init__(self):
         self.api_client = VortexAPIClient(API_BASE_URL)
         self.current_theme = LIGHT_THEME
+        
+    def initialize_session_state(self):
+        """مقداردهی اولیه session state"""
+        if 'scan_data' not in st.session_state:
+            st.session_state.scan_data = None
+        if 'selected_coin' not in st.session_state:
+            st.session_state.selected_coin = None
+        if 'last_scan_time' not in st.session_state:
+            st.session_state.last_scan_time = None
     
-    def apply_theme(self, dark_mode):
-        """اعمال تم انتخاب شده"""
-        self.current_theme = DARK_THEME if dark_mode else LIGHT_THEME
-    
-        st.markdown(f"""
-        <style>
-            .main {{
-                background-color: {self.current_theme['background']};
-            }}
-            /* حذف استایل‌های اضافی */
-        </style>
-        """, unsafe_allow_html=True)
     def render_header(self):
         """هدر اصلی"""
-        col1, col2, col3 = st.columns([2, 1, 1])
+        st.title("🚀 VortexAI Crypto Scanner")
+        st.subheader("v6.0 - Real-time Market Intelligence")
+        
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown(f"""
-            <div style="color: {self.current_theme['primary']}; font-size: 2rem; font-weight: bold;">
-                🚀 VortexAI Crypto Scanner
-            </div>
-            <div style="color: {self.current_theme['text_secondary']};">
-                v6.0 - Real-time Market Intelligence
-            </div>
-            """, unsafe_allow_html=True)
+            health = self.api_client.get_health_status()
+            status = "🟢 Online" if health.get('status') == 'healthy' else "🔴 Offline"
+            st.info(f"**System Status:** {status}")
         
         with col2:
-            health = self.api_client.get_health_status()
-            status_color = "🟢" if health.get('status') == 'healthy' else "🔴"
-            st.markdown(f"""
-            <div style="color: {self.current_theme['text_secondary']}; text-align: center;">
-                <div>System Status</div>
-                <div style="font-weight: bold; color: {self.current_theme['text_primary']};">
-                    {status_color} {health.get('status', 'Unknown').title()}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            last_update = st.session_state.last_scan_time or "Never"
+            st.info(f"**Last Scan:** {last_update}")
         
         with col3:
-            st.markdown(f"""
-            <div style="color: {self.current_theme['text_secondary']}; text-align: center;">
-                <div>Last Update</div>
-                <div style="font-weight: bold; color: {self.current_theme['text_primary']};">
-                    {datetime.now().strftime('%H:%M:%S')}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            if st.button("🔄 Scan Market", use_container_width=True, type="primary"):
+                self.perform_market_scan()
+    
+    def perform_market_scan(self):
+        """انجام اسکن واقعی مارکت"""
+        with st.spinner("🔄 Scanning market..."):
+            scan_result = self.api_client.scan_market(limit=100, filter_type="volume")
             
-            if st.button("🔄 Refresh", use_container_width=True):
-                st.rerun()
+            if scan_result and scan_result.get("success"):
+                st.session_state.scan_data = scan_result
+                st.session_state.last_scan_time = datetime.now().strftime("%H:%M:%S")
+                st.success(f"✅ Scan completed! Found {len(scan_result.get('coins', []))} coins")
+            else:
+                st.error("❌ Market scan failed!")
     
     def render_sidebar(self):
         """نوار کناری"""
         with st.sidebar:
-            st.markdown(f"""
-            <div style="text-align: center; padding: 1rem 0; border-bottom: 1px solid {self.current_theme['border']};">
-                <div style="color: {self.current_theme['primary']}; font-size: 1.5rem; font-weight: bold;">VortexAI</div>
-                <div style="color: {self.current_theme['text_secondary']}; font-size: 0.9rem;">Crypto Scanner</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.header("VortexAI")
+            st.caption("Crypto Scanner")
             
-            menu_options = [
-                {"icon": "📊", "label": "Dashboard", "page": "dashboard"},
-                {"icon": "🔍", "label": "Market Scanner", "page": "scanner"},
-                {"icon": "⚡", "label": "Top Movers", "page": "movers"},
-                {"icon": "🔔", "label": "Alerts", "page": "alerts"},
-                {"icon": "📈", "label": "Technical Data", "page": "technical"},
-                {"icon": "⚙️", "label": "Settings", "page": "settings"},
-            ]
+            page = st.radio(
+                "Navigation",
+                ["📊 Dashboard", "🔍 Market Scanner", "⚡ Top Movers", "🔔 Alerts", "📈 Technical Data", "⚙️ Settings"],
+                index=1  # شروع از صفحه اسکنر
+            )
             
-            selected_page = "dashboard"
-            for option in menu_options:
-                if st.button(
-                    f"{option['icon']} {option['label']}", 
-                    key=option['page'],
-                    use_container_width=True,
-                    type="primary" if option['page'] == selected_page else "secondary"
-                ):
-                    selected_page = option['page']
+            st.divider()
+            
+            # تنظیمات اسکن
+            st.subheader("Scan Settings")
+            scan_limit = st.slider("Number of coins", 10, 200, 100)
+            filter_type = st.selectbox("Filter by", ["volume", "momentum_1h", "momentum_4h", "ai_signal"])
+            
+            if st.button("🎯 Start Scan", use_container_width=True):
+                self.api_client.scan_market(limit=scan_limit, filter_type=filter_type)
             
             st.divider()
             dark_mode = st.toggle("🌙 Dark Mode", value=False)
-            self.apply_theme(dark_mode)
             
-            return selected_page
+            return page, scan_limit, filter_type
+    
+    def render_market_scanner(self, scan_limit, filter_type):
+        """اسکنر مارکت با داده‌های واقعی"""
+        st.header("🔍 Market Scanner")
+        
+        # نمایش وضعیت داده‌ها
+        if st.session_state.scan_data:
+            coins = st.session_state.scan_data.get("coins", [])
+            st.success(f"📊 Displaying {len(coins)} coins from real server data")
+            
+            # نمایش کوین‌ها
+            for coin in coins:
+                self.render_coin_card(coin)
+        else:
+            st.warning("⚠️ No market data available. Click 'Scan Market' to get real-time data.")
+            
+            # نمایش نمونه برای تست
+            st.info("💡 For testing, here's sample data structure:")
+            sample_coins = [
+                {
+                    "symbol": "BTC", 
+                    "name": "Bitcoin", 
+                    "price": 45000, 
+                    "change_1h": 2.5, 
+                    "change_24h": 5.2,
+                    "volume": 25000000000,
+                    "VortexAI_analysis": {
+                        "signal_strength": 8.5,
+                        "volume_anomaly": True,
+                        "trend": "up"
+                    }
+                }
+            ]
+            for coin in sample_coins:
+                self.render_coin_card(coin)
+    
+    def render_coin_card(self, coin):
+        """کارت نمایش کوین با داده‌های واقعی"""
+        with st.container():
+            col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
+            
+            with col1:
+                # نماد و نام
+                st.write(f"🪙 **{coin.get('symbol', 'N/A')}**")
+                st.caption(coin.get('name', 'Unknown'))
+                
+                # آنومالی حجم
+                vortex_data = coin.get('VortexAI_analysis', {})
+                if vortex_data.get('volume_anomaly'):
+                    st.warning("⚠️ Volume Anomaly")
+            
+            with col2:
+                # قیمت و تغییرات
+                price = coin.get('price', 0)
+                change_24h = coin.get('change_24h', coin.get('change_24h', 0))
+                st.metric(
+                    label="Price",
+                    value=f"${price:,.2f}" if price else "N/A",
+                    delta=f"{change_24h:+.2f}%" if change_24h else None
+                )
+            
+            with col3:
+                # قدرت سیگنال
+                signal_strength = vortex_data.get('signal_strength', 0)
+                st.write("**Signal Strength**")
+                if signal_strength > 0:
+                    progress_value = min(signal_strength / 10, 1.0)
+                    st.progress(progress_value)
+                    st.write(f"**{signal_strength}/10**")
+                else:
+                    st.write("N/A")
+            
+            with col4:
+                # حجم
+                volume = coin.get('volume', 0)
+                st.write("**Volume**")
+                if volume > 0:
+                    st.write(f"${volume/1000000:.1f}M")
+                else:
+                    st.write("N/A")
+            
+            with col5:
+                # دکمه مشاهده جزئیات
+                if st.button("📊", key=f"view_{coin.get('symbol', 'unknown')}"):
+                    st.session_state.selected_coin = coin.get('symbol')
+                    st.rerun()
+            
+            st.markdown("---")
     
     def render_dashboard(self):
         """داشبورد اصلی"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            📊 Market Overview
-        </div>
-        """, unsafe_allow_html=True)
+        st.header("📊 Market Overview")
         
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            render_metric_card("Total Coins", "150", "+5", self.current_theme)
-        with col2:
-            render_metric_card("Active Signals", "23", "+3", self.current_theme)
-        with col3:
-            render_metric_card("Volume Anomalies", "7", "+2", self.current_theme)
-        with col4:
-            render_metric_card("Market Sentiment", "Bullish", None, self.current_theme)
-        
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.2rem; font-weight: bold; margin: 2rem 0 1rem 0;">
-            ⚠️ Active Alerts
-        </div>
-        """, unsafe_allow_html=True)
-        
-        alerts = [
-            {"type": "volume", "coin": "BTC", "message": "Volume spike detected", "time": "2 min ago"},
-            {"type": "price", "coin": "ETH", "message": "Rapid price movement", "time": "5 min ago"},
-        ]
-        
-        for alert in alerts:
-            render_alert_card(alert, self.current_theme)
-    
-    def render_market_scanner(self):
-        """اسکنر مارکت"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            🔍 Market Scanner
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            search_query = st.text_input("🔍 Search coins...", placeholder="BTC, ETH, SOL...")
-        with col2:
-            filter_type = st.selectbox("Filter by", ["All", "Volume", "Momentum", "Signals"])
-        with col3:
-            limit = st.slider("Results", 10, 100, 50)
-        
-        coins_data = [
-            {"symbol": "BTC", "name": "Bitcoin", "price": 45000, "change_24h": 2.5, "volume": 25000000, "signal": 8.5, "anomaly": True},
-            {"symbol": "ETH", "name": "Ethereum", "price": 2500, "change_24h": -1.2, "volume": 15000000, "signal": 6.8, "anomaly": False},
-            {"symbol": "SOL", "name": "Solana", "price": 120, "change_24h": 5.8, "volume": 5000000, "signal": 9.2, "anomaly": True},
-        ]
-        
-        for coin in coins_data:
-            render_coin_card(coin, self.current_theme)
-    
-    def render_top_movers(self):
-        """صفحه Top Movers"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            ⚡ Top Movers
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            timeframe = st.selectbox("Timeframe", ["1H", "4H", "24H", "7D"], key="movers_timeframe")
-        with col2:
-            mover_type = st.selectbox("Type", ["Gainers", "Losers", "Both"], key="movers_type")
-        with col3:
-            min_volume = st.slider("Min Volume ($M)", 1, 100, 10)
-        
-        top_movers = [
-            {"symbol": "BTC", "name": "Bitcoin", "price": 45000, "change": 8.5, "volume": 45.2, "signal": 9.1},
-            {"symbol": "SOL", "name": "Solana", "price": 125.60, "change": 12.3, "volume": 8.9, "signal": 8.7},
-        ]
-        
-        for coin in top_movers:
-            render_coin_card({
-                "symbol": coin['symbol'],
-                "name": coin['name'],
-                "price": coin['price'],
-                "change_24h": coin['change'],
-                "volume": coin['volume'] * 1000000,
-                "signal": coin['signal'],
-                "anomaly": coin['change'] > 10
-            }, self.current_theme)
-    
-    def render_alerts_page(self):
-        """صفحه هشدارها"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            🔔 Alert System
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            render_metric_card("Active Alerts", "12", "+3", self.current_theme)
-        with col2:
-            render_metric_card("Volume Alerts", "5", "+1", self.current_theme)
-        with col3:
-            render_metric_card("Price Alerts", "4", "+2", self.current_theme)
-        with col4:
-            render_metric_card("Signal Alerts", "3", "0", self.current_theme)
-        
-        alerts_data = [
-            {"type": "volume", "coin": "BTC", "message": "Unusual volume spike detected", "time": "2 min ago", "priority": "high"},
-            {"type": "price", "coin": "ETH", "message": "Rapid price increase +8.5%", "time": "5 min ago", "priority": "medium"},
-        ]
-        
-        for alert in alerts_data:
-            render_alert_card(alert, self.current_theme)
-    
-    def render_technical_data(self):
-        """صفحه داده‌های تکنیکال"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            📈 Technical Data
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            selected_coin = st.selectbox("Select Coin", ["BTC", "ETH", "SOL", "AVAX"], key="tech_coin")
-        with col2:
-            timeframe = st.selectbox("Timeframe", ["1H", "4H", "24H", "7D"], key="tech_timeframe")
-        
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.2rem; font-weight: bold; margin: 1.5rem 0 1rem 0;">
-            📊 Technical Indicators for {selected_coin}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            render_metric_card("RSI", "65.2", None, self.current_theme)
-        with col2:
-            render_metric_card("MACD", "2.45", None, self.current_theme)
-        with col3:
-            render_metric_card("Signal Strength", "8.5/10", None, self.current_theme)
-        with col4:
-            render_metric_card("Volume", "$45.2M", None, self.current_theme)
-    
-    def render_settings(self):
-        """صفحه تنظیمات"""
-        st.markdown(f"""
-        <div style="color: {self.current_theme['text_primary']}; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            ⚙️ Settings
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("🔍 Scanner Settings", expanded=True):
-            col1, col2 = st.columns(2)
+        if st.session_state.scan_data:
+            coins = st.session_state.scan_data.get("coins", [])
+            
+            col1, col2, col3, col4 = st.columns(4)
             with col1:
-                scan_interval = st.slider("Scan Interval (minutes)", 1, 60, 5)
-                min_volume = st.number_input("Minimum Volume ($M)", value=1.0)
+                st.metric("Total Coins", len(coins))
             with col2:
-                max_results = st.slider("Max Results", 10, 200, 50)
-                auto_refresh = st.toggle("Auto Refresh", value=True)
+                strong_signals = len([c for c in coins if c.get('VortexAI_analysis', {}).get('signal_strength', 0) > 7])
+                st.metric("Strong Signals", strong_signals)
+            with col3:
+                anomalies = len([c for c in coins if c.get('VortexAI_analysis', {}).get('volume_anomaly', False)])
+                st.metric("Volume Anomalies", anomalies)
+            with col4:
+                avg_signal = sum([c.get('VortexAI_analysis', {}).get('signal_strength', 0) for c in coins]) / max(len(coins), 1)
+                st.metric("Avg Signal", f"{avg_signal:.1f}/10")
+        else:
+            st.warning("Scan market first to see dashboard data")
+    
+    # بقیه توابع (Top Movers, Alerts, Technical Data, Settings) رو می‌تونیم بعداً کامل کنیم
     
     def run(self):
         """اجرای برنامه"""
+        self.initialize_session_state()
         self.render_header()
-        selected_page = self.render_sidebar()
         
-        if selected_page == "dashboard":
+        page, scan_limit, filter_type = self.render_sidebar()
+        
+        if "📊 Dashboard" in page:
             self.render_dashboard()
-        elif selected_page == "scanner":
-            self.render_market_scanner()
-        elif selected_page == "movers":
-            self.render_top_movers()
-        elif selected_page == "alerts":
-            self.render_alerts_page()
-        elif selected_page == "technical":
-            self.render_technical_data()
-        elif selected_page == "settings":
-            self.render_settings()
+        elif "🔍 Market Scanner" in page:
+            self.render_market_scanner(scan_limit, filter_type)
+        elif "⚡ Top Movers" in page:
+            st.info("Top Movers page - Coming soon with real data")
+        elif "🔔 Alerts" in page:
+            st.info("Alerts page - Coming soon with real data")
+        elif "📈 Technical Data" in page:
+            st.info("Technical Data page - Coming soon with real data")
+        elif "⚙️ Settings" in page:
+            st.info("Settings page")
 
 if __name__ == "__main__":
     app = VortexAIApp()
