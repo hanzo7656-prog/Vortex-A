@@ -30,6 +30,30 @@ def initialize_session_state():
     if 'ai_scan' not in st.session_state:
         st.session_state.ai_scan = False
 
+def get_coin_change_1h(coin):
+    """دریافت تغییرات 1h از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange1h') or coin.get('change_1h') or 0.0
+
+def get_coin_change_4h(coin):
+    """دریافت تغییرات 4h از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange4h') or coin.get('change_4h') or 0.0
+
+def get_coin_change_24h(coin):
+    """دریافت تغییرات 24h از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange24h') or coin.get('change_24h') or 0.0
+
+def get_coin_change_7d(coin):
+    """دریافت تغییرات 7d از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange7d') or coin.get('change_7d') or 0.0
+
+def get_coin_change_30d(coin):
+    """دریافت تغییرات 30d از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange30d') or coin.get('change_30d') or 0.0
+
+def get_coin_change_180d(coin):
+    """دریافت تغییرات 180d از coin با پشتیبانی از کلیدهای مختلف"""
+    return coin.get('priceChange180d') or coin.get('change_180d') or 0.0
+
 def main():
     """تابع اصلی"""
     # 🔥 اول session state ها رو initialize کن
@@ -249,9 +273,9 @@ def display_advanced_results(results, lang):
         
         # اعمال فیلتر
         if filter_type == "صعودی 24h":
-            filtered_coins = [coin for coin in filtered_coins if self._get_coin_change_24h(coin) > 0]
+            filtered_coins = [coin for coin in filtered_coins if get_coin_change_24h(coin) > 0]
         elif filter_type == "نزولی 24h":
-            filtered_coins = [coin for coin in filtered_coins if self._get_coin_change_24h(coin) < 0]
+            filtered_coins = [coin for coin in filtered_coins if get_coin_change_24h(coin) < 0]
         elif filter_type == "حجم بالا":
             filtered_coins = [coin for coin in filtered_coins if coin.get('volume', 0) > 1000000]
         elif filter_type == "داده تاریخی واقعی":
@@ -261,9 +285,9 @@ def display_advanced_results(results, lang):
         if sort_by == "حجم معاملات":
             filtered_coins.sort(key=lambda x: x.get('volume', 0), reverse=True)
         elif sort_by == "تغییرات 24h":
-            filtered_coins.sort(key=lambda x: self._get_coin_change_24h(x), reverse=True)
+            filtered_coins.sort(key=lambda x: get_coin_change_24h(x), reverse=True)
         elif sort_by == "تغییرات 7d":
-            filtered_coins.sort(key=lambda x: self._get_coin_change_7d(x), reverse=True)
+            filtered_coins.sort(key=lambda x: get_coin_change_7d(x), reverse=True)
         elif sort_by == "ارزش بازار":
             filtered_coins.sort(key=lambda x: x.get('marketCap', 0), reverse=True)
         
@@ -288,12 +312,12 @@ def display_advanced_results(results, lang):
             df_data = []
             for idx, coin in enumerate(filtered_coins, 1):
                 # 🔥 استفاده از تابع کمکی برای دریافت مقادیر تاریخی
-                change_1h = self._get_coin_change_1h(coin)
-                change_4h = self._get_coin_change_4h(coin)
-                change_24h = self._get_coin_change_24h(coin)
-                change_7d = self._get_coin_change_7d(coin)
-                change_30d = self._get_coin_change_30d(coin)
-                change_180d = self._get_coin_change_180d(coin)
+                change_1h = get_coin_change_1h(coin)
+                change_4h = get_coin_change_4h(coin)
+                change_24h = get_coin_change_24h(coin)
+                change_7d = get_coin_change_7d(coin)
+                change_30d = get_coin_change_30d(coin)
+                change_180d = get_coin_change_180d(coin)
                 
                 # تشخیص وضعیت داده تاریخی
                 historical_status = "✅" if coin.get('has_real_historical_data') else "⚠️"
@@ -380,39 +404,15 @@ def display_advanced_results(results, lang):
                     try:
                         test_scanner = LightweightScanner()
                         test_result = test_scanner.scan_market(limit=5)
-                        if test_result.get('has_historical_data'):
-                            st.success("✅ اتصال سرور برقرار است - داده تاریخی واقعی موجود")
+                        if test_result.get('source') == 'api':
+                            st.success("✅ اتصال سرور برقرار است")
                         else:
-                            st.warning("⚠️ اتصال برقرار است اما داده تاریخی واقعی موجود نیست")
+                            st.warning("⚠️ سرور در دسترس نیست - حالت دمو فعال شد")
                     except Exception as e:
                         st.error(f"❌ خطا در اتصال: {e}")
     
     else:
         st.error("❌ داده‌ای برای نمایش وجود ندارد. لطفاً ابتدا اسکن کنید.")
-
-def _get_coin_change_1h(self, coin):
-    """دریافت تغییرات 1h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange1h') or coin.get('change_1h') or 0.0
-
-def _get_coin_change_4h(self, coin):
-    """دریافت تغییرات 4h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange4h') or coin.get('change_4h') or 0.0
-
-def _get_coin_change_24h(self, coin):
-    """دریافت تغییرات 24h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange24h') or coin.get('change_24h') or 0.0
-
-def _get_coin_change_7d(self, coin):
-    """دریافت تغییرات 7d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange7d') or coin.get('change_7d') or 0.0
-
-def _get_coin_change_30d(self, coin):
-    """دریافت تغییرات 30d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange30d') or coin.get('change_30d') or 0.0
-
-def _get_coin_change_180d(self, coin):
-    """دریافت تغییرات 180d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange180d') or coin.get('change_180d') or 0.0
 
 def display_advanced_ai_analysis(ai_results, lang):
     """نمایش تحلیل AI پیشرفته"""
@@ -710,31 +710,6 @@ def display_welcome_message(lang):
     - ⚠️ ارزیابی ریسک حرفه‌ای
     - 📊 نمایش کامل داده‌های تاریخی
     """)
-
-# اضافه کردن توابع کمکی به کلاس
-def _get_coin_change_1h(coin):
-    """دریافت تغییرات 1h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange1h') or coin.get('change_1h') or 0.0
-
-def _get_coin_change_4h(coin):
-    """دریافت تغییرات 4h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange4h') or coin.get('change_4h') or 0.0
-
-def _get_coin_change_24h(coin):
-    """دریافت تغییرات 24h از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange24h') or coin.get('change_24h') or 0.0
-
-def _get_coin_change_7d(coin):
-    """دریافت تغییرات 7d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange7d') or coin.get('change_7d') or 0.0
-
-def _get_coin_change_30d(coin):
-    """دریافت تغییرات 30d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange30d') or coin.get('change_30d') or 0.0
-
-def _get_coin_change_180d(coin):
-    """دریافت تغییرات 180d از coin با پشتیبانی از کلیدهای مختلف"""
-    return coin.get('priceChange180d') or coin.get('change_180d') or 0.0
 
 if __name__ == "__main__":
     main()
