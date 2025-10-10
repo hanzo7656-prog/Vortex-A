@@ -29,15 +29,15 @@ class VortexAPIClient:
                 "gist_status": {"total_coins": 0}
             }
     
-    def scan_market(self, limit=100, filter_type="volume"):
-        """اسکن واقعی مارکت"""
+    def scan_market(self, limit=100, filter_type="volume", timeframe="24h"):
+        """اسکن واقعی مارکت با تایم‌فریم"""
         try:
             params = {
                 "limit": limit,
                 "filter": filter_type
             }
             
-            st.info(f"🔄 Scanning market with {limit} coins...")
+            st.info(f"🔄 Scanning market with {limit} coins ({timeframe})...")
             response = self.session.get(
                 f"{self.base_url}/scan/vortexai", 
                 params=params, 
@@ -48,7 +48,7 @@ class VortexAPIClient:
             data = response.json()
             
             if data.get("success"):
-                st.success(f"✅ Received {len(data.get('coins', []))} coins from server")
+                st.success(f"✅ Received {len(data.get('coins', []))} coins ({timeframe})")
                 return data
             else:
                 st.error(f"❌ Scan failed: {data.get('error', 'Unknown error')}")
@@ -108,33 +108,30 @@ def apply_glass_design():
     }
     
     .timeframe-btn {
-        background: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        border-radius: 12px;
-        padding: 0.8rem 0.5rem;
-        margin: 0.2rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+        padding: 0.7rem 0.3rem;
         color: #FFFFFF;
-        font-family: 'Times New Roman', serif;
-        font-size: 1rem;
+        font-size: 0.9rem;
         font-weight: bold;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         width: 100%;
     }
     
     .timeframe-btn:hover {
-        background: rgba(255, 255, 255, 0.35);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-1px);
     }
     
     .timeframe-btn.selected {
-        background: rgba(255, 255, 255, 0.4);
-        border: 2px solid #2563EB;
-        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+        background: rgba(255, 255, 255, 0.35);
+        border: 1px solid #2563EB;
+        box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
     }
     
     .value-badge {
@@ -199,10 +196,10 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم به صورت افقی و شیک"""
+    """نمایش انتخاب تایم‌فریم به صورت افقی و شیشه‌ای"""
     st.markdown("""
     <div class="timeframe-selector">
-        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0; font-family: 'Times New Roman', serif;">📊 SELECT TIMEFRAME</h3>
+        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0;">📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
     
@@ -221,15 +218,18 @@ def render_timeframe_selector():
             if st.button(
                 display_text, 
                 key=f"timeframe_{timeframe_value}",
-                use_container_width=True
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
             ):
+                # وقتی تایم‌فریم انتخاب شد، اسکن جدید بزن
                 st.session_state.selected_timeframe = timeframe_value
+                st.session_state.pending_rescan = True
                 st.rerun()
             
             # هایلایت دکمه انتخاب شده
             if is_selected:
                 st.markdown(
-                    f"<div style='text-align: center; color: #2563EB; font-size: 0.8rem; margin-top: 0.2rem;'>✓</div>", 
+                    f"<div style='text-align: center; color: #2563EB; font-size: 0.7rem; margin-top: 0.2rem;'>●</div>", 
                     unsafe_allow_html=True
                 )
     
@@ -238,7 +238,7 @@ def render_timeframe_selector():
         current_tf = st.session_state.selected_timeframe
         display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
         st.markdown(
-            f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; font-family: Times New Roman; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
+            f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
             unsafe_allow_html=True
         )
 
@@ -328,6 +328,26 @@ class VortexAIApp:
             st.session_state.last_scan_time = None
         if 'selected_timeframe' not in st.session_state:
             st.session_state.selected_timeframe = "24h"
+        if 'pending_rescan' not in st.session_state:
+            st.session_state.pending_rescan = False
+    
+    def perform_market_scan(self, timeframe=None):
+        """انجام اسکن مارکت"""
+        scan_timeframe = timeframe or st.session_state.selected_timeframe
+        with st.spinner(f"🔄 Scanning market ({scan_timeframe})..."):
+            scan_result = self.api_client.scan_market(
+                limit=100, 
+                filter_type="volume", 
+                timeframe=scan_timeframe
+            )
+            
+            if scan_result and scan_result.get("success"):
+                st.session_state.scan_data = scan_result
+                st.session_state.last_scan_time = datetime.now().strftime("%H:%M:%S")
+                st.session_state.pending_rescan = False
+                st.success(f"✅ Scan completed! Found {len(scan_result.get('coins', []))} coins ({scan_timeframe})")
+            else:
+                st.error("❌ Market scan failed!")
     
     def render_status_cards(self):
         """کارت‌های وضعیت"""
@@ -347,11 +367,16 @@ class VortexAIApp:
         
         with col2:
             last_update = st.session_state.last_scan_time or "Never"
+            current_tf = st.session_state.selected_timeframe
+            display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
             st.markdown(f"""
             <div class="glass-card" style="text-align: center;">
                 <div class="text-secondary">Last Scan</div>
-                <div class="text-primary" style="font-size: 1.2rem; font-weight: bold;">
+                <div class="text-primary" style="font-size: 1.1rem; font-weight: bold;">
                     {last_update}
+                </div>
+                <div class="text-secondary" style="font-size: 0.8rem; margin-top: 0.3rem;">
+                    {display_map.get(current_tf, current_tf)}
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -359,18 +384,6 @@ class VortexAIApp:
         with col3:
             if st.button("🔄 Scan Market", use_container_width=True, type="primary"):
                 self.perform_market_scan()
-    
-    def perform_market_scan(self):
-        """انجام اسکن مارکت"""
-        with st.spinner("🔄 Scanning market..."):
-            scan_result = self.api_client.scan_market(limit=100, filter_type="volume")
-            
-            if scan_result and scan_result.get("success"):
-                st.session_state.scan_data = scan_result
-                st.session_state.last_scan_time = datetime.now().strftime("%H:%M:%S")
-                st.success(f"✅ Scan completed! Found {len(scan_result.get('coins', []))} coins")
-            else:
-                st.error("❌ Market scan failed!")
     
     def render_sidebar(self):
         """نوار کناری"""
@@ -413,10 +426,17 @@ class VortexAIApp:
         </div>
         """, unsafe_allow_html=True)
         
+        # اگر تایم‌فریم تغییر کرد، اسکن جدید بزن
+        if st.session_state.pending_rescan:
+            self.perform_market_scan()
+        
         # نمایش وضعیت داده‌ها
         if st.session_state.scan_data:
             coins = st.session_state.scan_data.get("coins", [])
-            st.success(f"📊 Displaying {len(coins)} coins from real server")
+            current_tf = st.session_state.selected_timeframe
+            display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
+            
+            st.success(f"📊 Displaying {len(coins)} coins ({display_map.get(current_tf, current_tf)})")
             
             # نمایش انتخاب تایم‌فریم
             render_timeframe_selector()
