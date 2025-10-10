@@ -97,13 +97,15 @@ def apply_glass_design():
         text-align: center;
     }
     
-    .glass-coin {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 12px;
-        padding: 1rem;
-        margin: 0.5rem 0;
+    .value-badge {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(5px);
+        border-radius: 8px;
+        padding: 0.3rem 0.8rem;
+        margin: 0.2rem 0;
+        text-align: center;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .anomaly-badge {
@@ -140,40 +142,8 @@ def apply_glass_design():
         color: #EF4444;
     }
     
-    /* جدول‌بندی ساده */
-    .coin-grid {
-        display: block;
-        width: 100%;
-    }
-    
-    .coin-row {
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-    
-    .coin-section {
-        display: inline-block;
-        vertical-align: top;
-        padding: 0 10px;
-    }
-    
-    .coin-symbol {
-        width: 25%;
-    }
-    
-    .coin-price {
-        width: 20%;
-        text-align: center;
-    }
-    
-    .coin-signal {
-        width: 20%;
-        text-align: center;
-    }
-    
-    .coin-volume {
-        width: 20%;
-        text-align: center;
+    .text-signal {
+        color: #2563EB;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -203,69 +173,57 @@ def render_metric_card(title, value, change=None):
     </div>
     """, unsafe_allow_html=True)
 
-def render_coin_card_simple(coin):
-    """کارت کوین ساده و مطمئن"""
+def render_coin_card_clean(coin):
+    """کارت کوین کاملاً تمیز و بدون مشکل HTML"""
     change_color = "text-success" if coin.get('change_24h', 0) >= 0 else "text-error"
     change_icon = "📈" if coin.get('change_24h', 0) >= 0 else "📉"
     
     vortex_data = coin.get('VortexAI_analysis', {})
-    anomaly_badge = ""
-    if vortex_data.get('volume_anomaly'):
-        anomaly_badge = '<span class="anomaly-badge">⚠️ Anomaly</span>'
     
-    # استفاده از ستون‌های Streamlit به جای CSS flex
-    col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-    
-    with col1:
-        st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="font-size: 1.5rem;">🪙</div>
-            <div>
-                <div style="display: flex; align-items: center;">
-                    <div class="text-primary" style="font-size: 1.1rem;">
-                        {coin.get('symbol', 'N/A')}
-                    </div>
-                    {anomaly_badge}
+    # استفاده از کامپوننت‌های خالص Streamlit
+    with st.container():
+        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+        
+        with col1:
+            # نماد و نام
+            st.markdown(f"🪙 **{coin.get('symbol', 'N/A')}**")
+            st.markdown(f"<div class='text-secondary' style='font-size: 0.8rem;'>{coin.get('name', 'Unknown')}</div>", unsafe_allow_html=True)
+            
+            # آنومالی
+            if vortex_data.get('volume_anomaly'):
+                st.markdown("<div class='anomaly-badge'>⚠️ Anomaly</div>", unsafe_allow_html=True)
+        
+        with col2:
+            # قیمت
+            st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${coin.get('price', 0):,.2f}</div>", unsafe_allow_html=True)
+            
+            # درصد تغییرات در دکمه سفید
+            st.markdown(f"""
+            <div class='value-badge'>
+                <div class='{change_color}' style='font-size: 0.9rem;'>
+                    {change_icon} {coin.get('change_24h', 0):+.2f}%
                 </div>
-                <div class="text-secondary" style="font-size: 0.8rem;">{coin.get('name', 'Unknown')}</div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown(f"""
-        <div style="text-align: center;">
-            <div class="text-primary" style="font-size: 1.1rem; font-weight: bold;">
-                ${coin.get('price', 0):,.2f}
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            # سیگنال AI در دکمه سفید
+            st.markdown("<div class='text-secondary' style='font-size: 0.8rem; text-align: center;'>Signal</div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class='value-badge'>
+                <div class='text-signal' style='font-size: 1rem; font-weight: bold;'>
+                    {vortex_data.get('signal_strength', 0):.1f}/10
+                </div>
             </div>
-            <div class="{change_color}" style="font-size: 0.9rem;">
-                {change_icon} {coin.get('change_24h', 0):+.2f}%
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown(f"""
-        <div style="text-align: center;">
-            <div class="text-secondary" style="font-size: 0.8rem;">Signal</div>
-            <div style="color: #2563EB; font-weight: bold; font-size: 1.1rem;">
-                {vortex_data.get('signal_strength', 0):.1f}/10
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-        <div style="text-align: center;">
-            <div class="text-secondary" style="font-size: 0.8rem;">Volume</div>
-            <div class="text-primary" style="font-size: 0.9rem;">
-                ${coin.get('volume', 0)/1000000:.1f}M
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # خط جداکننده
-    st.markdown("<hr style='margin: 0.5rem 0; border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            # حجم
+            st.markdown("<div class='text-secondary' style='font-size: 0.8rem; text-align: center;'>Volume</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${coin.get('volume', 0)/1000000:.1f}M</div>", unsafe_allow_html=True)
+        
+        # خط جداکننده
+        st.markdown("---")
 
 # ==================== MAIN APP ====================
 class VortexAIApp:
@@ -370,10 +328,10 @@ class VortexAIApp:
             coins = st.session_state.scan_data.get("coins", [])
             st.success(f"📊 Displaying {len(coins)} coins from real server")
             
-            # نمایش کوین‌ها با طراحی شیشه‌ای
+            # نمایش کوین‌ها در یک کارت شیشه‌ای
             st.markdown('<div class="glass-card">', unsafe_allow_html=True)
             for coin in coins:
-                render_coin_card_simple(coin)
+                render_coin_card_clean(coin)
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.warning("⚠️ No market data available. Click 'Scan Market' to get real-time data.")
@@ -407,9 +365,9 @@ class VortexAIApp:
     def run(self):
         """اجرای برنامه"""
         self.initialize_session_state()
-        apply_glass_design()  # اعمال طراحی شیشه‌ای
-        render_glass_header()  # نمایش هدر
-        self.render_status_cards()  # کارت‌های وضعیت
+        apply_glass_design()
+        render_glass_header()
+        self.render_status_cards()
         
         page, scan_limit, filter_type = self.render_sidebar()
         
