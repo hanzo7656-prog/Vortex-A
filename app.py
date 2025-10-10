@@ -1,47 +1,112 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import requests
 
+# ==================== CONSTANTS ====================
+LIGHT_THEME = {
+    "primary": "#2563EB",
+    "secondary": "#6366F1", 
+    "background": "#FFFFFF",
+    "surface": "#F8FAFC",
+    "text_primary": "#1E293B",
+    "text_secondary": "#64748B",
+    "success": "#10B981",
+    "warning": "#F59E0B",
+    "error": "#EF4444",
+    "border": "#E2E8F0"
+}
 
-try:
-    from constants import API_BASE_URL, LIGHT_THEME, DARK_THEME
-except ImportError:
+DARK_THEME = {
+    "primary": "#3B82F6",
+    "secondary": "#818CF8",
+    "background": "#0F172A",
+    "surface": "#1E293B",
+    "text_primary": "#F1F5F9", 
+    "text_secondary": "#94A3B8",
+    "success": "#34D399",
+    "warning": "#FBBF24",
+    "error": "#F87171",
+    "border": "#334155"
+}
+
+API_BASE_URL = "http://localhost:3000/api"
+
+# ==================== API CLIENT ====================
+class VortexAPIClient:
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.session = requests.Session()
+        self.timeout = 30
+        self.request_count = 0
     
-    API_BASE_URL = "http://localhost:3000/api"
-    LIGHT_THEME = {
-        "primary": "#2563EB",
-        "secondary": "#6366F1", 
-        "background": "#FFFFFF",
-        "surface": "#F8FAFC",
-        "text_primary": "#1E293B",
-        "text_secondary": "#64748B",
-        "success": "#10B981",
-        "warning": "#F59E0B",
-        "error": "#EF4444",
-        "border": "#E2E8F0"
-    }
-    DARK_THEME = {
-        "primary": "#3B82F6",
-        "secondary": "#818CF8",
-        "background": "#0F172A",
-        "surface": "#1E293B",
-        "text_primary": "#F1F5F9", 
-        "text_secondary": "#94A3B8",
-        "success": "#34D399",
-        "warning": "#FBBF24",
-        "error": "#F87171",
-        "border": "#334155"
-    }
-
-
-try:
-    from api_client import VortexAPIClient
-except ImportError:
+    def get_health_status(self):
+        """دریافت وضعیت سلامت سرور"""
+        try:
+            response = self.session.get(f"{self.base_url}/health-combined", timeout=self.timeout)
+            self.request_count += 1
+            return response.json()
+        except Exception as e:
+            return {
+                "status": "offline",
+                "error": str(e),
+                "websocket_status": {"connected": False, "active_coins": 0},
+                "api_status": {"requests_count": self.request_count},
+                "gist_status": {"total_coins": 0}
+            }
     
-    import requests
+    def scan_market(self, limit=100, filter_type="volume"):
+        """
+        اسکن واقعی مارکت - مشابه endpoint اسکن شما
+        /api/scan/vortexai
+        """
+        try:
+            params = {
+                "limit": limit,
+                "filter": filter_type
+            }
+            
+            st.info(f"🔄 Scanning market with {limit} coins...")
+            response = self.session.get(
+                f"{self.base_url}/scan/vortexai", 
+                params=params, 
+                timeout=self.timeout
+            )
+            self.request_count += 1
+            
+            data = response.json()
+            
+            if data.get("success"):
+                st.success(f"✅ Received {len(data.get('coins', []))} coins from server")
+                return data
+            else:
+                st.error(f"❌ Scan failed: {data.get('error', 'Unknown error')}")
+                return None
+                
+        except Exception as e:
+            st.error(f"🚨 API Error: {str(e)}")
+            return None
     
-    pass
+    def get_coin_technical(self, symbol):
+        """
+        دریافت تحلیل تکنیکال واقعی
+        /api/coin/{symbol}/technical
+        """
+        try:
+            response = self.session.get(
+                f"{self.base_url}/coin/{symbol}/technical",
+                timeout=self.timeout
+            )
+            self.request_count += 1
+            
+            data = response.json()
+            return data if data.get("success") else None
+            
+        except Exception as e:
+            st.error(f"Technical analysis error: {str(e)}")
+            return None
 
+# ==================== MAIN APP ====================
 class VortexAIApp:
     def __init__(self):
         self.api_client = VortexAPIClient(API_BASE_URL)
@@ -108,7 +173,7 @@ class VortexAIApp:
             filter_type = st.selectbox("Filter by", ["volume", "momentum_1h", "momentum_4h", "ai_signal"])
             
             if st.button("🎯 Start Scan", use_container_width=True):
-                self.api_client.scan_market(limit=scan_limit, filter_type=filter_type)
+                self.perform_market_scan()
             
             st.divider()
             dark_mode = st.toggle("🌙 Dark Mode", value=False)
@@ -225,8 +290,26 @@ class VortexAIApp:
         else:
             st.warning("Scan market first to see dashboard data")
     
-    # بقیه توابع (Top Movers, Alerts, Technical Data, Settings) رو می‌تونیم بعداً کامل کنیم
-    
+    def render_top_movers(self):
+        """صفحه Top Movers"""
+        st.header("⚡ Top Movers")
+        st.info("This page will show top gainers and losers from real server data")
+        
+    def render_alerts_page(self):
+        """صفحه هشدارها"""
+        st.header("🔔 Alert System")
+        st.info("This page will show real-time alerts from server")
+        
+    def render_technical_data(self):
+        """صفحه داده‌های تکنیکال"""
+        st.header("📈 Technical Data")
+        st.info("This page will show detailed technical analysis from server")
+        
+    def render_settings(self):
+        """صفحه تنظیمات"""
+        st.header("⚙️ Settings")
+        st.info("Application settings page")
+
     def run(self):
         """اجرای برنامه"""
         self.initialize_session_state()
@@ -239,13 +322,13 @@ class VortexAIApp:
         elif "🔍 Market Scanner" in page:
             self.render_market_scanner(scan_limit, filter_type)
         elif "⚡ Top Movers" in page:
-            st.info("Top Movers page - Coming soon with real data")
+            self.render_top_movers()
         elif "🔔 Alerts" in page:
-            st.info("Alerts page - Coming soon with real data")
+            self.render_alerts_page()
         elif "📈 Technical Data" in page:
-            st.info("Technical Data page - Coming soon with real data")
+            self.render_technical_data()
         elif "⚙️ Settings" in page:
-            st.info("Settings page")
+            self.render_settings()
 
 if __name__ == "__main__":
     app = VortexAIApp()
