@@ -27,7 +27,7 @@ class LightweightScanner:
                 return self._get_fallback_data()
 
             # درخواست اصلی
-            scan_url = f"{self.api_base}/api/scan/vortexai?limit={limit}"
+            scan_url = f"{self.api_base}/api/scan/vortexai?limit={limit}&filter=volume"
             print(f"📡 درخواست اصلی: {scan_url}")
             
             response = requests.get(scan_url, timeout=self.timeout)
@@ -45,6 +45,7 @@ class LightweightScanner:
                     if raw_coins:
                         first_coin = raw_coins[0]
                         print(f"🎯 اولین ارز: {first_coin.get('name')} ({first_coin.get('symbol')})")
+                        print(f"🔑 کلیدهای موجود: {list(first_coin.keys())}")
                         
                         # بررسی کامل فیلدهای تاریخی
                         historical_fields = ['change_1h', 'change_4h', 'change_24h', 'change_7d', 'change_30d', 'change_180d',
@@ -143,6 +144,13 @@ class LightweightScanner:
                     'has_real_historical_data': has_real_historical,
                     'data_source': 'real_api' if has_real_historical else 'api_no_historical'
                 }
+                
+                # اضافه کردن تحلیل VortexAI فقط اگر در داده اصلی وجود دارد
+                if 'VortexAI_analysis' in coin:
+                    processed_coin['VortexAI_analysis'] = coin['VortexAI_analysis']
+                elif 'vortexai_analysis' in coin:
+                    processed_coin['VortexAI_analysis'] = coin['vortexai_analysis']
+                # اگر وجود ندارد، اضافه نکن - هیچ داده ساختگی نساز
                 
                 processed_coins.append(processed_coin)
                 
@@ -301,7 +309,7 @@ class LightweightScanner:
             print(f"✅ سلامت سرور: {health_response.status_code}")
             
             # تست اسکن
-            scan_url = f"{self.api_base}/api/scan/vortexai?limit=3"
+            scan_url = f"{self.api_base}/api/scan/vortexai?limit=3&filter=volume"
             response = requests.get(scan_url, timeout=self.timeout)
             
             if response.status_code == 200:
