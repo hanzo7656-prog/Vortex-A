@@ -36,7 +36,30 @@ except ImportError:
         "border": "#334155"
     }
     
-from api_client import VortexAPIClient
+# import api_client به صورت مستقیم
+try:
+    from api_client import VortexAPIClient
+except ImportError:
+    # اگر import نشد، کلاس رو مستقیماً تعریف کن
+    import requests
+    class VortexAPIClient:
+        def __init__(self, base_url):
+            self.base_url = base_url
+            self.session = requests.Session()
+            self.timeout = 30
+        
+        def get_health_status(self):
+            """دریافت وضعیت سلامت سرور"""
+            try:
+                response = self.session.get(f"{self.base_url}/health-combined", timeout=self.timeout)
+                return response.json()
+            except Exception as e:
+                return {
+                    "status": "offline",
+                    "websocket_status": {"connected": False, "active_coins": 0},
+                    "api_status": {"requests_count": 0},
+                    "gist_status": {"total_coins": 0}
+                }
 from components.cards import render_metric_card, render_coin_card, render_alert_card
 
 class VortexAIApp:
