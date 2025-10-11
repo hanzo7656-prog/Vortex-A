@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import requests
+from technical_analysis import TechnicalAnalysisUI
 
 # --- CONSTANTS ---
 API_BASE_URL = "https://server-test-ovta.onrender.com/api"
@@ -403,7 +404,56 @@ def add_debug_button():
 class VortexAIApp:
     def __init__(self):
         self.api_client = VortexAPIClient(API_BASE_URL)
+        self.technical_ui = TechnicalAnalysisUI(self.api_client)
 
+    def render_technical_analysis(self):
+        st.markdown("""
+        <div class="glass_card">
+            <h2 style="color: #FFFFFF; margin: 0;"> 📈Technical Analysis </h2>
+        </div>
+        """,unsafe_allow_html=True)
+        
+        if st.session_state.scan_data:
+            coins = st.session_state.scan_data.get("coins", [])
+            
+            # انتخاب کوین برای تحلیل
+            selected_symbol = st.selectbox(
+                "Select Coin for Detailed Analysis",
+                options=[coin['symbol'] for coin in coins],
+                key="tech_analysis_coin"
+            )
+            
+            # پیدا کردن کوین انتخاب شده
+            selected_coin = next((coin for coin in coins if coin['symbol'] == selected_symbol), None)
+            
+            if selected_coin:
+                self.technical_ui.render_technical_dashboard(selected_coin)
+            else:
+                st.warning("⚠️ Please select a valid coin")
+        else:
+            st.warning("⚠️ Please scan market first to see technical data")
+    
+    def run(self):
+        self.initialize_session_state()
+        apply_glass_design()
+        render_glass_header()
+        self.render_status_cards()
+        
+        page, scan_limit, filter_type = self.render_sidebar()
+        
+        if "📊 Dashboard" in page:
+            self.render_dashboard()
+        elif "🔍 Market Scanner" in page:
+            self.render_market_scanner(scan_limit, filter_type)
+        elif "📈 Technical Data" in page:  # این خط تغییر کرد
+            self.render_technical_analysis()  # حالا صفحه واقعی هست
+        elif "🚀 Top Movers" in page:
+            st.info("🚀 Top movers page - Coming soon")
+        elif "⚠️ Alerts" in page:
+            st.info("⚠️ Alerts page - Coming soon")
+        elif "⚙️ Settings" in page:
+            st.info("⚙️ Settings page")
+    
     def initialize_session_state(self):
         """مقادیر اولیه session state"""
         if 'scan_data' not in st.session_state:
@@ -482,7 +532,7 @@ class VortexAIApp:
             
             page = st.radio(
                 "Navigation",
-                ["📊 Dashboard", "🔍 Market Scanner", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
+                ["📊 Dashboard", "🔍 Market Scanner", "📈 Technical Data", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
                 index=1
             )
             
