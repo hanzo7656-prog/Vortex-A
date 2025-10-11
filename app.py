@@ -538,6 +538,7 @@ class VortexAIApp:
                 "Navigation",
                 ["📊 Dashboard", "🔍 Market Scanner", "📈 Technical Data", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
                 index=1
+                key="main_navigation_v2"
             )
             
             st.divider()
