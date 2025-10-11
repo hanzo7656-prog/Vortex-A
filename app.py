@@ -536,7 +536,7 @@ class VortexAIApp:
             
             page = st.radio(
                 "Navigation",
-                ["📊 Dashboard", "🔍 Market Scanner", "📈 Technical Data", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
+                ["📊 Dashboard", "🔍 Market Scanner", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
                 index=1,
                 key="main_navigation_v2"
             )
