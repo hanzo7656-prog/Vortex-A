@@ -5,29 +5,53 @@ class TechnicalAnalysisUI:
     def __init__(self, api_client):
         self.api_client = api_client
     
-    def render_technical_dashboard(self, coin):
-        """داشبورد تحلیل تکنیکال برای یک کوین"""
-        st.markdown(f"""
-        <div class="glass-card">
-            <h2 style="color: #FFFFFF; margin: 0;">📈 Technical Data - {coin.get('symbol', 'N/A')}</h2>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        technical_data = self.get_coin_technical(coin['symbol'])
-        
-        if technical_data and technical_data.get('success'):
-            self.render_indicators_grid(technical_data)
-            self.render_signals(technical_data, coin)
-            self.render_price_info(coin)
-        else:
-            st.warning("⚠️ Technical data not available for this coin")
     
     def get_coin_technical(self, symbol):
-        """دریافت تحلیل تکنیکال از سرور"""
+        """دریافت تحلیل تکنیکال از سرور با اندپوینت صحیح"""
         try:
-            return self.api_client.get_coin_technical(symbol)
-        except:
+            st.write(f"🔍 Fetching technical data for {symbol}...")
+            technical_data = self.api_client.get_coin_technical(symbol)
+        
+            if technical_data:
+                st.write("✅ Technical data received from server")
+                # نمایش دیباگ اطلاعات
+                st.json(technical_data)
+                return technical_data
+            else:
+                st.warning("⚠️ No technical data available from server")
+                return None
+        except Exception as e:
+            st.error(f"🔧 Error getting technical data: {str(e)}")
             return None
+
+    def render_technical_dashboard(self, coin):
+         """داشبورد تحلیل تکنیکال برای یک کوین"""
+        st.markdown(f"""
+        <div class="glass-card">
+            <h2 style="color: #FFFFFF; margin: 0;">📈 Technical Analysis - {coin.get('symbol', 'N/A')}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+        # تست مستقیم اندپوینت
+        if st.button("🧪 Test Direct API Call"):
+            test_symbol = coin['symbol']
+            st.write(f"Testing API for: {test_symbol}")
+            test_url = f"https://server-test-ovta.onrender.com/analysis?symbol={test_symbol.lower()}_usdt"
+            st.write(f"API URL: {test_url}")
+    
+        # دریافت داده‌های تکنیکال از سرور
+        technical_data = self.get_coin_technical(coin['symbol'])
+    
+        if technical_data and technical_data.get("success"):
+            st.success("✅ Technical data loaded successfully!")
+            self.render_indicators_grid(technical_data)
+            self.render_signals(technical_data, coin)
+        else:
+            st.warning("⚠️ Technical data not available for this coin")
+            # نمایش داده‌های پایه به عنوان fallback
+            self.render_basic_analysis(coin)
+    
+        self.render_price_info(coin)
     
     def render_indicators_grid(self, technical_data):
         """نمایش گرید اندیکاتورها"""
