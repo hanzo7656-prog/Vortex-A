@@ -196,80 +196,77 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم با دکمه‌های شیشه‌ای مرتب در یک خط"""
+    """نمایش انتخاب تایم‌فریم با دکمه‌های کوچک در یک خط"""
     
     st.markdown("""
     <style>
-    /* حذف کامل استایل رادیو باتون‌ها */
-    .stRadio > div {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    /* حذف دایره‌های رادیو */
-    .stRadio > div > label > div:first-child {
-        display: none !important;
-    }
-    
-    /* استایل برای لیبل‌ها به صورت دکمه */
-    .stRadio > div > label {
-        flex: 1 !important;
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 12px !important;
-        padding: 12px 8px !important;
-        text-align: center !important;
-        color: white !important;
+    /* کوچک کردن دکمه‌ها */
+    .stButton > button {
+        border-radius: 10px !important;
         font-weight: 600 !important;
         transition: all 0.3s ease !important;
-        cursor: pointer !important;
-        margin: 0 !important;
-        min-width: 60px !important;
+        margin: 0 1px !important;
+        font-size: 12px !important;
+        padding: 6px 4px !important;
+        height: 35px !important;
+        min-width: 45px !important;
     }
     
-    .stRadio > div > label:hover {
-        background: rgba(255, 255, 255, 0.2) !important;
-        transform: translateY(-2px) !important;
-    }
-    
-    /* وقتی انتخاب شده */
-    .stRadio > div > label[data-testid="stRadio"] {
+    .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
+        color: white !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 224, 0.4) !important;
+    }
+    
+    .stButton > button[kind="secondary"] {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: white !important;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    /* فشرده‌تر کردن columns */
+    .stColumns {
+        gap: 2px !important;
+    }
+    
+    /* کاهش margin بین دکمه‌ها */
+    div[data-testid="column"] {
+        padding: 0 1px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style='text-align: center; margin-bottom: 1rem;'>
-        <h3 style='color: #FFFFFF; margin: 0;'>📊 Select Timeframe</h3>
+    <div style='text-align: center; margin-bottom: 0.5rem;'>
+        <h3 style='color: #FFFFFF; margin: 0; font-size: 16px;'>📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
 
-    timeframe_options = {
-        "1H": "1h",
-        "4H": "4h", 
-        "1D": "24h",
-        "1W": "7d",
-        "1M": "30d",
-        "3M": "90d"
-    }
+    timeframe_config = [
+        ("1H", "1h"), ("4H", "4h"), ("1D", "24h"), 
+        ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
+    ]
 
-    # استفاده از radio button بدون دایره
-    selected = st.radio(
-        "Timeframe",
-        options=list(timeframe_options.keys()),
-        horizontal=True,
-        label_visibility="collapsed",
-        key="timeframe_radio"
-    )
-
-    # آپدیت session state
-    st.session_state.selected_timeframe = timeframe_options[selected]
+    # استفاده از columns با gap کم
+    cols = st.columns(6)
+    
+    for i, (display_text, timeframe_value) in enumerate(timeframe_config):
+        with cols[i]:
+            is_selected = st.session_state.selected_timeframe == timeframe_value
+            if st.button(
+                display_text,
+                key=f"tf_{timeframe_value}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                st.session_state.selected_timeframe = timeframe_value
+                st.rerun()
 
     # نمایش تایم‌فریم انتخاب شده
     current_tf = st.session_state.selected_timeframe
@@ -279,12 +276,13 @@ def render_timeframe_selector():
         f"""
         <div style='
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 0.7rem;
+            border-radius: 8px;
+            padding: 0.5rem;
             color: white;
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
             font-weight: 600;
+            font-size: 14px;
         '>
             🎯 Selected: <span style='color: #667ee0; font-weight: bold;'>{display_map.get(current_tf, current_tf)}</span>
         </div>
