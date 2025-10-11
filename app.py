@@ -536,7 +536,7 @@ class VortexAIApp:
             
             page = st.radio(
                 "Navigation",
-                ["📊 Dashboard", "🔍 Market Scanner", "🚀 Top Movers", "⚠️ Alerts", "📈 Technical Data", "⚙️ Settings"],
+                ["📊 Dashboard", "🔍 Market Scanner", "📈 Technical Data", "🚀 Top Movers", "⚠️ Alerts", "⚙️ Settings"],
                 index=1,
                 key="main_navigation_v2"
             )
@@ -638,7 +638,7 @@ class VortexAIApp:
         elif "⚠️ Alerts" in page:
             st.info("⚠️ Alerts page - Coming soon")
         elif "📈 Technical Data" in page:
-            st.info("📈 Technical data page - Coming soon")
+            st.info("📈 Technical Data page - Coming soon")
         elif "⚙️ Settings" in page:
             st.info("⚙️ Settings page")
 
