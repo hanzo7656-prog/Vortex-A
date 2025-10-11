@@ -654,6 +654,29 @@ class VortexAIApp:
             st.info("⚙️ Settings page")
         else:
             st.error(f"❌ Unknown page: {page}")
+
+
+    # 🔥 این رو به انتهای app.py اضافه کن (قبل از خط آخر)
+def add_technical_method():
+    """اضافه کردن تابع get_coin_technical به VortexAPIClient"""
+    def get_coin_technical(self, symbol):
+        try:
+            response = self.session.get(
+                f"{self.base_url}/coin/{symbol}/technical",
+                timeout=self.timeout
+            )
+            self.request_count += 1
+            data = response.json()
+            return data if data.get("success") else None
+        except Exception as e:
+            st.error(f"🔧 Technical analysis error: {str(e)}")
+            return None
+    
+    # اضافه کردن تابع به کلاس
+    VortexAPIClient.get_coin_technical = get_coin_technical
+
+# فراخوانی تابع برای اضافه کردن متد
+add_technical_method()
 if __name__ == "__main__":
     app = VortexAIApp()
     app.run()
