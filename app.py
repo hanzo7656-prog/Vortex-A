@@ -407,32 +407,36 @@ class VortexAIApp:
         self.technical_ui = TechnicalAnalysisUI(self.api_client)
 
     def render_technical_analysis(self):
+        """صفحه تحلیل تکنیکال پیشرفته"""
         st.markdown("""
-        <div class="glass_card">
-            <h2 style="color: #FFFFFF; margin: 0;"> 📈Technical Analysis </h2>
+        <div class="glass-card">
+            <h2 style="color: #FFFFFF; margin: 0;">📈 Technical Analysis</h2>
         </div>
-        """,unsafe_allow_html=True)
-        
+        """, unsafe_allow_html=True)
+    
         if st.session_state.scan_data:
             coins = st.session_state.scan_data.get("coins", [])
+        
+            if not coins:
+                st.warning("⚠️ No coins data available")
+                return
             
             # انتخاب کوین برای تحلیل
             selected_symbol = st.selectbox(
                 "Select Coin for Detailed Analysis",
                 options=[coin['symbol'] for coin in coins],
-                key="tech_analysis_coin"
-            )
-            
-            # پیدا کردن کوین انتخاب شده
-            selected_coin = next((coin for coin in coins if coin['symbol'] == selected_symbol), None)
-            
-            if selected_coin:
-                self.technical_ui.render_technical_dashboard(selected_coin)
-            else:
-                st.warning("⚠️ Please select a valid coin")
+            key="tech_analysis_coin"
+        )
+        
+        # پیدا کردن کوین انتخاب شده
+        selected_coin = next((coin for coin in coins if coin['symbol'] == selected_symbol), None)
+        
+        if selected_coin:
+            self.technical_ui.render_technical_dashboard(selected_coin)
         else:
-            st.warning("⚠️ Please scan market first to see technical data")
-    
+            st.warning("⚠️ Please select a valid coin")
+    else:
+        st.warning("⚠️ Please scan market first to see technical data")
     def run(self):
         self.initialize_session_state()
         apply_glass_design()
