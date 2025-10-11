@@ -425,18 +425,18 @@ class VortexAIApp:
             selected_symbol = st.selectbox(
                 "Select Coin for Detailed Analysis",
                 options=[coin['symbol'] for coin in coins],
-            key="tech_analysis_coin"
-        )
+                key="tech_analysis_coin"
+            )
         
-        # پیدا کردن کوین انتخاب شده
-        selected_coin = next((coin for coin in coins if coin['symbol'] == selected_symbol), None)
+            # پیدا کردن کوین انتخاب شده
+            selected_coin = next((coin for coin in coins if coin['symbol'] == selected_symbol), None)
         
-        if selected_coin:
-            self.technical_ui.render_technical_dashboard(selected_coin)
+            if selected_coin:
+                self.technical_ui.render_technical_dashboard(selected_coin)
+            else:
+                st.warning("⚠️ Please select a valid coin")
         else:
-            st.warning("⚠️ Please select a valid coin")
-    else:
-        st.warning("⚠️ Please scan market first to see technical data")
+            st.warning("⚠️ Please scan market first to see technical data")
     def run(self):
         self.initialize_session_state()
         apply_glass_design()
