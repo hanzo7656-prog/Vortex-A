@@ -23,11 +23,55 @@ class TechnicalAnalysisUI:
             self.render_basic_technical(coin)
     
     def get_coin_technical(self, symbol):
-        """دریافت تحلیل تکنیکال از سرور"""
+        """دریافت تحلیل تکنیکال برای یک کوین"""
         try:
-            return self.api_client.get_coin_technical(symbol)
+            # نمایش اطلاعات دیباگ
+            st.write(f"🔍 Fetching technical data for: {symbol}")
+        
+            # ساخت URL کامل برای دیباگ
+            api_url = f"{self.base_url}/coin/{symbol}/technical"
+            st.write(f"🌐 API URL: {api_url}")
+        
+            # درخواست به API
+            response = self.session.get(api_url, timeout=self.timeout)
+            self.request_count += 1
+        
+            st.write(f"📡 Response Status: {response.status_code}")
+        
+            # بررسی status code
+            if response.status_code != 200:
+                st.error(f"❌ HTTP Error: {response.status_code}")
+                return None
+        
+            # تبدیل به JSON
+            data = response.json()
+        
+            # دیباگ کامل پاسخ
+            st.write("🔧 DEBUG - API Response:")
+            st.write(f"- Success: {data.get('success')}")
+            st.write(f"- Error: {data.get('error')}")
+            st.write(f"- Has indicators: {bool(data.get('technical_indicators'))}")
+            st.write(f"- Has support/resistance: {bool(data.get('support_resistance'))}")
+            st.write(f"- Has vortex analysis: {bool(data.get('vortexai_analysis'))}")
+        
+            if data.get('success'):
+                st.success("✅ API returned successful technical data!")
+                return data
+            else:
+                st.error(f"❌ API returned error: {data.get('error')}")
+                return None
+            
+        except requests.exceptions.Timeout:
+            st.error("❌ API request timeout")
+            return None
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Connection error - server may be down")
+            return None
+        except requests.exceptions.RequestException as e:
+            st.error(f"❌ Request error: {str(e)}")
+            return None
         except Exception as e:
-            st.error(f"🔧 Error: {str(e)}")
+            st.error(f"❌ Unexpected error: {str(e)}")
             return None
     
     def render_advanced_technical(self, technical_data, coin):
