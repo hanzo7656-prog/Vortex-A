@@ -116,3 +116,18 @@ class VortexAPIClient:
     def get_system_health(self):
         """سلامت کامل سیستم"""
         return self.get_health_status()
+
+    
+    def get_coin_technical(self, symbol):
+        """دریافت تحلیل تکنیکال برای یک کوین"""
+        try:
+            response = self.session.get(
+                f"{self.base_url}/coin/{symbol}/technical",
+                timeout=self.timeout
+            )
+            self.request_count += 1
+            data = response.json()
+            return data if data.get("success") else None
+        except Exception as e:
+            st.error(f"🔧 Technical analysis error: {str(e)}")
+            return None
