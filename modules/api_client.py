@@ -57,22 +57,21 @@ class VortexAPIClient:
             return None
     
     def get_coin_technical(self, symbol):
-        """
-        دریافت تحلیل تکنیکال واقعی
-        /api/coin/{symbol}/technical
-        """
+        """دریافت تحلیل تکنیکال برای یک کوین - با اندپوینت صحیح"""
         try:
+            # تبدیل symbol به فرمت مورد نیاز سرور (مثلاً BTC -> btc_usdt)
+            formatted_symbol = f"{symbol.lower()}_usdt"
+        
             response = self.session.get(
-                f"{self.base_url}/coin/{symbol}/technical",
+                f"{self.base_url}/analysis",  # 🔥 اندپوینت صحیح
+                params={"symbol": formatted_symbol},  # 🔥 پارامتر صحیح
                 timeout=self.timeout
             )
             self.request_count += 1
-            
             data = response.json()
             return data if data.get("success") else None
-            
         except Exception as e:
-            st.error(f"Technical analysis error: {str(e)}")
+            st.error(f"🔧 Technical analysis error: {str(e)}")
             return None
     
     def get_coin_history(self, symbol, timeframe="24h"):
