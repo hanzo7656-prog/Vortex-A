@@ -198,44 +198,48 @@ def render_glass_header():
 def render_timeframe_selector():
     """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با دکمه‌های شیشه‌ای جذاب"""
     
-    # استایل شیشه‌ای مدرن برای دکمه‌ها
+    # استایل سفارشی برای دکمه‌های شیشه‌ای
     st.markdown("""
     <style>
-    .glass-button {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
-        padding: 0.5rem 1rem;
-        margin: 0.2rem;
-        transition: all 0.3s ease;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
+    /* استایل برای دکمه‌های اصلی (active) */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        border-radius: 12px !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
+        transition: all 0.3s ease !important;
     }
-    .glass-button:hover {
-        background: rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
+    
+    /* استایل برای دکمه‌های ثانویه (non-active) */
+    .stButton > button[kind="secondary"] {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 12px !important;
+        color: white !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
     }
-    .glass-button.active {
-        background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%);
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4);
+    
+    /* هاور افکت برای همه دکمه‌ها */
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2) !important;
     }
-    .timeframe-container {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
-        margin: 1rem 0;
-        flex-wrap: wrap;
+    
+    /* فونت و ظاهر کلی */
+    .stButton > button {
+        font-size: 14px !important;
+        height: 45px !important;
     }
     </style>
     """, unsafe_allow_html=True)
     
     st.markdown("""
-    <div class="timeframe-selector">
-        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0; text-align: center;">📊 Select Timeframe</h3>
+    <div style='text-align: center; margin-bottom: 1rem;'>
+        <h3 style='color: #FFFFFF; margin: 0;'>📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
     
@@ -244,14 +248,13 @@ def render_timeframe_selector():
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
     
-    # ایجاد دکمه‌های شیشه‌ای زیبا
+    # ایجاد دکمه‌ها در یک ردیف
     cols = st.columns(6)
     
     for i, (display_text, timeframe_value) in enumerate(timeframe_config):
         with cols[i]:
             is_selected = st.session_state.selected_timeframe == timeframe_value
             
-            # استفاده از دکمه با استایل شیشه‌ای
             if st.button(
                 f"**{display_text}**",
                 key=f"tf_{timeframe_value}",
@@ -272,13 +275,14 @@ def render_timeframe_selector():
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
-            padding: 0.5rem;
+            padding: 0.7rem;
             color: white;
             text-align: center;
             margin-top: 1rem;
             font-weight: 600;
+            font-size: 16px;
         '>
-            🎯 Selected: <span style='color: #667ee0;'>{display_map.get(current_tf, current_tf)}</span>
+            🎯 Selected: <span style='color: #667ee0; font-weight: bold;'>{display_map.get(current_tf, current_tf)}</span>
         </div>
         """, 
         unsafe_allow_html=True
