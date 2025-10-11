@@ -196,55 +196,47 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم با دکمه‌های کوچک در یک خط"""
+    """فشرده‌ترین نسخه برای نمایش در یک خط"""
     
     st.markdown("""
     <style>
-    /* کوچک کردن دکمه‌ها */
+    /* بسیار فشرده و کوچک */
     .stButton > button {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        margin: 0 1px !important;
-        font-size: 12px !important;
-        padding: 6px 4px !important;
-        height: 35px !important;
-        min-width: 45px !important;
+        font-size: 11px !important;
+        padding: 4px 2px !important;
+        height: 30px !important;
+        margin: 0 0.5px !important;
+        min-width: 40px !important;
     }
     
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
         color: white !important;
-        box-shadow: 0 4px 12px rgba(102, 126, 224, 0.4) !important;
     }
     
     .stButton > button[kind="secondary"] {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
         color: white !important;
     }
     
-    .stButton > button:hover {
-        transform: translateY(-1px) !important;
-        box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    /* فشرده‌تر کردن columns */
-    .stColumns {
-        gap: 2px !important;
-    }
-    
-    /* کاهش margin بین دکمه‌ها */
+    /* کاهش فاصله بین columns */
     div[data-testid="column"] {
-        padding: 0 1px !important;
+        padding: 0 0.5px !important;
+    }
+    
+    .row-widget.stButton {
+        padding: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style='text-align: center; margin-bottom: 0.5rem;'>
-        <h3 style='color: #FFFFFF; margin: 0; font-size: 16px;'>📊 Select Timeframe</h3>
+    <div style='text-align: center; margin-bottom: 0.3rem;'>
+        <h3 style='color: #FFFFFF; margin: 0; font-size: 14px;'>📊 Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
 
@@ -253,8 +245,8 @@ def render_timeframe_selector():
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
 
-    # استفاده از columns با gap کم
-    cols = st.columns(6)
+    # استفاده از columns بسیار فشرده
+    cols = st.columns([1, 1, 1, 1, 1, 1])
     
     for i, (display_text, timeframe_value) in enumerate(timeframe_config):
         with cols[i]:
@@ -275,16 +267,16 @@ def render_timeframe_selector():
     st.markdown(
         f"""
         <div style='
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.3rem;
             color: white;
             text-align: center;
-            margin-top: 0.5rem;
+            margin-top: 0.3rem;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
         '>
-            🎯 Selected: <span style='color: #667ee0; font-weight: bold;'>{display_map.get(current_tf, current_tf)}</span>
+            🎯 {display_map.get(current_tf, current_tf)}
         </div>
         """, 
         unsafe_allow_html=True
