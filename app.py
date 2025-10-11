@@ -196,70 +196,97 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با دکمه‌های شیشه‌ای"""
+    """نمایش انتخاب تایم‌فریم با دکمه‌های کاملاً افقی"""
     
-    # استایل سفارشی برای دکمه‌های شیشه‌ای
     st.markdown("""
     <style>
-    /* استایل برای دکمه‌های اصلی (active) */
+    /* استایل برای دکمه‌های افقی */
+    .horizontal-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin: 1rem 0 !important;
+    }
+    
+    .stButton > button {
+        flex: 1 !important;
+        margin: 0 !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        min-width: 60px !important;
+    }
+    
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        border-radius: 12px !important;
         color: white !important;
-        font-weight: 600 !important;
         box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
-        transition: all 0.3s ease !important;
-        margin: 2px !important;
     }
     
-    /* استایل برای دکمه‌های ثانویه (non-active) */
     .stButton > button[kind="secondary"] {
         background: rgba(255, 255, 255, 0.1) !important;
-        backdrop-filter: blur(10px) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        border-radius: 12px !important;
         color: white !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        margin: 2px !important;
     }
     
-    /* هاور افکت برای همه دکمه‌ها */
     .stButton > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2) !important;
     }
     </style>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("""
     <div style='text-align: center; margin-bottom: 1rem;'>
         <h3 style='color: #FFFFFF; margin: 0;'>📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
-    
+
     timeframe_config = [
         ("1H", "1h"), ("4H", "4h"), ("1D", "24h"), 
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
+
+    # روش قطعی برای دکمه‌های افقی
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     
-    # ایجاد دکمه‌ها در یک ردیف - بدون use_container_width
-    cols = st.columns(6)
+    with col1:
+        is_selected = st.session_state.selected_timeframe == "1h"
+        if st.button("**1H**", key="tf_1h", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "1h"
+            st.rerun()
     
-    for i, (display_text, timeframe_value) in enumerate(timeframe_config):
-        with cols[i]:
-            is_selected = st.session_state.selected_timeframe == timeframe_value
-            
-            if st.button(
-                f"**{display_text}**",
-                key=f"tf_{timeframe_value}",
-                # use_container_width=False,  # این خط رو حذف کن
-                type="primary" if is_selected else "secondary"
-            ):
-                st.session_state.selected_timeframe = timeframe_value
-                st.rerun()
+    with col2:
+        is_selected = st.session_state.selected_timeframe == "4h"
+        if st.button("**4H**", key="tf_4h", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "4h"
+            st.rerun()
     
+    with col3:
+        is_selected = st.session_state.selected_timeframe == "24h"
+        if st.button("**1D**", key="tf_24h", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "24h"
+            st.rerun()
+    
+    with col4:
+        is_selected = st.session_state.selected_timeframe == "7d"
+        if st.button("**1W**", key="tf_7d", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "7d"
+            st.rerun()
+    
+    with col5:
+        is_selected = st.session_state.selected_timeframe == "30d"
+        if st.button("**1M**", key="tf_30d", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "30d"
+            st.rerun()
+    
+    with col6:
+        is_selected = st.session_state.selected_timeframe == "90d"
+        if st.button("**3M**", key="tf_90d", type="primary" if is_selected else "secondary"):
+            st.session_state.selected_timeframe = "90d"
+            st.rerun()
+
     # نمایش تایم‌فریم انتخاب شده
     current_tf = st.session_state.selected_timeframe
     display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
@@ -268,17 +295,14 @@ def render_timeframe_selector():
         f"""
         <div style='
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             padding: 0.7rem;
             color: white;
             text-align: center;
             margin-top: 1rem;
             font-weight: 600;
-            font-size: 16px;
         '>
-            🎯 Selected: <span style='color: #667ee0; font-weight: bold;'>{display_map.get(current_tf, current_tf)}</span>
+            🎯 Selected: <span style='color: #667ee0;'>{display_map.get(current_tf, current_tf)}</span>
         </div>
         """, 
         unsafe_allow_html=True
