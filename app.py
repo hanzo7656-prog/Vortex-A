@@ -306,18 +306,52 @@ def render_metric_card(title, value, change=None):
     """, unsafe_allow_html=True)
 
 def render_coin_card_clean(coin):
-    """کارت کوین کاملا تغییر یافته برای تطابق با داده‌های واقعی سرور"""
+    """کارت کوین با دیباگ برای پیدا کردن فیلد درصد تغییرات"""
     
-    # استفاده از فیلدهای دقیق سرور - اصلاح شده
-    change_24h = coin.get('change_24h')
+    # دیباگ: نمایش تمام فیلدهای کوین
+    if st.session_state.get('show_debug', False):
+        st.write("🔍 Debug Coin Structure:")
+        st.json(coin)
     
-    # اگر change_24h وجود نداشت، از فیلدهای fallback استفاده کن
-    if change_24h is None:
-        change_24h = coin.get('priceChange24h', 0)
+    # روش سیستماتیک برای پیدا کردن درصد تغییرات
+    def find_price_change(coin_data):
+        """پیدا کردن فیلد درصد تغییرات قیمت"""
+        # لیست تمام فیلدهای ممکن برای درصد تغییرات
+        possible_change_fields = [
+            'change_24h', 'priceChange24h', 'price_change_24h', 
+            'change', 'priceChange', 'changePercent', 'price_change_percent',
+            'percent_change', 'price_change', 'change_24h_percent',
+            'priceChange1h', 'priceChange4h', 'priceChange7d', 'priceChange30d'
+        ]
+        
+        # جستجو در فیلدهای اصلی
+        for field in possible_change_fields:
+            if field in coin_data and coin_data[field] is not None:
+                value = coin_data[field]
+                if isinstance(value, (int, float)) and value != 0:
+                    print(f"✅ Found change field: {field} = {value}")
+                    return value
+        
+        # جستجو در VortexAI analysis
+        vortex_data = coin_data.get('VortexAI_analysis', {})
+        for field in possible_change_fields:
+            if field in vortex_data and vortex_data[field] is not None:
+                value = vortex_data[field]
+                if isinstance(value, (int, float)) and value != 0:
+                    print(f"✅ Found change in VortexAI: {field} = {value}")
+                    return value
+        
+        # اگر هیچکدام پیدا نشد، از realtime_change استفاده کن
+        realtime_change = coin_data.get('realtime_change')
+        if realtime_change is not None:
+            print(f"✅ Using realtime_change: {realtime_change}")
+            return realtime_change
+            
+        print("❌ No change field found, using 0")
+        return 0
     
-    # اگر هنوز None بود، صفر قرار بده
-    if change_24h is None:
-        change_24h = 0
+    # پیدا کردن درصد تغییرات
+    change_24h = find_price_change(coin)
     
     change_color = "text-success" if change_24h >= 0 else "text-error"
     change_icon = "📈" if change_24h >= 0 else "📉"
@@ -342,7 +376,7 @@ def render_coin_card_clean(coin):
             price = coin.get('price') or coin.get('realtime_price') or 0
             st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${price:.4f}</div>", unsafe_allow_html=True)
             
-            # درصد تغییرات در دکمه سفید - اصلاح شده
+            # درصد تغییرات در دکمه سفید
             st.markdown(f"""
             <div class='value-badge'>
                 <div class='{change_color}' style='font-size: 0.9rem;'>
@@ -364,12 +398,27 @@ def render_coin_card_clean(coin):
         
         with col4:
             # حجم
-            volume = coin.get('volume') or 0
+            volume = coin.get('volume') or coin.get('realtime_volume') or 0
             st.markdown("<div class='text-secondary' style='font-size: 0.8rem; text-align: center;'>Volume</div>", unsafe_allow_html=True)
             st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${volume/1000000:.1f}M</div>", unsafe_allow_html=True)
         
         # جداکننده خط
         st.markdown("---")
+
+# اضافه کردن دکمه دیباگ در جایی از برنامه
+def add_debug_button():
+    """اضافه کردن دکمه دیباگ برای بررسی داده‌ها"""
+    if st.sidebar.button("🐛 Debug Mode"):
+        st.session_state.show_debug = not st.session_state.get('show_debug', False)
+        st.rerun()
+    
+    if st.session_state.get('show_debug', False):
+        st.sidebar.info("🔍 Debug Mode: ON")
+        
+        # نمایش ساختار اولین کوین
+        if st.session_state.scan_data and st.session_state.scan_data.get('coins'):
+            st.sidebar.write("📊 First Coin Structure:")
+            st.sidebar.json(st.session_state.scan_data['coins'][0])
 
 # ==================== MAIN APP ====================
 class VortexAIApp:
@@ -541,6 +590,7 @@ class VortexAIApp:
         self.initialize_session_state()
         apply_glass_design()
         render_glass_header()
+        add_debug_button()
         self.render_status_cards()
         
         page, scan_limit, filter_type = self.render_sidebar()
