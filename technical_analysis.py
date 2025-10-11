@@ -9,7 +9,7 @@ class TechnicalAnalysisUI:
         """داشبورد تحلیل تکنیکال برای یک کوین"""
         st.markdown(f"""
         <div class="glass-card">
-            <h2 style="color: #FFFFFF; margin: 0;">📈 Technical Analysis - {coin.get('symbol', 'N/A')}</h2>
+            <h2 style="color: #FFFFFF; margin: 0;">📈 Technical Data - {coin.get('symbol', 'N/A')}</h2>
         </div>
         """, unsafe_allow_html=True)
         
