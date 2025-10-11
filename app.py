@@ -196,52 +196,44 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم به صورت افقی و شیشه‌ای"""
+    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با گزینه‌های داخلی"""
     st.markdown("""
     <div class="timeframe-selector">
         <h3 style="color: #FFFFFF; margin: 0 0 1rem 0;">📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
     
-    # دکمه‌های تایم‌فریم به صورت افقی
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-    
+    # یک ردیف افقی با تمام گزینه‌های تایم‌فریم
     timeframe_config = [
         ("1H", "1h"), ("4H", "4h"), ("1D", "24h"), 
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
     
-    for i, (display_text, timeframe_value) in enumerate(timeframe_config):
-        with [col1, col2, col3, col4, col5, col6][i]:
-            is_selected = st.session_state.selected_timeframe == timeframe_value
-            
-            if st.button(
-                display_text, 
-                key=f"timeframe_{timeframe_value}",
-                use_container_width=True,
-                type="primary" if is_selected else "secondary"
-            ):
-                # وقتی تایم‌فریم انتخاب شد، اسکن جدید بزن
-                st.session_state.selected_timeframe = timeframe_value
-                st.session_state.pending_rescan = True
-                st.rerun()
-            
-            # هایلایت دکمه انتخاب شده
-            if is_selected:
-                st.markdown(
-                    f"<div style='text-align: center; color: #2563EB; font-size: 0.7rem; margin-top: 0.2rem;'>●</div>", 
-                    unsafe_allow_html=True
-                )
+    # ایجاد یک container برای تمام دکمه‌ها در یک خط
+    with st.container():
+        cols = st.columns(6)
+        
+        for i, (display_text, timeframe_value) in enumerate(timeframe_config):
+            with cols[i]:
+                is_selected = st.session_state.selected_timeframe == timeframe_value
+                
+                # دکمه شیشه‌ای
+                if st.button(
+                    display_text,
+                    key=f"tf_{timeframe_value}",
+                    use_container_width=True,
+                    type="primary" if is_selected else "secondary"
+                ):
+                    st.session_state.selected_timeframe = timeframe_value
+                    st.rerun()
     
     # نمایش تایم‌فریم انتخاب شده
-    if 'selected_timeframe' in st.session_state:
-        current_tf = st.session_state.selected_timeframe
-        display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
-        st.markdown(
-            f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
-            unsafe_allow_html=True
-        )
-
+    current_tf = st.session_state.selected_timeframe
+    display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
+    st.markdown(
+        f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
+        unsafe_allow_html=True
+    )
 def render_metric_card(title, value, change=None):
     """کارت متریک شیشه‌ای"""
     change_html = ""
