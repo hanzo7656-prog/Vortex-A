@@ -193,7 +193,7 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم با دکمه‌های شیشه‌ای مرتب در یک خط"""
+    """نمایش انتخاب تایم‌فریم محدود شده به 1H, 1D, 1W"""
     
     st.markdown("""
     <style>
@@ -202,7 +202,7 @@ def render_timeframe_selector():
         display: flex !important;
         flex-direction: row !important;
         justify-content: center !important;
-        gap: 8px !important;
+        gap: 12px !important;
         margin: 1rem 0 !important;
     }
     
@@ -224,7 +224,7 @@ def render_timeframe_selector():
         transition: all 0.3s ease !important;
         cursor: pointer !important;
         margin: 0 !important;
-        min-width: 60px !important;
+        min-width: 80px !important;
     }
     
     .stRadio > div > label:hover {
@@ -247,13 +247,11 @@ def render_timeframe_selector():
     </div>
     """, unsafe_allow_html=True)
 
+    # فقط 3 تایم‌فریم اصلی
     timeframe_options = {
         "1H": "1h",
-        "4H": "4h", 
-        "1D": "24h",
-        "1W": "7d",
-        "1M": "30d",
-        "3M": "90d"
+        "1D": "24h", 
+        "1W": "7d"
     }
 
     # استفاده از radio button بدون دایره
@@ -270,7 +268,7 @@ def render_timeframe_selector():
 
     # نمایش تایم‌فریم انتخاب شده
     current_tf = st.session_state.selected_timeframe
-    display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
+    display_map = {"1h": "1H", "24h": "1D", "7d": "1W"}
     
     st.markdown(
         f"""
@@ -306,55 +304,28 @@ def render_metric_card(title, value, change=None):
     """, unsafe_allow_html=True)
 
 def render_coin_card_clean(coin):
-    """کارت کوین با دیباگ برای پیدا کردن فیلد درصد تغییرات"""
+    """کارت کوین با فیلدهای صحیح درصد تغییرات برای 3 تایم‌فریم اصلی"""
     
-    # دیباگ: نمایش تمام فیلدهای کوین
-    if st.session_state.get('show_debug', False):
-        st.write("🔍 Debug Coin Structure:")
-        st.json(coin)
-    
-    # روش سیستماتیک برای پیدا کردن درصد تغییرات
-    def find_price_change(coin_data):
-        """پیدا کردن فیلد درصد تغییرات قیمت"""
-        # لیست تمام فیلدهای ممکن برای درصد تغییرات
-        possible_change_fields = [
-            'change_24h', 'priceChange24h', 'price_change_24h', 
-            'change', 'priceChange', 'changePercent', 'price_change_percent',
-            'percent_change', 'price_change', 'change_24h_percent',
-            'priceChange1h', 'priceChange4h', 'priceChange7d', 'priceChange30d'
-        ]
+    # پیدا کردن درصد تغییرات بر اساس تایم‌فریم انتخاب شده
+    def get_price_change_by_timeframe(coin_data, timeframe):
+        """گرفتن درصد تغییرات بر اساس تایم‌فریم"""
+        timeframe_map = {
+            "1h": "priceChange1h",   # 1 ساعت
+            "24h": "priceChange1d",  # 1 روز
+            "7d": "priceChange1w"    # 1 هفته
+        }
         
-        # جستجو در فیلدهای اصلی
-        for field in possible_change_fields:
-            if field in coin_data and coin_data[field] is not None:
-                value = coin_data[field]
-                if isinstance(value, (int, float)) and value != 0:
-                    print(f"✅ Found change field: {field} = {value}")
-                    return value
+        change_field = timeframe_map.get(timeframe, "priceChange1d")
+        change_value = coin_data.get(change_field, 0)
         
-        # جستجو در VortexAI analysis
-        vortex_data = coin_data.get('VortexAI_analysis', {})
-        for field in possible_change_fields:
-            if field in vortex_data and vortex_data[field] is not None:
-                value = vortex_data[field]
-                if isinstance(value, (int, float)) and value != 0:
-                    print(f"✅ Found change in VortexAI: {field} = {value}")
-                    return value
-        
-        # اگر هیچکدام پیدا نشد، از realtime_change استفاده کن
-        realtime_change = coin_data.get('realtime_change')
-        if realtime_change is not None:
-            print(f"✅ Using realtime_change: {realtime_change}")
-            return realtime_change
-            
-        print("❌ No change field found, using 0")
-        return 0
+        return change_value if change_value is not None else 0
     
-    # پیدا کردن درصد تغییرات
-    change_24h = find_price_change(coin)
+    # گرفتن درصد تغییرات بر اساس تایم‌فریم انتخاب شده
+    current_timeframe = st.session_state.selected_timeframe
+    change_value = get_price_change_by_timeframe(coin, current_timeframe)
     
-    change_color = "text-success" if change_24h >= 0 else "text-error"
-    change_icon = "📈" if change_24h >= 0 else "📉"
+    change_color = "text-success" if change_value >= 0 else "text-error"
+    change_icon = "📈" if change_value >= 0 else "📉"
     
     vortex_data = coin.get('VortexAI_analysis', {})
     
@@ -372,15 +343,19 @@ def render_coin_card_clean(coin):
                 st.markdown("<div class='anomaly-badge'>∆ Anomaly</div>", unsafe_allow_html=True)
         
         with col2:
-            # قیمت
-            price = coin.get('price') or coin.get('realtime_price') or 0
-            st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${price:.4f}</div>", unsafe_allow_html=True)
+            # قیمت - اولویت‌بندی شده
+            price = (
+                coin.get('realtime_price') or 
+                coin.get('price') or 
+                0
+            )
+            st.markdown(f"<div class='text-primary' style='font-size: 1.1rem; font-weight: bold; text-align: center;'>${price:,.2f}</div>", unsafe_allow_html=True)
             
-            # درصد تغییرات در دکمه سفید
+            # درصد تغییرات در دکمه سفید - حالا با مقدار واقعی
             st.markdown(f"""
             <div class='value-badge'>
                 <div class='{change_color}' style='font-size: 0.9rem;'>
-                    {change_icon} {change_24h:+.2f}%
+                    {change_icon} {change_value:+.2f}%
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -397,10 +372,14 @@ def render_coin_card_clean(coin):
             """, unsafe_allow_html=True)
         
         with col4:
-            # حجم
-            volume = coin.get('volume') or coin.get('realtime_volume') or 0
+            # حجم - اولویت‌بندی شده
+            volume = (
+                coin.get('realtime_volume') or 
+                coin.get('volume') or 
+                0
+            )
             st.markdown("<div class='text-secondary' style='font-size: 0.8rem; text-align: center;'>Volume</div>", unsafe_allow_html=True)
-            st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${volume/1000000:.1f}M</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='text-primary' style='font-size: 0.9rem; text-align: center;'>${volume/1000000:,.1f}M</div>", unsafe_allow_html=True)
         
         # جداکننده خط
         st.markdown("---")
