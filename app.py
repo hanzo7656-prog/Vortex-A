@@ -196,7 +196,7 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با دکمه‌های شیشه‌ای جذاب"""
+    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با دکمه‌های شیشه‌ای"""
     
     # استایل سفارشی برای دکمه‌های شیشه‌ای
     st.markdown("""
@@ -210,6 +210,7 @@ def render_timeframe_selector():
         font-weight: 600 !important;
         box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
         transition: all 0.3s ease !important;
+        margin: 2px !important;
     }
     
     /* استایل برای دکمه‌های ثانویه (non-active) */
@@ -221,18 +222,13 @@ def render_timeframe_selector():
         color: white !important;
         font-weight: 600 !important;
         transition: all 0.3s ease !important;
+        margin: 2px !important;
     }
     
     /* هاور افکت برای همه دکمه‌ها */
     .stButton > button:hover {
         transform: translateY(-2px) !important;
         box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2) !important;
-    }
-    
-    /* فونت و ظاهر کلی */
-    .stButton > button {
-        font-size: 14px !important;
-        height: 45px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -248,7 +244,7 @@ def render_timeframe_selector():
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
     
-    # ایجاد دکمه‌ها در یک ردیف
+    # ایجاد دکمه‌ها در یک ردیف - بدون use_container_width
     cols = st.columns(6)
     
     for i, (display_text, timeframe_value) in enumerate(timeframe_config):
@@ -258,7 +254,7 @@ def render_timeframe_selector():
             if st.button(
                 f"**{display_text}**",
                 key=f"tf_{timeframe_value}",
-                use_container_width=True,
+                # use_container_width=False,  # این خط رو حذف کن
                 type="primary" if is_selected else "secondary"
             ):
                 st.session_state.selected_timeframe = timeframe_value
