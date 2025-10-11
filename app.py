@@ -196,36 +196,38 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """استفاده از radio buttons با استایل شیشه‌ای - قطعاً افقی"""
+    """نمایش انتخاب تایم‌فریم با دکمه‌های شیشه‌ای مرتب در یک خط"""
     
     st.markdown("""
     <style>
-    /* استایل برای radio buttons افقی */
+    /* حذف کامل استایل رادیو باتون‌ها */
     .stRadio > div {
         display: flex !important;
         flex-direction: row !important;
         justify-content: center !important;
-        gap: 10px !important;
+        gap: 8px !important;
+        margin: 1rem 0 !important;
     }
     
-    .stRadio > div[role="radiogroup"] {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 10px !important;
+    /* حذف دایره‌های رادیو */
+    .stRadio > div > label > div:first-child {
+        display: none !important;
     }
     
+    /* استایل برای لیبل‌ها به صورت دکمه */
     .stRadio > div > label {
         flex: 1 !important;
         background: rgba(255, 255, 255, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
         border-radius: 12px !important;
-        padding: 10px 5px !important;
+        padding: 12px 8px !important;
         text-align: center !important;
         color: white !important;
         font-weight: 600 !important;
         transition: all 0.3s ease !important;
         cursor: pointer !important;
+        margin: 0 !important;
+        min-width: 60px !important;
     }
     
     .stRadio > div > label:hover {
@@ -234,7 +236,7 @@ def render_timeframe_selector():
     }
     
     /* وقتی انتخاب شده */
-    .stRadio > div > label[data-testid="stRadio"] > div:first-child > div {
+    .stRadio > div > label[data-testid="stRadio"] {
         background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
         box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
@@ -257,7 +259,7 @@ def render_timeframe_selector():
         "3M": "90d"
     }
 
-    # استفاده از radio button که همیشه افقی کار میکنه
+    # استفاده از radio button بدون دایره
     selected = st.radio(
         "Timeframe",
         options=list(timeframe_options.keys()),
@@ -284,7 +286,7 @@ def render_timeframe_selector():
             margin-top: 1rem;
             font-weight: 600;
         '>
-            🎯 Selected: <span style='color: #667ee0;'>{display_map.get(current_tf, current_tf)}</span>
+            🎯 Selected: <span style='color: #667ee0; font-weight: bold;'>{display_map.get(current_tf, current_tf)}</span>
         </div>
         """, 
         unsafe_allow_html=True
