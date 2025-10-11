@@ -196,42 +196,91 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با گزینه‌های داخلی"""
+    """نمایش انتخاب تایم‌فریم به صورت یک نوار افقی با دکمه‌های شیشه‌ای جذاب"""
+    
+    # استایل شیشه‌ای مدرن برای دکمه‌ها
+    st.markdown("""
+    <style>
+    .glass-button {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 0.5rem 1rem;
+        margin: 0.2rem;
+        transition: all 0.3s ease;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .glass-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+    .glass-button.active {
+        background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4);
+    }
+    .timeframe-container {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin: 1rem 0;
+        flex-wrap: wrap;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown("""
     <div class="timeframe-selector">
-        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0;">📊 Select Timeframe</h3>
+        <h3 style="color: #FFFFFF; margin: 0 0 1rem 0; text-align: center;">📊 Select Timeframe</h3>
     </div>
     """, unsafe_allow_html=True)
     
-    # یک ردیف افقی با تمام گزینه‌های تایم‌فریم
     timeframe_config = [
         ("1H", "1h"), ("4H", "4h"), ("1D", "24h"), 
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
     
-    # ایجاد یک container برای تمام دکمه‌ها در یک خط
-    with st.container():
-        cols = st.columns(6)
-        
-        for i, (display_text, timeframe_value) in enumerate(timeframe_config):
-            with cols[i]:
-                is_selected = st.session_state.selected_timeframe == timeframe_value
-                
-                # دکمه شیشه‌ای
-                if st.button(
-                    display_text,
-                    key=f"tf_{timeframe_value}",
-                    use_container_width=True,
-                    type="primary" if is_selected else "secondary"
-                ):
-                    st.session_state.selected_timeframe = timeframe_value
-                    st.rerun()
+    # ایجاد دکمه‌های شیشه‌ای زیبا
+    cols = st.columns(6)
+    
+    for i, (display_text, timeframe_value) in enumerate(timeframe_config):
+        with cols[i]:
+            is_selected = st.session_state.selected_timeframe == timeframe_value
+            
+            # استفاده از دکمه با استایل شیشه‌ای
+            if st.button(
+                f"**{display_text}**",
+                key=f"tf_{timeframe_value}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                st.session_state.selected_timeframe = timeframe_value
+                st.rerun()
     
     # نمایش تایم‌فریم انتخاب شده
     current_tf = st.session_state.selected_timeframe
     display_map = {"1h": "1H", "4h": "4H", "24h": "1D", "7d": "1W", "30d": "1M", "90d": "3M"}
+    
     st.markdown(
-        f"<div style='color: rgba(255, 255, 255, 0.8); text-align: center; margin-top: 0.5rem;'>Selected: {display_map.get(current_tf, current_tf)}</div>", 
+        f"""
+        <div style='
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 0.5rem;
+            color: white;
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 600;
+        '>
+            🎯 Selected: <span style='color: #667ee0;'>{display_map.get(current_tf, current_tf)}</span>
+        </div>
+        """, 
         unsafe_allow_html=True
     )
 def render_metric_card(title, value, change=None):
