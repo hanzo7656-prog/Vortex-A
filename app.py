@@ -196,47 +196,8 @@ def render_glass_header():
     """, unsafe_allow_html=True)
 
 def render_timeframe_selector():
-    """نمایش انتخاب تایم‌فریم با دکمه‌های کاملاً افقی"""
+    """استفاده از HTML برای دکمه‌های کاملاً افقی"""
     
-    st.markdown("""
-    <style>
-    /* استایل برای دکمه‌های افقی */
-    .horizontal-buttons {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: center !important;
-        gap: 8px !important;
-        margin: 1rem 0 !important;
-    }
-    
-    .stButton > button {
-        flex: 1 !important;
-        margin: 0 !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
-        min-width: 60px !important;
-    }
-    
-    .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #667ee0 0%, #764ba2 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.4) !important;
-        color: white !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 224, 0.4) !important;
-    }
-    
-    .stButton > button[kind="secondary"] {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        color: white !important;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
     st.markdown("""
     <div style='text-align: center; margin-bottom: 1rem;'>
         <h3 style='color: #FFFFFF; margin: 0;'>📊 Select Timeframe</h3>
@@ -248,44 +209,40 @@ def render_timeframe_selector():
         ("1W", "7d"), ("1M", "30d"), ("3M", "90d")
     ]
 
-    # روش قطعی برای دکمه‌های افقی
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # ایجاد HTML برای دکمه‌های افقی
+    buttons_html = """
+    <div style="display: flex; justify-content: center; gap: 8px; margin: 1rem 0; flex-wrap: nowrap;">
+    """
     
-    with col1:
-        is_selected = st.session_state.selected_timeframe == "1h"
-        if st.button("**1H**", key="tf_1h", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "1h"
-            st.rerun()
+    for display_text, timeframe_value in timeframe_config:
+        is_selected = st.session_state.selected_timeframe == timeframe_value
+        bg_color = "linear-gradient(135deg, #667ee0 0%, #764ba2 100%)" if is_selected else "rgba(255, 255, 255, 0.1)"
+        border_color = "rgba(255, 255, 255, 0.4)" if is_selected else "rgba(255, 255, 255, 0.2)"
+        box_shadow = "0 4px 15px rgba(102, 126, 224, 0.4)" if is_selected else "none"
+        
+        buttons_html += f"""
+        <div style="flex: 1; min-width: 60px;">
+            <button onclick="window.location.href='?timeframe={timeframe_value}'"
+                    style="width: 100%; 
+                           background: {bg_color};
+                           border: 1px solid {border_color};
+                           border-radius: 12px;
+                           color: white;
+                           padding: 10px 5px;
+                           font-weight: bold;
+                           cursor: pointer;
+                           transition: all 0.3s ease;
+                           box-shadow: {box_shadow};"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'">
+                {display_text}
+            </button>
+        </div>
+        """
     
-    with col2:
-        is_selected = st.session_state.selected_timeframe == "4h"
-        if st.button("**4H**", key="tf_4h", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "4h"
-            st.rerun()
+    buttons_html += "</div>"
     
-    with col3:
-        is_selected = st.session_state.selected_timeframe == "24h"
-        if st.button("**1D**", key="tf_24h", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "24h"
-            st.rerun()
-    
-    with col4:
-        is_selected = st.session_state.selected_timeframe == "7d"
-        if st.button("**1W**", key="tf_7d", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "7d"
-            st.rerun()
-    
-    with col5:
-        is_selected = st.session_state.selected_timeframe == "30d"
-        if st.button("**1M**", key="tf_30d", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "30d"
-            st.rerun()
-    
-    with col6:
-        is_selected = st.session_state.selected_timeframe == "90d"
-        if st.button("**3M**", key="tf_90d", type="primary" if is_selected else "secondary"):
-            st.session_state.selected_timeframe = "90d"
-            st.rerun()
+    st.markdown(buttons_html, unsafe_allow_html=True)
 
     # نمایش تایم‌فریم انتخاب شده
     current_tf = st.session_state.selected_timeframe
