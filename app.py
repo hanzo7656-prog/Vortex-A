@@ -620,28 +620,40 @@ class VortexAIApp:
             st.warning("⚠️ Scan market first to see dashboard data")
 
     def run(self):
-        """اجرای برنامه"""
+        # 🔥 این رو موقتاً اضافه کن - بعد پاکش کن
+        if st.sidebar.button("🔄 HARD RESET APP"):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+    
         self.initialize_session_state()
         apply_glass_design()
         render_glass_header()
-        add_debug_button()
-        self.render_status_cards()
-        
+    
+        # 🔍 دیباگ پیشرفته
+        st.sidebar.write("---")
+        st.sidebar.write("🔧 DEBUG INFO:")
+        st.sidebar.write(f"Scan Data: {st.session_state.scan_data is not None}")
+    
         page, scan_limit, filter_type = self.render_sidebar()
-        
-        if "📊 Dashboard" in page:
+    
+        st.sidebar.write(f"Selected Page: '{page}'")
+    
+        # شرط ساده و مستقیم
+        if page == "📊 Dashboard":
             self.render_dashboard()
-        elif "🔍 Market Scanner" in page:
+        elif page == "🔍 Market Scanner":
             self.render_market_scanner(scan_limit, filter_type)
-        elif "🚀 Top Movers" in page:
+        elif "Technical" in page or "📈" in page:  # 🔥 هر چیزی که تکنیکال داره
+            self.render_technical_analysis()
+        elif page == "🚀 Top Movers":
             st.info("🚀 Top movers page - Coming soon")
-        elif "⚠️ Alerts" in page:
+        elif page == "⚠️ Alerts":
             st.info("⚠️ Alerts page - Coming soon")
-        elif "📈 Technical Data" in page:
-            st.info("📈 Technical Data page - Coming soon")
-        elif "⚙️ Settings" in page:
+        elif page == "⚙️ Settings":
             st.info("⚙️ Settings page")
-
+        else:
+            st.error(f"❌ Unknown page: {page}")
 if __name__ == "__main__":
     app = VortexAIApp()
     app.run()
